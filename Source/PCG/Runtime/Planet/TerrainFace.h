@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ShapeGenerator.h"
 #include "GeometryActors/GeneratedDynamicMeshActor.h"
 #include "GeometryScript/MeshNormalsFunctions.h"
 #include "GeometryScript/MeshQueryFunctions.h"
@@ -17,7 +18,7 @@ class PCG_API ATerrainFace : public AGeneratedDynamicMeshActor
 public:
 	// Sets default values for this actor's properties
 	ATerrainFace();
-
+	void InitializeTerrain(TObjectPtr<UShapeGenerator> ShapeGenerator, int Resolution, FVector Localup, float Scale);
 	void ConstructMesh();
 
 public:
@@ -39,6 +40,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain")
 	float Scale = 100.0f;
 
+	UPROPERTY()
+	TObjectPtr<UShapeGenerator> ShapeGenerator;
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

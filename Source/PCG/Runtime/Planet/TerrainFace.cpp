@@ -14,9 +14,14 @@ ATerrainFace::ATerrainFace()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+}
 
-
-	ConstructMesh();
+void ATerrainFace::InitializeTerrain(TObjectPtr<UShapeGenerator> ShapeGenerator, int Resolution, FVector Localup, float Scale)
+{
+	this->ShapeGenerator = ShapeGenerator;
+	this->Resolution = Resolution;
+	this->Localup = Localup;
+	this->Scale = Scale;
 }
 
 void ATerrainFace::ConstructMesh()
@@ -37,12 +42,13 @@ void ATerrainFace::ConstructMesh()
 			int i = y * Resolution + x;
 			FVector2D percent = FVector2D(x, y) / (Resolution - 1);
 			FVector pointOnUnitCube = (Localup + (percent.X - 0.5f) * 2 * AxisA + (percent.Y - 0.5f) * 2 * AxisB) * Scale;
-			FVector pointOnUnitSphere = pointOnUnitCube.GetSafeNormal();
+			FVector pointOnUnitSphere = pointOnUnitCube.GetSafeNormal() * Scale;
+			pointOnUnitSphere = ShapeGenerator->CalculatePointOnPlanet(pointOnUnitSphere);
 			Vertices[i] = pointOnUnitSphere;
 			int NewIndex;
 			UGeometryScriptLibrary_MeshBasicEditFunctions::AddVertexToMesh(
 				DynamicMeshComponent->GetDynamicMesh(),
-				pointOnUnitSphere,
+				Vertices[i],
 				NewIndex
 			);
 			
@@ -107,7 +113,6 @@ void ATerrainFace::ConstructMesh()
 void ATerrainFace::BeginPlay()
 {
 	Super::BeginPlay();
-	ConstructMesh();
 }
 
 // Called every frame
@@ -119,5 +124,4 @@ void ATerrainFace::Tick(float DeltaTime)
 void ATerrainFace::RebuildGeneratedMesh(UDynamicMesh* TargetMesh)
 {
 	Super::RebuildGeneratedMesh(TargetMesh);
-	ConstructMesh();
 }

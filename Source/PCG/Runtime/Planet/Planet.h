@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ShapeGenerator.h"
 #include "TerrainFace.h"
 #include "GameFramework/Actor.h"
 #include "Planet.generated.h"
@@ -25,9 +26,32 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void InitializeFaces();
+
+	void GenerateColor();
+
+	void GeneratePlanet();
+
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planet")
-	int Resolution;
+	int Resolution = 10;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planet")
+	float Scale = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planet")
+	TObjectPtr<UMaterial> PlanetDefaultMaterial;
+
+//Color Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Color Settings")
+	FLinearColor PlanetColor = FLinearColor::White;
+
+//Shape Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shape Settings")
+	FShapeSettings ShapeSettings;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shape Settings")
+	TObjectPtr<UShapeGenerator> ShapeGenerator;
+
 private:
 	UPROPERTY()
 	TArray<TObjectPtr<ATerrainFace>>  TerrainFaces;
