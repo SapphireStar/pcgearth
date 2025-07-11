@@ -1,11 +1,12 @@
 #pragma once
 #include "ImageUtils.h"
 #include "TextureCompiler.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 class Helper
 {
 public:
-	static void CacheTextureSampler(UTexture2D* Texture, TArray<FLinearColor>& OutPixelColor)
+	static void CacheTextureSampler(UTexture2D* Texture, TArray<FLinearColor>& OutPixelColor, bool& bFlag)
 	{
 		if (!Texture || !Texture->IsValidLowLevel())
 			return;
@@ -55,9 +56,9 @@ public:
 					if (X < Width && Y < Height)
 					{
 						FColor PixelColor = FormatedImageData[Y * Width + X];
-						OutPixelColor[Y * Width + X] = FLinearColor(PixelColor.R / 255.f, PixelColor.G / 255.f,
-						                                            PixelColor.B / 255.f, PixelColor.A / 255.f);
-						UE_LOG(LogTemp, Warning, TEXT("Read Color: %f, %f, %f, %f"), OutPixelColor[Y * Width + X].R, OutPixelColor[Y * Width + X].G, OutPixelColor[Y * Width + X].B, OutPixelColor[Y * Width + X].A);
+						OutPixelColor[Y * Width + X] = FLinearColor::FromSRGBColor(PixelColor);
+						/*OutPixelColor[Y * Width + X] = FLinearColor(PixelColor.R / 255.f, PixelColor.G / 255.f,
+						                                            PixelColor.B / 255.f, PixelColor.A / 255.f);*/
 					}
 				}
 			}
@@ -70,6 +71,7 @@ public:
 		Texture->MipGenSettings = OldMipGenSettings;
 		Texture->SRGB = bOldSRGB;
 		Texture->UpdateResource();
+		bFlag = true;
 	}
 
 	static FLinearColor ReadTexturePixels(TArray<FLinearColor>& PixelColors, int x, int y, int width, int height)
@@ -115,8 +117,8 @@ public:
 	static FLinearColor BilinearSample(TObjectPtr<UTexture2D> texture, TArray<FLinearColor>& PixelColors, float x,
 	                                   float y)
 	{
-		float width = texture->GetSizeX() - 1;
-		float height = texture->GetSizeY() - 1;
+		int width = 128;
+		int height = 128;
 
 		int x1 = FMath::Floor(x * width);
 		int y1 = FMath::Floor(y * height);

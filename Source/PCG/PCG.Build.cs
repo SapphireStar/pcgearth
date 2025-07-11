@@ -11,7 +11,9 @@ public class PCG : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",  
 			"RenderCore",
 			"RHI",
-			"Renderer"  });
+			"Renderer",
+			"ProceduralMeshComponent"
+		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "GeometryFramework", "GeometryScriptingCore", "GeometryScriptingEditor" });
 

@@ -44,7 +44,8 @@ APlaneEditor::APlaneEditor()
 void APlaneEditor::BeginPlay()
 {
 	Super::BeginPlay();
-	Helper::CacheTextureSampler(HeightMapTexture, HeightMapPixelColors);
+	Helper::CacheTextureSampler(HeightMapTexture, HeightMapPixelColors, bIsHeightMapLoaded);
+	DynamicMeshComponent->SetOverrideRenderMaterial(DefaultMaterial);
 }
 
 void APlaneEditor::Tick(float DeltaTime)
@@ -117,7 +118,7 @@ void APlaneEditor::ModifyVerticesWithBump()
 
 void APlaneEditor::ModifyVerticesWithHeightMap()
 {
-	if (!HeightMapTexture)
+	if (!HeightMapTexture || !bIsHeightMapLoaded)
 	{
 		return;
 	}

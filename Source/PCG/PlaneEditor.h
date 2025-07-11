@@ -26,6 +26,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh Configs")
 	TObjectPtr<UTexture2D>  HeightMapTexture;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh Configs")
+	TObjectPtr<UMaterial> DefaultMaterial;
+
 	UPROPERTY()
 	TArray<FLinearColor> HeightMapPixelColors;
 
@@ -34,6 +37,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh Configs")
 	float Height = 100.f;
+
+	bool bIsHeightMapLoaded = false;
     	
 	virtual void BeginPlay() override;
 
