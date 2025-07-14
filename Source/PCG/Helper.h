@@ -6,6 +6,7 @@
 class Helper
 {
 public:
+	
 	static void CacheTextureSampler(UTexture2D* Texture, TArray<FLinearColor>& OutPixelColor, bool& bFlag)
 	{
 		if (!Texture || !Texture->IsValidLowLevel())

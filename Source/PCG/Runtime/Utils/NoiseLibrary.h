@@ -200,7 +200,7 @@ inline float UNoiseLibrary::Evaluate3D(float X, float Y, float Z, int32 Seed)
 
 inline float UNoiseLibrary::Evaluate(FVector Point, int32 Seed)
 {
-    float noiseValue = (Evaluate3D(Point, Seed) + 1) * .5f;
+    float noiseValue = Evaluate3D(Point, Seed);
     return noiseValue;
 }
 

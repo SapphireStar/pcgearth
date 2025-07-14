@@ -36,6 +36,7 @@ void APlanet::InitializeFaces()
 	if (TerrainFaces.Num() >= 6) return;
 	ShapeGenerator = NewObject<UShapeGenerator>();
 	ShapeGenerator->Initialize(ShapeSettings);
+	ColorGenerator = MakeShared<UColorGenerator>(ColorSettings);
 	
 	TArray<FVector> Directions = {FVector::UpVector, FVector::DownVector, FVector::LeftVector, FVector::RightVector,FVector::ForwardVector, FVector::BackwardVector};
 	FActorSpawnParameters SpawnParams;
@@ -44,15 +45,42 @@ void APlanet::InitializeFaces()
 	{
 		FVector SpawnLocation = GetActorLocation();
 		FRotator SpawnRotation = GetActorRotation();
+		UWorld* World = GetWorld();
+		if (!World)
+		{
+			World = GEngine->GetWorld();
+		}
 		TObjectPtr<ATerrainFace> terrain = Cast<ATerrainFace>(GetWorld()->SpawnActor(ATerrainFace::StaticClass(), &SpawnLocation, &SpawnRotation,SpawnParams));
 		//terrainObj->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 		auto comp = GetComponentByClass<UPrimitiveComponent>();
 		terrain->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-		terrain->InitializeTerrain(ShapeGenerator, Resolution, Directions[i], Scale);
+		terrain->InitializeTerrain(ShapeGenerator, Resolution, Directions[i]);
 		TerrainFaces.Add(terrain);
-		
-		terrain->ConstructMesh();
 	}
+}
+
+void APlanet::UpdateFaces()
+{
+	if (TerrainFaces.Num() <=0 ) return;
+	ShapeGenerator = NewObject<UShapeGenerator>();
+	ShapeGenerator->Initialize(ShapeSettings);
+	TArray<FVector> Directions = {FVector::UpVector, FVector::DownVector, FVector::LeftVector, FVector::RightVector,FVector::ForwardVector, FVector::BackwardVector};
+	if (RenderFaceMask == ERenderFaceMask::RFM_All)
+	{
+		for (int i = 0; i< TerrainFaces.Num(); ++i)
+		{
+			TerrainFaces[i]->InitializeTerrain(ShapeGenerator, Resolution, Directions[i]);
+			TerrainFaces[i]->ConstructMesh();
+		}
+	}
+	else
+	{
+		int index = static_cast<int>(RenderFaceMask) - 1;
+		TerrainFaces[index]->InitializeTerrain(ShapeGenerator, Resolution, Directions[index]);
+		TerrainFaces[index]->ConstructMesh();
+	}
+
+	
 }
 
 void APlanet::GenerateColor()
@@ -60,18 +88,23 @@ void APlanet::GenerateColor()
 	for (auto Terrain : TerrainFaces)
 	{
 		UMaterialInstanceDynamic* PlanetDefault = UMaterialInstanceDynamic::Create(PlanetDefaultMaterial, this);
-		FLinearColor debugcolor;
-		PlanetDefault->GetVectorParameterValue(FName(TEXT("Color")),debugcolor);
-		PlanetDefault->SetVectorParameterValue(FName(TEXT("Color")), PlanetColor);
-		PlanetDefault->GetVectorParameterValue(FName(TEXT("Color")),debugcolor);
+		ColorGenerator->UpdateElevation(ShapeGenerator->ElevationMinMax, PlanetDefault);
+		UE_LOG(LogTemp, Display, TEXT("Generated colors: %f, %f"), ShapeGenerator->ElevationMinMax->Min, ShapeGenerator->ElevationMinMax->Max);
 		Terrain->GetDynamicMeshComponent()->SetMaterial(0, PlanetDefault);
-		Terrain->ConstructMesh();
 	}
 }
 
 void APlanet::GeneratePlanet()
 {
 	InitializeFaces();
+	UpdateFaces();
+	GenerateColor();
+}
+
+void APlanet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	UpdateFaces();
 	GenerateColor();
 }
 

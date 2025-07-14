@@ -18,7 +18,7 @@ class PCG_API ATerrainFace : public AGeneratedDynamicMeshActor
 public:
 	// Sets default values for this actor's properties
 	ATerrainFace();
-	void InitializeTerrain(TObjectPtr<UShapeGenerator> ShapeGenerator, int Resolution, FVector Localup, float Scale);
+	void InitializeTerrain(TObjectPtr<UShapeGenerator>& ShapeGenerator, int Resolution, FVector Localup);
 	void ConstructMesh();
 
 public:
@@ -36,9 +36,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain")
 	FVector AxisB;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain")
-	float Scale = 100.0f;
 
 	UPROPERTY()
 	TObjectPtr<UShapeGenerator> ShapeGenerator;
