@@ -23,13 +23,17 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-protected:
+public:
 	
 	virtual void RebuildGeneratedMesh(UDynamicMesh* TargetMesh) override;
 	UFUNCTION(BlueprintCallable)
 	void MarkPlanetRefresh(bool bImmediate = false, bool bImmediateEventFrozen = false);
+	
 	UFUNCTION(BlueprintImplementableEvent)
 	void GeneratePlanet(UDynamicMesh* TargetMesh);
+	
+	UFUNCTION(BlueprintCallable)
+	void SelectVertices();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

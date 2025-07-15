@@ -5,6 +5,7 @@
 
 #include "GeometryScript/MeshDeformFunctions.h"
 #include "GeometryScript/MeshPrimitiveFunctions.h"
+#include "GeometryScript/MeshSelectionFunctions.h"
 #include "GeometryScript/MeshSubdivideFunctions.h"
 
 
@@ -41,5 +42,13 @@ void AGeometryPlanet::RebuildGeneratedMesh(UDynamicMesh* TargetMesh)
 void AGeometryPlanet::MarkPlanetRefresh(bool bImmediate, bool bImmediateEventFrozen)
 {
 	MarkForMeshRebuild(bImmediate, bImmediateEventFrozen);
+}
+
+void AGeometryPlanet::SelectVertices()
+{
+	/*FGeometryScriptMeshSelection selection;
+	UGeometryScriptLibrary_MeshSelectionFunctions::SelectMeshElementsInSphere(
+		DynamicMeshComponent->GetDynamicMesh(),selection);
+	selection.ConvertToMeshIndexArray()*/
 }
 

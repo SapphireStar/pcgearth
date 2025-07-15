@@ -110,7 +110,8 @@ void UWFCPropagatorDataGenerator::BuildPropagatorTable()
 			{
 				const FWFCTile& OtherTile = CompleteTileData->Tiles[otherT];
 				FString OtherSocket = CompleteTileData->Tiles[otherT].GetSocketForDirection(oppositeDir);
-				if (CompatibleSockets.Contains(OtherSocket))
+				
+				if (SocketData->AreSocketsCompatible(CurrentSocket, OtherSocket))
 				{
 					Propagator[d][t].Add(otherT);
 				}

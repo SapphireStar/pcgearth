@@ -24,14 +24,12 @@ void AGridSystem::SetGridCell(int32 X, int32 Y, int32 Z, AWFCBlock* NewCell)
     }
     if (GridCells[X][Y][Z] && GridCells[X][Y][Z] == NewCell)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Grid already has this cell: (%d, %d, %d)"), X, Y, Z);
         return;
     }
     NewCell->SetActorLocation(Grid[X][Y][Z]);
     if (GridCells[X][Y][Z]) GridCells[X][Y][Z]->Destroy();
     
     GridCells[X][Y][Z] = NewCell;
-    UE_LOG(LogTemp, Log, TEXT("Grid cell at (%d, %d, %d) updated"), X, Y, Z);
 }
 
 AWFCBlock* AGridSystem::GetGridCell(int32 X, int32 Y, int32 Z)

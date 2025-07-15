@@ -16,15 +16,6 @@ AWFCGenerator::AWFCGenerator()
 void AWFCGenerator::BeginPlay()
 {
 	Super::BeginPlay();
-	if (GetWorld())
-	{
-		GridGenerator = GetWorld()->SpawnActor<AGridSystem>(GetActorLocation(), GetActorRotation());
-	}
-	else
-	{
-		return;
-	}
-	
 	PropagatorDataGenerator = MakeShared<UWFCPropagatorDataGenerator>(SocketData, BaseTileData);
 	PropagatorDataGenerator->GeneratePropagatorRules(Propagator);
 	CompleteTileData = PropagatorDataGenerator->CompleteTileData;
@@ -33,8 +24,8 @@ void AWFCGenerator::BeginPlay()
 	{
 		Weights[i] = CompleteTileData->Tiles[i].Weight;
 	}
-	WFCSolver = MakeShared<AWFCSolver>(SizeX, SizeY, SizeZ, Propagator[0].Num(), false, Propagator, Weights);
-	StartWFC();
+	
+	//StartWFC(GetActorLocation(), GetActorRotation());
 }
 
 // Called every frame
@@ -43,10 +34,10 @@ void AWFCGenerator::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AWFCGenerator::StartWFC()
+void AWFCGenerator::StartWFC(int SizeX, int SizeY, int SizeZ, const FVector& Position, const FRotator& Rotation)
 {
-	if (!WFCSolver) return;
-	GridGenerator->InitializeGrid(SizeX, SizeY, SizeZ);
+	WFCSolver = MakeShared<AWFCSolver>(SizeX, SizeY, SizeZ, Propagator[0].Num(), false, Propagator, Weights);
+	auto grid = CreateWFCGrid(SizeX, SizeY, SizeZ, Position, Rotation);
 	TArray<int> Result;
 	WFCSolver->Run(1000, 125, Result);
 	for (int i = 0; i < Result.Num(); i++)
@@ -54,9 +45,18 @@ void AWFCGenerator::StartWFC()
 		int Z = i % SizeZ;
 		int Y = (i / SizeZ) % SizeY;
 		int X = (i / SizeZ) / SizeY;
-		GridGenerator->SetGridCell(X, Y, Z, CreateBlock(Result[i]));
+		grid->SetGridCell(X, Y, Z, CreateBlock(Result[i]));
 		UE_LOG(LogTemp, Warning, TEXT("%d"), Result[i]);
 	}
+}
+
+AGridSystem* AWFCGenerator::CreateWFCGrid(int SizeX, int SizeY, int SizeZ, const FVector& Position,
+	const FRotator& Rotation)
+{
+	auto grid = GetWorld()->SpawnActor<AGridSystem>(Position, Rotation);
+	GridGenerator.Add(grid);
+	grid->InitializeGrid(SizeX, SizeY, SizeZ);
+	return grid;
 }
 
 AWFCBlock* AWFCGenerator::CreateBlock(int t)

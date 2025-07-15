@@ -12,7 +12,9 @@ public class PCG : ModuleRules
 			"RenderCore",
 			"RHI",
 			"Renderer",
-			"ProceduralMeshComponent"
+			"ProceduralMeshComponent",
+			"EnhancedInput",
+			"GeometryCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "GeometryFramework", "GeometryScriptingCore", "GeometryScriptingEditor" });

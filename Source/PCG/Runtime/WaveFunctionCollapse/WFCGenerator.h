@@ -30,19 +30,19 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "WaveFunction")
-	void StartWFC();
+	void StartWFC(int SizeX, int SizeY, int SizeZ, const FVector& Position, const FRotator& Rotation);
+
+	AGridSystem* CreateWFCGrid(int SizeX, int SizeY, int SizeZ, const FVector& Position, const FRotator& Rotation);
 
 	AWFCBlock* CreateBlock(int t);
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int SizeX;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int SizeY;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int SizeZ;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int TileNum;
+	int SizeZ;*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool Periodic;
 	UPROPERTY(Editanywhere, BlueprintReadWrite)
@@ -56,16 +56,11 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UWFCTileData> CompleteTileData;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<AGridSystem> GridGenerator;
+
+	TArray<TObjectPtr<AGridSystem>> GridGenerator;
 
 	TSharedPtr<UWFCPropagatorDataGenerator> PropagatorDataGenerator;
 	TSharedPtr<AWFCSolver> WFCSolver;
 	TArray<TArray<TArray<int>>> Propagator;
 	TArray<double> Weights;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UWFCData> WFCData;
-
 };
