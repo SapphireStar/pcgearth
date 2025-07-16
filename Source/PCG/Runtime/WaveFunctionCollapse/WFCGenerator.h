@@ -30,7 +30,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "WaveFunction")
-	void StartWFC(int SizeX, int SizeY, int SizeZ, const FVector& Position, const FRotator& Rotation);
+	void StartWFC(int SizeX, int SizeY, int SizeZ, const FVector& Position, const FRotator& Rotation, int Seed = 1000);
 
 	AGridSystem* CreateWFCGrid(int SizeX, int SizeY, int SizeZ, const FVector& Position, const FRotator& Rotation);
 
@@ -63,4 +63,5 @@ protected:
 	TSharedPtr<AWFCSolver> WFCSolver;
 	TArray<TArray<TArray<int>>> Propagator;
 	TArray<double> Weights;
+	FRandomStream RandomStream;
 };

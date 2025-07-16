@@ -34,10 +34,12 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	void Move(const FInputActionValue& Value);
+	void StopMove(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Roll(const FInputActionValue& Value);
 	void SelectPoint(const FInputActionValue& Value);
 	void Rise(const FInputActionValue& Value);
+	void ProcessInput(float Deltatime);
 
 	void GenerateBuilding(int SizeX, int SizeY, int SizeZ, const FVector& Location, const FRotator& Rotation);
 
@@ -92,6 +94,25 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SelectRange = 10000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Acceleration = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Deceleration = 500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RollAcceleration = 50.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RollDeceleration = 200.f;
+
+	FVector ActorPrevLocation;
+	FVector ActorCurrentLocation;
+	bool bIsAccelerating = false;
+	FVector CurrentVelocity = FVector::ZeroVector;
+	FVector CurrentAcceleration = FVector::ZeroVector;
+	bool bIsRollAccelerating = false;
 
 	//WFC
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

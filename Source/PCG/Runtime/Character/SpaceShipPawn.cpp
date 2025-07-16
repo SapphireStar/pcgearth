@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
+#include "MaterialHLSLTree.h"
 #include "GeometryScript/MeshSelectionFunctions.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -61,6 +62,7 @@ void ASpaceShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	MainBody->SetWorldRotation(Camera->GetComponentRotation());
+	//ProcessInput(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -70,6 +72,7 @@ void ASpaceShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Move);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::StopMove);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Look);
 		EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Roll);
 		EnhancedInputComponent->BindAction(SelectPointAction, ETriggerEvent::Completed, this,
@@ -85,7 +88,15 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
 	FVector CameraForward = Camera->GetForwardVector() * Y;
 	FVector CameraRight = Camera->GetRightVector() * X;
 	FVector Move = CameraForward + CameraRight;
+	CurrentAcceleration = Move;
+	bIsAccelerating = true;
 	AddActorWorldOffset(Move * GetWorld()->DeltaTimeSeconds * Speed);
+}
+
+void ASpaceShipPawn::StopMove(const FInputActionValue& Value)
+{
+	CurrentAcceleration = FVector::ZeroVector;
+	bIsAccelerating = false;
 }
 
 void ASpaceShipPawn::Look(const FInputActionValue& Value)
@@ -129,28 +140,6 @@ void ASpaceShipPawn::Roll(const FInputActionValue& Value)
 	FQuat CurrentQuat = GetActorQuat();
 	FQuat NewQuat = DeltaQuat * CurrentQuat;
 	SetActorRotation(NewQuat);
-}
-
-FVector GetPerpendicularVector(const FVector& InputVector)
-{
-	FVector NormalizedInput = InputVector.GetSafeNormal();
-
-	// 选择一个不平行的向量进行叉积
-	FVector ArbitraryVector;
-	if (FMath::Abs(NormalizedInput.Z) < 0.9f)
-	{
-		ArbitraryVector = FVector(0, 0, 1); // 使用世界Z轴
-	}
-	else
-	{
-		ArbitraryVector = FVector(1, 0, 0); // 使用世界X轴
-	}
-
-	// 计算叉积得到垂直向量
-	FVector PerpendicularVector = FVector::CrossProduct(NormalizedInput, ArbitraryVector);
-	PerpendicularVector.Normalize();
-
-	return PerpendicularVector;
 }
 
 void ASpaceShipPawn::SelectPoint(const FInputActionValue& Value)
@@ -214,21 +203,66 @@ void ASpaceShipPawn::SelectPoint(const FInputActionValue& Value)
 			}
 		}
 
+		//临时用于让建筑与星球垂直
 		FVector normal = HitResult.ImpactPoint - HitResult.GetActor()->GetActorLocation();
 		normal.Normalize();
-		FVector tangent = GetPerpendicularVector(normal);
-		FVector target = HitResult.ImpactPoint + tangent;
-		FRotator rotator = UKismetMathLibrary::FindLookAtRotation(HitResult.ImpactPoint, target);
-		UE_LOG(LogTemp, Warning, TEXT("normal: %f, %f, %f"), normal.X, normal.Y, normal.Z);
-		UE_LOG(LogTemp, Warning, TEXT("tangent: %f, %f, %f"), tangent.X, tangent.Y, tangent.Z);
+		FRotator rotation = UKismetMathLibrary::FindLookAtRotation(HitResult.GetActor()->GetActorLocation(), HitResult.GetActor()->GetActorLocation() + normal);
 
-		GenerateBuilding(5, 5, 5, HitResult.ImpactPoint, rotator);
+		GenerateBuilding(7, 7, 7, HitResult.ImpactPoint, rotation);
 	}
 }
 
 void ASpaceShipPawn::Rise(const FInputActionValue& Value)
 {
 	AddActorLocalOffset(FVector::UpVector * RiseSpeed * GetWorld()->DeltaTimeSeconds);
+}
+
+void ASpaceShipPawn::ProcessInput(float Deltatime)
+{
+	auto prevtickgroup = PrimaryActorTick.TickGroup;
+	PrimaryActorTick.TickGroup = TG_PostPhysics;
+
+	
+	ActorPrevLocation = ActorCurrentLocation;
+	ActorCurrentLocation = GetActorLocation();
+	CurrentVelocity = (ActorCurrentLocation - ActorPrevLocation) / Deltatime;
+	float velLength = CurrentVelocity.Length();
+	if (bIsAccelerating)
+	{
+		if (CurrentVelocity.Length() > 0)
+		{
+			FVector normal = FVector::CrossProduct(CurrentVelocity, CurrentAcceleration);
+			FVector perpendicularVelocityComp = FVector::CrossProduct(CurrentAcceleration, normal);
+			float length = CurrentVelocity.Dot(perpendicularVelocityComp);
+			if (length < 10.f)
+			{
+				CurrentVelocity -= perpendicularVelocityComp;
+			}
+			else
+			{
+				CurrentVelocity -= perpendicularVelocityComp * Deceleration *Deltatime;
+			}
+		}
+		CurrentVelocity += CurrentAcceleration * Acceleration * Deltatime;
+	}
+	else if (velLength > 1.f && CurrentVelocity.X == 0.f && CurrentVelocity.Y == 0.f && CurrentVelocity.Z == 0.f)
+	{
+		FVector velDir = CurrentVelocity.GetSafeNormal();
+		CurrentVelocity -= velDir * Deceleration * Deltatime;
+		if (CurrentVelocity.Length() < 10.f)
+		{
+			CurrentVelocity =  FVector::ZeroVector;
+		}
+	}
+	else
+	{
+		CurrentVelocity = FVector::ZeroVector;
+	}
+
+	AddActorWorldOffset(CurrentVelocity * Deltatime);
+
+	PrimaryActorTick.TickGroup = prevtickgroup;
+	
 }
 
 void ASpaceShipPawn::GenerateBuilding(int SizeX, int SizeY, int SizeZ, const FVector& Location,

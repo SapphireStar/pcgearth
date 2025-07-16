@@ -27,6 +27,7 @@ void AGridSystem::SetGridCell(int32 X, int32 Y, int32 Z, AWFCBlock* NewCell)
         return;
     }
     NewCell->SetActorLocation(Grid[X][Y][Z]);
+    NewCell->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
     if (GridCells[X][Y][Z]) GridCells[X][Y][Z]->Destroy();
     
     GridCells[X][Y][Z] = NewCell;

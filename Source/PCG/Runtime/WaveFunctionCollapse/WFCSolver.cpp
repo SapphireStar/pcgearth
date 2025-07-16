@@ -181,6 +181,7 @@ int AWFCSolver::NextUnobservedNode(FRandomStream& random)
 void AWFCSolver::Observe(int node, FRandomStream& random)
 {
 	TArray<bool>& w = WaveState[node];
+	
 	for (int t = 0; t < TileNum; ++t)
 	{
 		Distribution[t] = w[t] ? Weights[t] : 0.f;
@@ -193,7 +194,6 @@ void AWFCSolver::Observe(int node, FRandomStream& random)
 			Ban(node, t);
 		}
 	}
-	
 }
 
 bool AWFCSolver::Propagate()
