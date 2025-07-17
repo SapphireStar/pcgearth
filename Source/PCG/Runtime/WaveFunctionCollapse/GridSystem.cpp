@@ -80,8 +80,8 @@ bool AGridSystem::IsValidIndex(int32 X, int32 Y, int32 Z)
 FVector AGridSystem::CalculateWorldPosition(int32 X, int32 Y, int32 Z)
 {
     FVector BasePosition = GetActorLocation();
-    FVector GridOffset = FVector(X * CellSize, Y * CellSize, Z * CellSize);
-    return BasePosition + GridOffset;
+    FVector GridOffset = FVector(X * CellSize, Y * CellSize, Z * CellSize) ;
+    return BasePosition + GridOffset - FVector(0, GridSizeY * CellSize / 2.f , GridSizeZ * CellSize / 2.f);
 }
 
 UStaticMeshComponent* AGridSystem::CreateMeshComponent(const FString& ComponentName)

@@ -8,6 +8,9 @@
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "SpaceShipPawn.generated.h"
 
+class AGridSelectionManager;
+class UItemPlaceComponent;
+class UDynamicMeshComponent;
 struct FInputActionValue;
 class UInputAction;
 class UCameraComponent;
@@ -42,8 +45,12 @@ public:
 	void ProcessInput(float Deltatime);
 
 	void GenerateBuilding(int SizeX, int SizeY, int SizeZ, const FVector& Location, const FRotator& Rotation);
+	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
+	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 
+	void DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, const FVector& Acceleration);
 protected:
+	//Components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UStaticMeshComponent> MainBody;
 
@@ -59,6 +66,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UCameraComponent> Camera;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UItemPlaceComponent> ItemPlaceComponent;
+
+	//Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> MoveAction;
 
@@ -98,8 +109,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Acceleration = 100.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Deceleration = 500.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 2.f, ClampMax = 10.f))
+	float Deceleration = 5.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RollAcceleration = 50.f;
@@ -117,4 +128,10 @@ protected:
 	//WFC
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<AWFCGenerator> WFCGenerator;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float VertexSelectionTolerance = 500.f;
+
+	//Scan
+	TArray<FVector> SelectedGridVertices;
 };
