@@ -176,8 +176,82 @@ void UItemPlaceComponent::SelectPoint(UPrimitiveComponent* TraceStartComp, UCame
 	}
 }
 
+void UItemPlaceComponent::DigTerrain(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera)
+{
+			FVector End = TraceStartComp->GetComponentLocation() + Camera->GetForwardVector() * SelectRange;
+	TArray<AActor*> ActorsToIgnore;
+	FHitResult HitResult;
+	UKismetSystemLibrary::LineTraceSingle(
+		GetWorld(),
+		TraceStartComp->GetComponentLocation(),
+		End,
+		UEngineTypes::ConvertToTraceType(ECC_Visibility),
+		true,
+		ActorsToIgnore,
+		EDrawDebugTrace::ForDuration,
+		HitResult,
+		true,
+		FLinearColor::Red,
+		FLinearColor::Green,
+		5.f);
+	if (HitResult.bBlockingHit)
+	{
+		if (AGeometryPlanet* planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
+		{
+			FVector ImpactRelativePoint = HitResult.ImpactPoint - planet->GetActorLocation();
+			FGeometryScriptMeshSelection selection;
+			UGeometryScriptLibrary_MeshSelectionFunctions::SelectMeshElementsInSphere(
+				planet->GetDynamicMeshComponent()->GetDynamicMesh(),
+				selection,
+				ImpactRelativePoint,
+				VertexSelectionTolerance,
+				EGeometryScriptMeshSelectionType::Vertices,
+				false,
+				1
+			);
+			TArray<int32> indicesout;
+
+			selection.ConvertToMeshIndexArray(
+				planet->GetDynamicMeshComponent()->GetDynamicMesh()->GetMeshRef(),
+				indicesout);
+
+			if (indicesout.Num() > 0)
+			{
+				int LowestVertexID = FindLowestVertex(planet->GetDynamicMeshComponent(), indicesout);
+				bool bIsValidVertex;
+				auto mesh = planet->GetDynamicMeshComponent()->GetDynamicMesh();
+
+				auto lowesetPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
+					mesh, LowestVertexID, bIsValidVertex);
+				float lowestLength = (lowesetPos).Length();
+				for (int i : indicesout)
+				{
+					if (i != LowestVertexID)
+					{
+						auto pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
+							mesh, i, bIsValidVertex);
+						FVector normal = (pos);
+						normal.Normalize();
+						UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
+							mesh, i, normal * (lowestLength - 100.f), bIsValidVertex);
+					}
+				}
+
+				planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
+				planet->GetDynamicMeshComponent()->UpdateCollision();
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("No selection found"));
+			}
+		}
+
+
+	}
+}
+
 void UItemPlaceComponent::GenerateBuilding(int SizeX, int SizeY, int SizeZ, const FVector& Location,
-	const FRotator& Rotation)
+                                           const FRotator& Rotation)
 {
 	if (!WFCGenerator) return;
 	WFCGenerator->StartWFC(SizeX, SizeY, SizeZ, Location, Rotation);

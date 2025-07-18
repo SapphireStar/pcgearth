@@ -42,6 +42,7 @@ public:
 	void Roll(const FInputActionValue& Value);
 	void SelectPoint(const FInputActionValue& Value);
 	void Rise(const FInputActionValue& Value);
+	void DigTerrain(const FInputActionValue& Value);
 	void ProcessInput(float Deltatime);
 
 	void GenerateBuilding(int SizeX, int SizeY, int SizeZ, const FVector& Location, const FRotator& Rotation);
@@ -84,6 +85,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> RiseAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> DigTerrainAction;
 
 	//Control
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

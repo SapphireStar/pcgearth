@@ -42,6 +42,8 @@ public:
 	void SetPixelValue(int32 Offset, float X, float	Y, float Z, float A);
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "PlanetRadius(km)")
+	float PlanetRadius = 10.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* PlanetSphereStaticMesh;
 

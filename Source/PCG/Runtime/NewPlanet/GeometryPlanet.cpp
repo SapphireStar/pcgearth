@@ -37,8 +37,8 @@ void AGeometryPlanet::Tick(float DeltaTime)
 		UpdateTexture16Bytes();
 		if (DynamicMaterialInstance && DynamicTexture)
 		{
-			
 			DynamicMaterialInstance->SetTextureParameterValue("SpherePos", DynamicTexture);
+			DynamicMaterialInstance->SetTextureParameterValue("PlanetRadius", DynamicTexture);
 			DynamicMaterialInstance->SetScalarParameterValue("DataCount", TextureDataSize);
 		}
 			

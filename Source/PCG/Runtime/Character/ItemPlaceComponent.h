@@ -30,6 +30,7 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
 	void SelectPoint(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera);
+	void DigTerrain(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera);
 private:
 	void GenerateBuilding(int SizeX, int SizeY, int SizeZ, const FVector& Location, const FRotator& Rotation);
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);

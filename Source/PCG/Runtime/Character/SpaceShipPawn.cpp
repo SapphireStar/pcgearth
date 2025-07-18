@@ -181,6 +181,7 @@ void ASpaceShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(SelectPointAction, ETriggerEvent::Completed, this,
 		                                   &ASpaceShipPawn::SelectPoint);
 		EnhancedInputComponent->BindAction(RiseAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Rise);
+		EnhancedInputComponent->BindAction(DigTerrainAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::DigTerrain);
 	}
 }
 
@@ -391,6 +392,11 @@ void ASpaceShipPawn::SelectPoint(const FInputActionValue& Value)
 void ASpaceShipPawn::Rise(const FInputActionValue& Value)
 {
 	AddActorLocalOffset(FVector::UpVector * RiseSpeed * GetWorld()->DeltaTimeSeconds);
+}
+
+void ASpaceShipPawn::DigTerrain(const FInputActionValue& Value)
+{
+	ItemPlaceComponent->DigTerrain(Front, Camera);
 }
 
 void ASpaceShipPawn::ProcessInput(float Deltatime)
