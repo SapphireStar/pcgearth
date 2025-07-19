@@ -4,7 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GeometryActors/GeneratedDynamicMeshActor.h"
+#include "PCG/Runtime/Planet/ShapeGenerator.h"
 #include "GeometryPlanet.generated.h"
+
+struct FShapeSettings;
+class USphereComponent;
+class AMineSphere;
 
 UCLASS()
 class PCG_API AGeometryPlanet : public AGeneratedDynamicMeshActor
@@ -33,6 +38,9 @@ public:
 	void GeneratePlanet(UDynamicMesh* TargetMesh);
 
 	UFUNCTION(BlueprintCallable)
+	void ApplyNoiseToPlanet();
+
+	UFUNCTION(BlueprintCallable)
 	void GenerateMineAreas();
 	void InitializeTexture16Bytes();
 	void UpdateTexture16Bytes(bool bFreeData = false);
@@ -47,22 +55,25 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* PlanetSphereStaticMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Texture)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMaterial* Material;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Texture)
-	TArray<FVector> MinePositions;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Texture)
-	TArray<float> MineRadius;
-
-
+#pragma region Mineral
 public:    
 	UPROPERTY(EditDefaultsOnly)
 	int32 TextureWidth = 4;
 
 	UPROPERTY(EditDefaultsOnly)
 	int32 TextureHeight = 1;
+	
+protected:
+	UPROPERTY()
+	TArray<FVector> MinePositions;
+	UPROPERTY()
+	TArray<float> MineRadius;
+	UPROPERTY()
+	TArray<AMineSphere*> MineralAreas;
+	
 private:
 	bool bIsTextureInitialized = false;
 	UPROPERTY()
@@ -75,4 +86,14 @@ private:
 	UPROPERTY()
 	UTexture2D* DynamicTexture;
 	FUpdateTextureRegion2D* TextureRegion;
+#pragma endregion
+
+#pragma  region Terrain
+protected:
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain")
+	FShapeSettings NoiseShapeSettings;
+
+	UPROPERTY()
+	TObjectPtr<UShapeGenerator> NoiseShapeGenerator;*/
+#pragma	endregion 
 };

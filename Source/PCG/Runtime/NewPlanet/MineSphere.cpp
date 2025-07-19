@@ -31,3 +31,9 @@ void AMineSphere::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void AMineSphere::InitializeMineSphere(AGeometryPlanet* planet)
+{
+	this->MotherWorldPlanet =  planet;
+	
+}
+

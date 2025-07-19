@@ -37,7 +37,7 @@ void AWFCGenerator::Tick(float DeltaTime)
 void AWFCGenerator::StartWFC(int SizeX, int SizeY, int SizeZ, const FVector& Position, const FRotator& Rotation, int Seed)
 {
 	WFCSolver = MakeShared<AWFCSolver>(SizeX, SizeY, SizeZ, Propagator[0].Num(), false, Propagator, Weights);
-	auto grid = CreateWFCGrid(SizeX, SizeY, SizeZ, Position, Rotation);
+	auto grid = CreateWFCGrid(SizeZ, SizeY, SizeX, Position, Rotation);
 	TArray<int> Result;
 	WFCSolver->Run(static_cast<int>(RandomStream.FRandRange(0,5000.f)), SizeX * SizeY * SizeZ, Result);
 	for (int i = 0; i < Result.Num(); i++)
@@ -45,7 +45,7 @@ void AWFCGenerator::StartWFC(int SizeX, int SizeY, int SizeZ, const FVector& Pos
 		int Z = i % SizeZ;
 		int Y = (i / SizeZ) % SizeY;
 		int X = (i / SizeZ) / SizeY;
-		grid->SetGridCell(X, Y, Z, CreateBlock(Result[i]));
+		grid->SetGridCell(SizeZ - Z, Y, X, CreateBlock(Result[i]));
 	}
 	grid->SetActorRotation(Rotation);
 	UE_LOG(LogTemp, Warning, TEXT("grid up: %f, %f, %f"), grid->GetActorUpVector().X, grid->GetActorUpVector().Y, grid->GetActorUpVector().Z);

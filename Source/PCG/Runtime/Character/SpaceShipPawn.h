@@ -49,6 +49,7 @@ public:
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 
+	void DrawDebugInfo();
 	void DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, const FVector& Acceleration);
 protected:
 	//Components
@@ -136,6 +137,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float VertexSelectionTolerance = 500.f;
 
-	//Scan
-	TArray<FVector> SelectedGridVertices;
+	//Equipment
+	
 };

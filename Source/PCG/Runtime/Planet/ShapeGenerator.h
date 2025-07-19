@@ -56,12 +56,16 @@ public:
 USTRUCT(BlueprintType)
 struct FShapeSettings
 {
+	FShapeSettings();
+	FShapeSettings(const FShapeSettings& Other);
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float PlanetRadius = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FNoiseLayer> NoiseLayers;
+
+	bool IsValid() const{return NoiseLayers.Num() > 0;}
 };
 
 USTRUCT(BlueprintType)
@@ -82,6 +86,7 @@ class PCG_API UShapeGenerator : public UObject
 public:
 	void Initialize(FShapeSettings ShapeSettings);
 	FVector CalculatePointOnPlanet(FVector pointOnUnitSphere);
+	float CalculateElevationOnPlanet(FVector pointOnUnitSphere);
 private:
 	FShapeSettings ShapeSettings;
 	TArray<TSharedPtr<INoiseFilterInterface>> NoiseFilters;

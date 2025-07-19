@@ -19,8 +19,7 @@ TArray<FString> UWFCSocketCompatibilityData::GetCompatibleSockets(const FString&
 bool UWFCSocketCompatibilityData::AreSocketsCompatible(const FString& Socket1, const FString& Socket2) const
 {
 	auto S1 = GetCompatibleSockets(Socket1);
-	auto S2 = GetCompatibleSockets(Socket2);
-	if (S1.Contains(Socket2) || S2.Contains(Socket1))
+	if (S1.Contains(Socket2))
 		return true;
 	return false;
 }

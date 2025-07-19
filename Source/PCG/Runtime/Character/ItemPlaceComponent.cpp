@@ -144,7 +144,7 @@ void UItemPlaceComponent::SelectPoint(UPrimitiveComponent* TraceStartComp, UCame
 				FRotator rotation = UKismetMathLibrary::FindLookAtRotation(HitResult.GetActor()->GetActorLocation(),
 																		   HitResult.GetActor()->GetActorLocation() + normal);
 
-				GenerateBuilding(7, 7, 7, (HitResult.ImpactPoint - planet->GetActorLocation()).GetSafeNormal() * lowestLength + planet->GetActorLocation(), rotation);
+				GenerateBuilding(5, 6, 7, (HitResult.ImpactPoint - planet->GetActorLocation()).GetSafeNormal() * lowestLength + planet->GetActorLocation(), rotation);
 
 				/*int ClosestVertexID = FindVertex(HitResult.ImpactPoint, planet->GetDynamicMeshComponent(),indicesout);
 

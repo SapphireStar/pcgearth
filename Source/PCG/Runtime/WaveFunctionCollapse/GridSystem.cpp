@@ -6,13 +6,31 @@
 
 AGridSystem::AGridSystem()
 {
-    PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = true;
     RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 }
 
 void AGridSystem::BeginPlay()
 {   
     Super::BeginPlay();
+}
+
+void AGridSystem::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+    if (!BlockQueue.IsEmpty())
+    {
+        auto block = BlockQueue.Peek();
+        if ((*block)->GetActorScale().X >=0)
+        {
+            (*block)->SetActorScale3D(FVector(1,1,1));
+            BlockQueue.Pop();
+        }
+        else
+        {
+            (*block)->SetActorScale3D((*block)->GetActorScale() + FVector(1,1,1) * DeltaTime * ShowBlockSpeed);
+        }
+    }
 }
 
 void AGridSystem::SetGridCell(int32 X, int32 Y, int32 Z, AWFCBlock* NewCell)
@@ -31,6 +49,8 @@ void AGridSystem::SetGridCell(int32 X, int32 Y, int32 Z, AWFCBlock* NewCell)
     if (GridCells[X][Y][Z]) GridCells[X][Y][Z]->Destroy();
     
     GridCells[X][Y][Z] = NewCell;
+    BlockQueue.Enqueue(NewCell);
+    NewCell->SetActorScale3D(FVector::ZeroVector);
 }
 
 AWFCBlock* AGridSystem::GetGridCell(int32 X, int32 Y, int32 Z)

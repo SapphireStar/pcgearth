@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "MineSphere.generated.h"
 
+class AGeometryPlanet;
 class USphereComponent;
 
 UCLASS()
@@ -24,6 +25,8 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	virtual void InitializeMineSphere(AGeometryPlanet* planet);
+	float GetRadius(){return Radius;}
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -31,4 +34,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Radius;
+
+private:
+	UPROPERTY()
+	TObjectPtr<AGeometryPlanet> MotherWorldPlanet;
 };

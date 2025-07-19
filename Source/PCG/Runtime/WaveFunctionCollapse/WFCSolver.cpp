@@ -3,8 +3,6 @@
 
 #include "WFCSolver.h"
 
-#include "../../../../../../../../Shared/Epic Games/UE_5.5/Engine/Plugins/Media/AvfMedia/Source/AvfMediaCapture/Private/Player/AvfMediaCaptureHelper.h"
-
 AWFCSolver::AWFCSolver(int sizeX, int sizeY, int sizeZ, int tileNum, bool periodic,
                        const TArray<TArray<TArray<int>>>& propagator, const TArray<double>& weights)
 {
@@ -130,13 +128,14 @@ bool AWFCSolver::Run(int seed, int limit, TArray<int>& outResult)
 				{
 					if (WaveState[i][t])
 					{
-						//完成坍缩，输出结果
+						
 						Observed[i] = t;
 						outResult[i] = t;
 						break;
 					}
 				}
 			}
+			//完成坍缩，输出结果
 			return true;
 		}
 	}
@@ -307,6 +306,3 @@ int AWFCSolver::RandomChooseTile(const TArray<double>& weights, double rand)
 	}
 	return 0;
 }
-
-
-

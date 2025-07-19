@@ -14,6 +14,8 @@ public:
 	AGridSystem();
 protected:
 	virtual void BeginPlay() override;
+
+	virtual void Tick(float DeltaTime) override;
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
@@ -30,9 +32,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
 	float CellSize = 100.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
+	float ShowBlockSpeed =10.f;
+
 	TArray<TArray<TArray<FVector>>> Grid;
 
 	TArray<TArray<TArray<TObjectPtr<AWFCBlock>>>> GridCells;
+
+	TQueue<AWFCBlock*> BlockQueue;
 
 public:
 	UFUNCTION(BlueprintCallable)

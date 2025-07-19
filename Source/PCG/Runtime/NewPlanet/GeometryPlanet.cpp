@@ -2,12 +2,16 @@
 
 
 #include "GeometryPlanet.h"
+
+#include "MineSphere.h"
+#include "NoiseApplier.h"
 #include "RHICommandList.h"
 #include "Rendering/Texture2DResource.h"
 #include "GeometryScript/MeshDeformFunctions.h"
 #include "GeometryScript/MeshPrimitiveFunctions.h"
 #include "GeometryScript/MeshSelectionFunctions.h"
 #include "GeometryScript/MeshSubdivideFunctions.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 
 // Sets default values
@@ -25,6 +29,7 @@ AGeometryPlanet::AGeometryPlanet()
 void AGeometryPlanet::BeginPlay()
 {
 	Super::BeginPlay();
+	GenerateMineAreas();
 	GenerateMineMaterialTexture();
 }
 
@@ -38,7 +43,7 @@ void AGeometryPlanet::Tick(float DeltaTime)
 		if (DynamicMaterialInstance && DynamicTexture)
 		{
 			DynamicMaterialInstance->SetTextureParameterValue("SpherePos", DynamicTexture);
-			DynamicMaterialInstance->SetTextureParameterValue("PlanetRadius", DynamicTexture);
+			DynamicMaterialInstance->SetScalarParameterValue("PlanetRadius", PlanetRadius * 1000);
 			DynamicMaterialInstance->SetScalarParameterValue("DataCount", TextureDataSize);
 		}
 			
@@ -56,16 +61,77 @@ void AGeometryPlanet::MarkPlanetRefresh(bool bImmediate, bool bImmediateEventFro
 	MarkForMeshRebuild(bImmediate, bImmediateEventFrozen);
 }
 
+void AGeometryPlanet::ApplyNoiseToPlanet()
+{
+	/*if (!NoiseShapeSettings.IsValid())
+		return;
+	if (!NoiseShapeGenerator)
+	{
+		NoiseShapeGenerator = NewObject<UShapeGenerator>();
+		NoiseShapeGenerator->Initialize(NoiseShapeSettings);
+	}
+	NoiseApplier::ApplySimpleNoise(DynamicMeshComponent->GetDynamicMesh(), FGeometryScriptMeshSelection(), nullptr, NoiseShapeGenerator);*/
+}
+
 void AGeometryPlanet::GenerateMineAreas()
 {
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+    
+	// 设置要忽略的Actor
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(this); // 忽略自己
+    TArray<AActor*> ResultActors;
+	// 执行球形重叠检测
+	bool bHit = UKismetSystemLibrary::SphereOverlapActors(
+		GetWorld(),
+		GetActorLocation(),
+		PlanetRadius * 1000 + 1000,
+		ObjectTypes,
+		nullptr,
+		ActorsToIgnore,
+		ResultActors
+	);
+    if (bHit)
+    {
+	    for (int i = 0; i < ResultActors.Num(); i++)
+	    {
+		    if (auto mineralArea = Cast<AMineSphere>(ResultActors[i]))
+		    {
+		    	mineralArea->InitializeMineSphere(this);
+			    MineralAreas.Add(mineralArea);
+		    }
+	    }
+    }
 }
 
 void AGeometryPlanet::GenerateMineMaterialTexture()
 {
+	//UGeometryScriptLibrary_MeshDeformFunctions::ApplyPerlinNoiseToMesh()
+	if (MineralAreas.Num() == 0)
+	{
+		MinePositions.Init(FVector::ZeroVector, TextureDataSize);
+		MineRadius.Init(0, TextureDataSize);
+	}
+	else
+	{
+		//如果mineral area小于最小datalength 4的话，需要补齐剩下的data内容，将冗余data置0
+		MinePositions.Init(FVector::ZeroVector,TextureDataSize);
+		MineRadius.Init(0, TextureDataSize);
+		for (int i =0 ;i< MineralAreas.Num(); i++)
+		{
+			MinePositions[i] = (MineralAreas[i]->GetActorLocation());
+			MineRadius[i] = (MineralAreas[i]->GetRadius());
+		}
+	}
+	
+
+
 	while (TextureDataSize < MinePositions.Num())
 	{
 		TextureDataSize *= 2;
 	}
+	TextureWidth = TextureDataSize;
 	DynamicMaterialInstance = UMaterialInstanceDynamic::Create(Material, this);
 	DynamicMeshComponent->SetMaterial(0, DynamicMaterialInstance);
 	InitializeTexture16Bytes();

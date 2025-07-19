@@ -199,11 +199,11 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
 	DrawVectorDebugArrows(MainBody, Move.GetSafeNormal());
 	float angle = FMath::Acos(FVector::DotProduct(MainBody->GetPhysicsLinearVelocity().GetSafeNormal(),
 	                                              Move.GetSafeNormal())) * 180.f / PI;
-	if (angle > 15)
+	/*if (angle > 15)
 	{
-		MainBody->SetLinearDamping(1.f);
+		MainBody->SetPhysicsLinearVelocity(MainBody->GetPhysicsLinearVelocity().Length() * Move.GetSafeNormal());
 	}
-	else if (angle > 45)
+	else */if (angle > 45)
 	{
 		MainBody->SetLinearDamping(2.f);
 	}
@@ -492,4 +492,8 @@ int ASpaceShipPawn::FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp,
 		}
 	}
 	return minID;
+}
+
+void ASpaceShipPawn::DrawDebugInfo()
+{
 }
