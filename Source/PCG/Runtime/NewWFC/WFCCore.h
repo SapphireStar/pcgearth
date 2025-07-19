@@ -107,11 +107,14 @@ private:
     
     // 辅助方法
     bool IsValidCoordinate(const FWFCCoordinate& Coord) const;
+    bool IsValidCoordinate(int X, int Y, int Z) const;
+    bool IsEdgeCoordinate(const FWFCCoordinate& Coord) const;
+    bool CheckCanAtEdge(const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const;
     FWFCCoordinate GetNeighbor(const FWFCCoordinate& Coord, EWFCDirection Direction) const;
     TArray<FWFCCoordinate> GetNeighbors(const FWFCCoordinate& Coord) const;
     
     float CalculateEntropy(const FWFCCell& Cell) const;
-    int32 SelectRandomTile(const FWFCCell& Cell);
+    int32 SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coord);
     
     // 约束检查
     bool CheckConstraints(const FWFCCoordinate& Coord, int32 TileIndex) const;

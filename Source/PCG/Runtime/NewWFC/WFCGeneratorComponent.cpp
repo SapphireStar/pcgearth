@@ -68,7 +68,6 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
         CompleteTileSet->SocketDefinitions.Add(TileSet->SocketDefinitions[i]);
     }
     CompleteTileSet->DefaultConfiguration = TileSet->DefaultConfiguration;
-    CompleteTileSet->GenerateRotationVariants();
 
     UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Starting generation with grid size %s"), 
         *CustomConfig.GridSize.ToString());

@@ -195,7 +195,7 @@ TArray<FString> UWFCTileSet::RotateSockets(const TArray<FString>& OriginalSocket
     RotatedSockets[1] = OriginalSockets[1]; // Down
 
     // 水平方向旋转映射：North->East->South->West->North
-    int32 HorizontalMapping[4] = {2, 4, 3, 5}; // North, East, South, West
+    int32 HorizontalMapping[4] = {2, 5, 3, 4}; // North, East, South, West
     
     for (int32 i = 0; i < 4; i++)
     {
