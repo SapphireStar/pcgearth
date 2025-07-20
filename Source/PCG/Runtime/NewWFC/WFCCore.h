@@ -39,16 +39,12 @@ public:
     FWFCCore();
     ~FWFCCore();
 
-    // 初始化
     bool Initialize(UWFCTileSet* InTileSet, const FWFCConfiguration& InConfig);
-    
-    // 执行生成
+    void UpdateGrid(const FWFCConfiguration& InConfig);
     FWFCGenerationResult Generate();
     
-    // 重置状态
     void Reset();
 
-    // 获取当前状态
     const TMap<FWFCCoordinate, FWFCCell>& GetGrid() const { return Grid; }
     FWFCCell* GetCell(const FWFCCoordinate& Coord);
     const FWFCCell* GetCell(const FWFCCoordinate& Coord) const;

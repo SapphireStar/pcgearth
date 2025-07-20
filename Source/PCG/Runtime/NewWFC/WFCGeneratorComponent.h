@@ -53,12 +53,17 @@ public:
     FOnWFCTileGenerated OnTileGenerated;
 
 public:
-    // 主要接口方法
+    UFUNCTION(BlueprintCallable, Category = "WFC")
+    void InitializeWFCCore(const FWFCConfiguration& CustomConfig);
+    
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void StartGeneration();
 
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void StartGenerationWithCustomConfig(const FWFCConfiguration& CustomConfig);
+
+    UFUNCTION(BlueprintCallable, Category = "WFC")
+    void StartGenerationWithCustomConfigAt(FVector Location, FRotator Rotation);
 
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void StopGeneration();
@@ -105,6 +110,9 @@ protected:
     TMap<FWFCCoordinate, TObjectPtr<AActor>> SpawnedActors;
 
     UPROPERTY()
+    TArray<TObjectPtr<USceneComponent>> SpawnedTileParents;
+
+    UPROPERTY()
     TObjectPtr<USceneComponent> RootVisualization;
 
     // 异步生成支持
@@ -114,10 +122,13 @@ private:
     // 生成流程
     void ExecuteGeneration();
     void ExecuteGenerationAsync();
+    void ExecuteGenerationAt(FVector Location, FRotator Rotation);
     void OnGenerationFinished(const FWFCGenerationResult& Result);
+    void OnGenerationFinished(const FWFCGenerationResult& Result, FVector Location, FRotator Rotation);
 
     // 可视化
     void CreateVisualization(const FWFCGenerationResult& Result);
+    USceneComponent* CreateVisualizationAt(const FWFCGenerationResult& Result,  FVector Location, FRotator Rotation);
     void ClearVisualization();
     AActor* SpawnTileActor(const FWFCCoordinate& Position, int32 TileIndex);
     FVector CoordinateToWorldPosition(const FWFCCoordinate& Coord) const;

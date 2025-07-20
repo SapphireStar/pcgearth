@@ -51,10 +51,13 @@ bool UWFCTileSet::AreSocketsCompatible(const FString& Socket1, const FString& So
         {
             return SocketDef.CompatibleSockets.Contains(Socket2);
         }
+        if (SocketDef.SocketName.Equals(Socket2, ESearchCase::IgnoreCase))
+        {
+            return SocketDef.CompatibleSockets.Contains(Socket1);
+        }
     }
-
-    // 如果没找到定义，检查是否完全相同
-    return Socket1.Equals(Socket2, ESearchCase::IgnoreCase);
+    return false;
+    //return Socket1.Equals(Socket2, ESearchCase::IgnoreCase);
 }
 
 FWFCSocket UWFCTileSet::GetSocketDefinition(const FString& SocketName) const

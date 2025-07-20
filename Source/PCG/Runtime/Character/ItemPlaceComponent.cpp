@@ -15,7 +15,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "PCG/Runtime/NewPlanet/GeometryPlanet.h"
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
-
+#include "PCG/Runtime/NewWFC/WFCGeneratorComponent.h"
 
 // Sets default values for this component's properties
 UItemPlaceComponent::UItemPlaceComponent()
@@ -42,6 +42,16 @@ void UItemPlaceComponent::BeginPlay()
 			{
 				WFCGenerator = *ActorItr;
 				WFCGenerator->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
+			}
+		}
+	}
+	if (!WFCGeneratorComponent &&  GetWorld())
+	{
+		for (TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+		{
+			if (auto comp = ActorItr->GetComponentByClass<UWFCGeneratorComponent>())
+			{
+				WFCGeneratorComponent = comp;
 			}
 		}
 	}
@@ -141,30 +151,12 @@ void UItemPlaceComponent::SelectPoint(UPrimitiveComponent* TraceStartComp, UCame
 				//临时用于让建筑与星球垂直
 				FVector normal = HitResult.ImpactPoint - HitResult.GetActor()->GetActorLocation();
 				normal.Normalize();
-				FRotator rotation = UKismetMathLibrary::FindLookAtRotation(HitResult.GetActor()->GetActorLocation(),
-																		   HitResult.GetActor()->GetActorLocation() + normal);
-
-				GenerateBuilding(5, 6, 7, (HitResult.ImpactPoint - planet->GetActorLocation()).GetSafeNormal() * lowestLength + planet->GetActorLocation(), rotation);
-
-				/*int ClosestVertexID = FindVertex(HitResult.ImpactPoint, planet->GetDynamicMeshComponent(),indicesout);
-
+				FRotator rotation = UKismetMathLibrary::MakeRotFromZ(normal);
 				
-				bool bIsValidVertex;
-				auto mesh = planet->GetDynamicMeshComponent()->GetDynamicMesh();
-				auto pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
-					mesh, ClosestVertexID, bIsValidVertex);
-				UE_LOG(LogTemp, Warning, TEXT("index: %f, %f, %f"), pos.X, pos.Y, pos.Z);
-				UE_LOG(LogTemp, Warning, TEXT("impact pos: %f, %f, %f"), HitResult.ImpactPoint.X,
-				       HitResult.ImpactPoint.Y, HitResult.ImpactPoint.Z);
-				FVector normal = (pos - planet->GetActorLocation());
-				normal.Normalize();
-
-				UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
-					mesh, ClosestVertexID, pos + normal * 100.f, bIsValidVertex);
-				pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(mesh, ClosestVertexID, bIsValidVertex);
-				UE_LOG(LogTemp, Warning, TEXT("index after change: %f, %f, %f"), pos.X, pos.Y, pos.Z);
-				planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
-				planet->GetDynamicMeshComponent()->UpdateCollision();*/
+				if (WFCGeneratorComponent)
+				{
+					WFCGeneratorComponent->StartGenerationWithCustomConfigAt(HitResult.ImpactPoint, rotation);
+				}
 			}
 			else
 			{

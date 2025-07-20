@@ -62,6 +62,12 @@ bool FWFCCore::Initialize(UWFCTileSet* InTileSet, const FWFCConfiguration& InCon
 	return true;
 }
 
+void FWFCCore::UpdateGrid(const FWFCConfiguration& InConfig)
+{
+	Config.GridSize = InConfig.GridSize;
+	InitializeGrid();
+}
+
 void FWFCCore::InitializeGrid()
 {
 	Grid.Empty();
@@ -288,6 +294,7 @@ FWFCGenerationResult FWFCCore::Generate()
 	TileInstanceCounts.Empty();
 	ChangeHistory.Empty();
 	CollapseHistory.Empty();
+	InitializeGrid();
 
 	// 清空传播队列
 	while (!PropagationQueue.IsEmpty())
@@ -842,9 +849,6 @@ bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
 		// 移除不支持的瓦片
 		for (int32 TileToRemove : TilesToRemove)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("WFCCore: Removing Tile %s from Cell %s (%s)'s %d Neighbour (%s)"),
-			       *TileSet->GetTile(TileToRemove).TileName, *TileSet->GetTile(SourceCell->CollapsedTileIndex).TileName,
-			       *Coord.ToString(), Dir, *NeighborCoord.ToString());
 			if (!RemoveTileOption(NeighborCoord, TileToRemove))
 			{
 				return false;

@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "ItemPlaceComponent.generated.h"
 
+class UWFCGeneratorComponent;
 struct FInputActionValue;
 class UCameraComponent;
 class UDynamicMeshComponent;
@@ -39,6 +40,9 @@ protected:
 	//WFC
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<AWFCGenerator> WFCGenerator;
+
+	UPROPERTY()
+	TObjectPtr<UWFCGeneratorComponent> WFCGeneratorComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float VertexSelectionTolerance = 500.f;

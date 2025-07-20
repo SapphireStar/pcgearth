@@ -34,7 +34,49 @@ void UWFCGeneratorComponent::BeginPlay()
 
     if (bAutoGenerateOnBeginPlay && TileSet)
     {
-        StartGeneration();
+        InitializeWFCCore(Configuration);
+        StartGenerationWithCustomConfigAt(FVector(0,0,0), FRotator(0,0,0));
+    }
+}
+
+void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomConfig)
+{
+    if (bIsGenerating)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Generation already in progress"));
+        return;
+    }
+
+    if (!TileSet)
+    {
+        UE_LOG(LogTemp, Error, TEXT("WFCGenerator: No TileSet assigned"));
+        return;
+    }
+
+    CompleteTileSet = NewObject<UWFCTileSet>();
+    
+    for (int i = 0; i < TileSet->Tiles.Num(); i++)
+    {
+        CompleteTileSet->Tiles.Add(TileSet->Tiles[i]);
+    }
+    for (int i = 0; i < TileSet->SocketDefinitions.Num(); i++)
+    {
+        CompleteTileSet->SocketDefinitions.Add(TileSet->SocketDefinitions[i]);
+    }
+    CompleteTileSet->DefaultConfiguration = TileSet->DefaultConfiguration;
+
+    UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Starting generation with grid size %s"), 
+        *CustomConfig.GridSize.ToString());
+
+    bIsGenerating = true;
+    Configuration = CustomConfig;
+    
+    // 初始化WFC核心
+    if (!WFCCore->Initialize(CompleteTileSet, Configuration))
+    {
+        UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
+        bIsGenerating = false;
+        return;
     }
 }
 
@@ -75,10 +117,8 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
     bIsGenerating = true;
     Configuration = CustomConfig;
 
-    // 清除之前的结果
     ClearVisualization();
     
-    // 初始化WFC核心
     if (!WFCCore->Initialize(CompleteTileSet, Configuration))
     {
         UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
@@ -86,7 +126,6 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
         return;
     }
 
-    // 根据配置选择同步或异步执行
     if (bUseAsyncGeneration)
     {
         ExecuteGenerationAsync();
@@ -94,6 +133,22 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
     else
     {
         ExecuteGeneration();
+    }
+}
+
+void UWFCGeneratorComponent::StartGenerationWithCustomConfigAt(FVector Location,
+    FRotator Rotation)
+{
+    //更新GridSize
+    WFCCore->UpdateGrid(Configuration);
+    
+    if (bUseAsyncGeneration)
+    {
+        ExecuteGenerationAsync();
+    }
+    else
+    {
+        ExecuteGenerationAt(Location, Rotation);
     }
 }
 
@@ -216,6 +271,21 @@ void UWFCGeneratorComponent::ExecuteGenerationAsync()
     });
 }
 
+void UWFCGeneratorComponent::ExecuteGenerationAt(FVector Location, FRotator Rotation)
+{
+    if (!WFCCore)
+    {
+        UE_LOG(LogTemp, Error, TEXT("WFCGenerator: WFC Core not initialized"));
+        bIsGenerating = false;
+        return;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Executing synchronous generation"));
+
+    FWFCGenerationResult Result = WFCCore->Generate();
+    OnGenerationFinished(Result,  Location, Rotation);
+}
+
 void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Result)
 {
     bIsGenerating = false;
@@ -235,6 +305,32 @@ void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Re
     if (bVisualizeTiles && Result.bSuccess)
     {
         CreateVisualization(Result);
+    }
+
+    // 广播完成事件
+    OnGenerationComplete.Broadcast(Result);
+}
+
+void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Result, FVector Location,
+    FRotator Rotation)
+{
+    bIsGenerating = false;
+    LastResult = Result;
+
+    UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation finished - Success: %s, Iterations: %d, Time: %.3fs"), 
+        Result.bSuccess ? TEXT("True") : TEXT("False"), 
+        Result.IterationsUsed, 
+        Result.GenerationTimeSeconds);
+
+    if (!Result.bSuccess)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Generation failed: %s"), *Result.ErrorMessage);
+    }
+
+    // 创建可视化
+    if (bVisualizeTiles && Result.bSuccess)
+    {
+        CreateVisualizationAt(Result, Location, Rotation);
     }
 
     // 广播完成事件
@@ -263,6 +359,41 @@ void UWFCGeneratorComponent::CreateVisualization(const FWFCGenerationResult& Res
     }
 
     UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Created %d tile actors"), CreatedCount);
+}
+
+USceneComponent* UWFCGeneratorComponent::CreateVisualizationAt(const FWFCGenerationResult& Result, FVector Location,
+    FRotator Rotation)
+{
+    USceneComponent* ParentComp =NewObject<USceneComponent>(GetOwner());
+    ParentComp->SetWorldLocation(FVector::ZeroVector);
+    ParentComp->SetWorldRotation(FRotator::ZeroRotator);
+    ParentComp->SetupAttachment(GetOwner()->GetRootComponent());
+    ParentComp->RegisterComponent();
+    SpawnedTileParents.Add(ParentComp);
+    if (!GetOwner() || !CompleteTileSet)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: no valid TileSet"));
+        return ParentComp;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Creating visualization for %d tiles"), 
+        Result.TileAssignments.Num());
+
+    int32 CreatedCount = 0;
+    for (const auto& [Coord, TileIndex] : Result.TileAssignments)
+    {
+        if (AActor* TileActor = SpawnTileActor(Coord, TileIndex))
+        {
+            SpawnedActors.Add(Coord, TileActor);
+            TileActor->AttachToComponent(ParentComp,FAttachmentTransformRules::KeepRelativeTransform);
+            OnTileGenerated.Broadcast(Coord, TileIndex);
+            CreatedCount++;
+        }
+    }
+    ParentComp->SetWorldLocation(Location);
+    ParentComp->SetWorldRotation(Rotation);
+    UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Created %d tile actors"), CreatedCount);
+    return ParentComp;
 }
 
 void UWFCGeneratorComponent::ClearVisualization()
@@ -342,12 +473,11 @@ FVector UWFCGeneratorComponent::CoordinateToWorldPosition(const FWFCCoordinate& 
 {
     FVector BasePosition = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
     
-    // 简单计算，不做居中偏移
     FVector CellPosition = FVector(
         Coord.X * CellSize,
         Coord.Y * CellSize,
         Coord.Z * CellSize
-    );
+    ) - FVector(CellSize * Configuration.GridSize.X/2.f, CellSize * Configuration.GridSize.Y/2.f, 0);
 
     return BasePosition + CellPosition;
 }

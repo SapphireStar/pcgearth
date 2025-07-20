@@ -33,20 +33,20 @@ protected:
     
     // 可视化组件
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    class UStaticMeshComponent* GridPlaneMesh;
+    UStaticMeshComponent* GridPlaneMesh;
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    class USceneComponent* RootSceneComponent;
+    USceneComponent* RootSceneComponent;
 
     // 材质和视觉效果
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
-    class UMaterialInterface* GridMaterial;
+    UMaterialInterface* GridMaterial;
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
-    class UMaterialInterface* SelectedPointMaterial;
+    UMaterialInterface* SelectedPointMaterial;
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
-    class UMaterialInterface* PreviewLineMaterial;
+    UMaterialInterface* PreviewLineMaterial;
 
     // 选择状态
     UPROPERTY(BlueprintReadOnly, Category = "Selection State")
@@ -59,10 +59,10 @@ protected:
     TArray<FVector> SelectedGridPoints;
     
     UPROPERTY(BlueprintReadOnly, Category = "Selection State")
-    TArray<class UStaticMeshComponent*> PointMarkers;
+    TArray<UStaticMeshComponent*> PointMarkers;
     
     UPROPERTY(BlueprintReadOnly, Category = "Selection State")
-    TArray<class UStaticMeshComponent*> PreviewLines;
+    TArray<UStaticMeshComponent*> PreviewLines;
 
 public:
     // 公共接口
@@ -74,6 +74,9 @@ public:
     
     UFUNCTION(BlueprintCallable, Category = "Grid Selection")
     bool TrySelectGridPoint(const FVector& WorldPosition);
+
+    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    bool PreviewSelectGrid(const FVector& WorldPosition);
     
     UFUNCTION(BlueprintCallable, Category = "Grid Selection")
     bool CanSelectPoint(const FVector& GridPoint) const;
@@ -108,6 +111,9 @@ protected:
     // 网格数据
     TArray<FVector> GridPoints;
     TMap<FVector, bool> GridPointAvailability;
+    
+    UPROPERTY(BlueprintReadOnly)
+    FBox GridBounds;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
     UStaticMesh* SphereMesh;
