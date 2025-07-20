@@ -668,11 +668,7 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 	// 选择要放置的瓦片
 	int32 SelectedTile = SelectRandomTile(*Cell, Coord);
 
-	if (SelectedTile == 4)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("found"));
 
-	}
 	if (SelectedTile < 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
@@ -963,14 +959,14 @@ bool FWFCCore::CheckConstraints(const FWFCCoordinate& Coord, int32 TileIndex) co
 		return false;
 	}
 
-	// 检查位置特定约束
+	/*// 检查位置特定约束
 	if (const TArray<int32>* AllowedTiles = PositionConstraints.Find(Coord))
 	{
 		if (!AllowedTiles->Contains(TileIndex))
 		{
 			return false;
 		}
-	}
+	}*/
 
 	return true;
 }
@@ -1065,7 +1061,7 @@ bool FWFCCore::Backtrack()
 		}
 	}
 
-	// 移除最后的坍缩和变更
+	// 移除最后的坍缩和变更 n
 	ChangeHistory.Pop();
 	if (CollapseHistory.Num() > 0)
 	{
