@@ -668,6 +668,11 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 	// 选择要放置的瓦片
 	int32 SelectedTile = SelectRandomTile(*Cell, Coord);
 
+	if (SelectedTile == 4)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("found"));
+
+	}
 	if (SelectedTile < 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
