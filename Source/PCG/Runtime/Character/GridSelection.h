@@ -18,7 +18,6 @@ protected:
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
 
-    // 网格参数
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
     float GridSize = 100.0f;
     
@@ -31,14 +30,12 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
     FVector GridCenter = FVector::ZeroVector;
     
-    // 可视化组件
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UStaticMeshComponent* GridPlaneMesh;
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     USceneComponent* RootSceneComponent;
 
-    // 材质和视觉效果
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
     UMaterialInterface* GridMaterial;
     
@@ -48,7 +45,6 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
     UMaterialInterface* PreviewLineMaterial;
 
-    // 选择状态
     UPROPERTY(BlueprintReadOnly, Category = "Selection State")
     bool bIsInGridSelectionMode = false;
     
@@ -65,7 +61,6 @@ protected:
     TArray<UStaticMeshComponent*> PreviewLines;
 
 public:
-    // 公共接口
     UFUNCTION(BlueprintCallable, Category = "Grid Selection")
     void StartGridSelection(const FVector& StartPoint);
     
@@ -88,7 +83,6 @@ public:
     TArray<FVector> GetFinalShape() const;
 
 protected:
-    // 内部函数
     void GenerateGrid();
     void UpdatePreviewLines();
     void CreatePointMarker(const FVector& Position);
@@ -108,7 +102,6 @@ protected:
     bool DoLinesIntersect(const FVector& Line1Start, const FVector& Line1End, 
                          const FVector& Line2Start, const FVector& Line2End) const;
     
-    // 网格数据
     TArray<FVector> GridPoints;
     TMap<FVector, bool> GridPointAvailability;
     

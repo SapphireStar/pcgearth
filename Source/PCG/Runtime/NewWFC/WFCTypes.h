@@ -30,6 +30,13 @@ enum class EWFCTileCategory : uint8
 };
 
 UENUM(BlueprintType)
+enum class EWFCTileDecorator : uint8
+{
+    None = 0                        UMETA(DisplayName = "None"),
+    MustHorizontalConnected = 1     UMETA(DisplayName = "MustHorizontalConnected"),
+};
+
+UENUM(BlueprintType)
 enum class EWFCGenerationMode : uint8
 {
     Random = 0          UMETA(DisplayName = "Random Order"),
@@ -110,7 +117,6 @@ struct FWFCTileDefinition
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TObjectPtr<UMaterial> Material;
 
-    // 6个方向的Socket：Up, Down, North, South, East, West
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ArraySizeEnum = "EWFCDirection"))
     TArray<FString> Sockets;
 
@@ -152,7 +158,30 @@ struct FWFCTileDefinition
     }
 };
 
-// 生成约束
+USTRUCT(BlueprintType)
+struct FWFCTileRuleSet
+{
+    GENERATED_BODY()
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString TileRuleSetName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FWFCTileDefinition> Tiles;
+};
+
+USTRUCT(BlueprintType)
+struct FWFCSocketRuleSet
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString SocketRuleSetName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FWFCSocket> Sockets;
+};
+
 USTRUCT(BlueprintType)
 struct FWFCGenerationConstraint
 {

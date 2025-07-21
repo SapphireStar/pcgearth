@@ -48,7 +48,7 @@ public:
     const TMap<FWFCCoordinate, FWFCCell>& GetGrid() const { return Grid; }
     FWFCCell* GetCell(const FWFCCoordinate& Coord);
     const FWFCCell* GetCell(const FWFCCoordinate& Coord) const;
-
+    TArray<FWFCCoordinate> GetCollapseHistory() {return CollapseHistory;}
 private:
     // 配置和数据
     UWFCTileSet* TileSet = nullptr;
@@ -77,6 +77,7 @@ private:
     void BuildPropagationRules();
     void ValidatePropagationRules();  // 添加缺失的声明
     void ApplyConstraints();
+    void CellPreProcess(FWFCCell& Cell, const FWFCCoordinate& Coord);
     
     // 主算法步骤
     bool RunGenerationLoop();
@@ -121,4 +122,5 @@ private:
     void LogGenerationStep(const FWFCCoordinate& Coord, int32 TileIndex) const;
     void LogPropagationStep(const FWFCCoordinate& From, const FWFCCoordinate& To, int32 RemovedTile) const;
     FString GetGridStateString() const;
+    
 };

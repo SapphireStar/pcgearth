@@ -1,9 +1,10 @@
-// WFCGeneratorComponent.cpp - 修正后的实现文件
 #include "WFCGeneratorComponent.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "Components/StaticMeshComponent.h"
 #include "Async/Async.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "PCG/Runtime/DebugHelper.h"
 
 UWFCGeneratorComponent::UWFCGeneratorComponent()
 {
@@ -54,15 +55,31 @@ void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomCo
     }
 
     CompleteTileSet = NewObject<UWFCTileSet>();
+
+    for (int i = 0; i < TileSet->TileRuleSets.Num(); i++)
+    {
+        for (int j = 0; j < TileSet->TileRuleSets[i].Tiles.Num(); j++)
+        {
+            CompleteTileSet->Tiles.Add(TileSet->TileRuleSets[i].Tiles[j]);
+        }
+    }
+
+    for (int i = 0; i < TileSet->SocketRuleSets.Num(); i++)
+    {
+        for (int j = 0; j < TileSet->SocketRuleSets[i].Sockets.Num(); j++)
+        {
+            CompleteTileSet->SocketDefinitions.Add(TileSet->SocketRuleSets[i].Sockets[j]);
+        }
+    }
     
-    for (int i = 0; i < TileSet->Tiles.Num(); i++)
+    /*for (int i = 0; i < TileSet->Tiles.Num(); i++)
     {
         CompleteTileSet->Tiles.Add(TileSet->Tiles[i]);
     }
     for (int i = 0; i < TileSet->SocketDefinitions.Num(); i++)
     {
         CompleteTileSet->SocketDefinitions.Add(TileSet->SocketDefinitions[i]);
-    }
+    }*/
     CompleteTileSet->DefaultConfiguration = TileSet->DefaultConfiguration;
 
     UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Starting generation with grid size %s"), 
@@ -231,6 +248,41 @@ void UWFCGeneratorComponent::RefreshVisualization()
     }
 }
 
+void UWFCGeneratorComponent::NextCollapseStep()
+{
+    if (LastCollapseHistory.Num() == 0) return;
+    CurCollapseHistoryStep++;
+    if (CurCollapseHistoryStep > LastCollapseHistory.Num() - 1)
+    {
+        CurCollapseHistoryStep = LastCollapseHistory.Num() - 1;
+    }
+    if (CurCollapseHistoryStep < 0) return;
+
+    FWFCCoordinate Coord = LastCollapseHistory[CurCollapseHistoryStep];
+    SpawnedActors[Coord]->GetComponentByClass<UStaticMeshComponent>()->SetVisibility(true);
+    UKismetSystemLibrary::DrawDebugSphere(GetWorld(),SpawnedActors[Coord]->GetActorLocation(),50, 12, FColor::Green, 3, 1);    
+}
+
+void UWFCGeneratorComponent::PrevCollapseStep()
+{
+    if (LastCollapseHistory.Num() == 0) return;
+    if (CurCollapseHistoryStep > 0 && CurCollapseHistoryStep <= LastCollapseHistory.Num() - 1)
+    {
+        FWFCCoordinate Coord = LastCollapseHistory[CurCollapseHistoryStep];
+        SpawnedActors[Coord]->GetComponentByClass<UStaticMeshComponent>()->SetVisibility(false);
+        UKismetSystemLibrary::DrawDebugSphere(GetWorld(),SpawnedActors[Coord]->GetActorLocation(),50, 12, FColor::Red, 3, 1);
+    }
+    
+    CurCollapseHistoryStep--;
+    if (CurCollapseHistoryStep < 0)
+    {
+        CurCollapseHistoryStep = -1;
+    }
+    
+
+    
+}
+
 void UWFCGeneratorComponent::ExecuteGeneration()
 {
     if (!WFCCore)
@@ -316,6 +368,8 @@ void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Re
 {
     bIsGenerating = false;
     LastResult = Result;
+    LastCollapseHistory = WFCCore->GetCollapseHistory();
+    CurCollapseHistoryStep = LastCollapseHistory.Num() - 1;
 
     UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation finished - Success: %s, Iterations: %d, Time: %.3fs"), 
         Result.bSuccess ? TEXT("True") : TEXT("False"), 

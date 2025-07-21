@@ -15,6 +15,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tile Set")
     FString TileSetName;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FWFCTileRuleSet> TileRuleSets;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FWFCSocketRuleSet> SocketRuleSets;
+    
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tile Set")
     TArray<FWFCTileDefinition> Tiles;
 

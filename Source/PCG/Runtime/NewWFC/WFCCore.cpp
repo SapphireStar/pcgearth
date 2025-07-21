@@ -89,6 +89,7 @@ void FWFCCore::InitializeGrid()
 
 				// 初始状态：所有瓦片都可能
 				Cell.PossibleTiles.SetRange(0, TileCount, true);
+				CellPreProcess(Cell, Coord);
 				Cell.Entropy = CalculateEntropy(Cell);
 
 				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Initialized cell %s with entropy %.3f"),
@@ -281,6 +282,39 @@ void FWFCCore::ApplyConstraints()
 
 	UE_LOG(LogTemp, Log, TEXT("WFCCore: Constraint application complete"));
 }
+
+void FWFCCore::CellPreProcess(FWFCCell& Cell, const FWFCCoordinate& Coord)
+{
+	//第一层只能放置地面类型的砖块
+
+		/*if (Coord.Z == 0)
+		{
+			for (int i = 0; i < Cell.PossibleTiles.Num(); i++)
+			{
+				if (Cell.PossibleTiles[i] && TileSet->Tiles[i].Category == EWFCTileCategory::Empty)
+					continue;
+				if (Cell.PossibleTiles[i] && TileSet->Tiles[i].Category != EWFCTileCategory::Ground)
+				{
+					Cell.PossibleTiles[i] = false;
+				}
+			}
+		}
+		else
+		{
+			for (int i = 0; i < Cell.PossibleTiles.Num(); i++)
+			{
+				if (Cell.PossibleTiles[i] && TileSet->Tiles[i].Category == EWFCTileCategory::Empty)
+					continue;
+				if (Cell.PossibleTiles[i] && TileSet->Tiles[i].Category == EWFCTileCategory::Ground)
+				{
+					Cell.PossibleTiles[i] = false;
+				}
+			}
+		}*/
+	
+
+}
+
 
 FWFCGenerationResult FWFCCore::Generate()
 {

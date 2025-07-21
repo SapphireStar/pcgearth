@@ -94,13 +94,16 @@ public:
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void RefreshVisualization();
 
+    UFUNCTION(BlueprintCallable, Category = "WFC")
+    void NextCollapseStep();
+
+    UFUNCTION(BlueprintCallable, Category = "WFC")
+    void PrevCollapseStep();
+
 protected:
     // 内部状态
     UPROPERTY()
     bool bIsGenerating = false;
-
-    UPROPERTY()
-    FWFCGenerationResult LastResult;
 
     // 核心组件
     TUniquePtr<FWFCCore> WFCCore;
@@ -117,6 +120,15 @@ protected:
 
     // 异步生成支持
     TFuture<FWFCGenerationResult> GenerationFuture;
+
+    // 调试
+    UPROPERTY()
+    FWFCGenerationResult LastResult;
+
+    UPROPERTY()
+    TArray<FWFCCoordinate> LastCollapseHistory;
+
+    int CurCollapseHistoryStep;
 
 private:
     // 生成流程
