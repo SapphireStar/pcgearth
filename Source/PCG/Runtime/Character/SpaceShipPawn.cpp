@@ -8,10 +8,13 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
+#include "GetResourceAbility.h"
 #include "GridSelection.h"
 #include "InputActionValue.h"
 #include "ItemPlaceComponent.h"
 #include "MaterialHLSLTree.h"
+#include "TerrainBuildAbility.h"
+#include "TerrainDigAbility.h"
 #include "GeometryScript/MeshSelectionFunctions.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -145,17 +148,8 @@ void ASpaceShipPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	MainBody->SetSimulatePhysics(true);
-	if (!WFCGenerator && GetWorld())
-	{
-		for (TActorIterator<AWFCGenerator> ActorItr(GetWorld()); ActorItr; ++ActorItr)
-		{
-			if (*ActorItr)
-			{
-				WFCGenerator = *ActorItr;
-				WFCGenerator->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
-			}
-		}
-	}
+
+	SetupPlayerAbilityComponent();
 }
 
 // Called every frame
@@ -178,11 +172,29 @@ void ASpaceShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::StopMove);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Look);
 		EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Roll);
-		EnhancedInputComponent->BindAction(SelectPointAction, ETriggerEvent::Completed, this,
-		                                   &ASpaceShipPawn::SelectPoint);
 		EnhancedInputComponent->BindAction(RiseAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Rise);
-		EnhancedInputComponent->BindAction(DigTerrainAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::DigTerrain);
+		EnhancedInputComponent->BindAction(UseAbilityAction, ETriggerEvent::Started, this, &ASpaceShipPawn::StartUseAbility);
+		EnhancedInputComponent->BindAction(UseAbilityAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::KeepUsingAbility);
+		EnhancedInputComponent->BindAction(UseAbilityAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::CompleteUseAbility);
+		EnhancedInputComponent->BindAction(CycleAbilityAction, ETriggerEvent::Triggered, this , &ASpaceShipPawn::CycleAbility);
 	}
+}
+
+void ASpaceShipPawn::SetupPlayerAbilityComponent()
+{
+	TObjectPtr<UItemAbilityComponent> TerrainBuild = CreateAbilityComponent(EAbilityType::TerrainBuild);
+	TObjectPtr<UItemAbilityComponent> TerrainDig =  CreateAbilityComponent(EAbilityType::TerrainDig);
+	TObjectPtr<UItemAbilityComponent> GetResource = CreateAbilityComponent(EAbilityType::GetResource);
+	if (TerrainBuild != nullptr)
+		Abilities.Add(TerrainBuild);
+	if (TerrainDig != nullptr)
+		Abilities.Add(TerrainDig);
+	if (GetResource != nullptr)
+		Abilities.Add(GetResource);
+
+	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
+	CurrentAbilityComponent->OnActivateAbility();
+	bIsAbilityInitialized = true;
 }
 
 void ASpaceShipPawn::Move(const FInputActionValue& Value)
@@ -271,122 +283,6 @@ void ASpaceShipPawn::Roll(const FInputActionValue& Value)
 void ASpaceShipPawn::SelectPoint(const FInputActionValue& Value)
 {
 	ItemPlaceComponent->SelectPoint(Front, Camera);
-	return;
-	FVector End = Front->GetComponentLocation() + Camera->GetForwardVector() * SelectRange;
-	TArray<AActor*> ActorsToIgnore;
-	FHitResult HitResult;
-	UKismetSystemLibrary::LineTraceSingle(
-		GetWorld(),
-		Front->GetComponentLocation(),
-		End,
-		UEngineTypes::ConvertToTraceType(ECC_Visibility),
-		true,
-		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
-		HitResult,
-		true,
-		FLinearColor::Red,
-		FLinearColor::Green,
-		5.f);
-	if (HitResult.bBlockingHit)
-	{
-		if (AGeometryPlanet* planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
-		{
-			FVector ImpactRelativePoint = HitResult.ImpactPoint - planet->GetActorLocation();
-			FGeometryScriptMeshSelection selection;
-			UGeometryScriptLibrary_MeshSelectionFunctions::SelectMeshElementsInSphere(
-				planet->GetDynamicMeshComponent()->GetDynamicMesh(),
-				selection,
-				ImpactRelativePoint,
-				VertexSelectionTolerance,
-				EGeometryScriptMeshSelectionType::Vertices,
-				false,
-				1
-			);
-			TArray<int32> indicesout;
-
-			selection.ConvertToMeshIndexArray(
-				planet->GetDynamicMeshComponent()->GetDynamicMesh()->GetMeshRef(),
-				indicesout);
-
-
-			/*bool bIsValidVertex;
-			auto mesh = planet->GetDynamicMeshComponent()->GetDynamicMesh();
-			int VertexID = FindVertex(HitResult.ImpactPoint, planet->GetDynamicMeshComponent());
-			auto pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(mesh, VertexID, bIsValidVertex);
-
-			FVector normal = (pos - planet->GetActorLocation());
-			normal.Normalize();
-			UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
-				mesh, VertexID, pos + normal * 100.f, bIsValidVertex);
-			
-			pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(mesh, VertexID, bIsValidVertex);
-			UE_LOG(LogTemp, Warning, TEXT("impact point: %f, %f, %f"), HitResult.ImpactPoint.X, HitResult.ImpactPoint.Y, HitResult.ImpactPoint.Z);
-			UE_LOG(LogTemp, Warning, TEXT("index after change: %f, %f, %f"), pos.X, pos.Y, pos.Z);
-			planet->GetDynamicMeshComponent()->NotifyMeshUpdated();*/
-
-
-			if (indicesout.Num() > 0)
-			{
-				int LowestVertexID = FindLowestVertex(planet->GetDynamicMeshComponent(), indicesout);
-				bool bIsValidVertex;
-				auto mesh = planet->GetDynamicMeshComponent()->GetDynamicMesh();
-
-				auto lowesetPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
-					mesh, LowestVertexID, bIsValidVertex);
-				float lowestLength = (lowesetPos).Length();
-				for (int i : indicesout)
-				{
-					if (i != LowestVertexID)
-					{
-						auto pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
-							mesh, i, bIsValidVertex);
-						FVector normal = (pos);
-						normal.Normalize();
-						UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
-							mesh, i, normal * lowestLength, bIsValidVertex);
-					}
-				}
-
-				planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
-				planet->GetDynamicMeshComponent()->UpdateCollision();
-
-				//临时用于让建筑与星球垂直
-				FVector normal = HitResult.ImpactPoint - HitResult.GetActor()->GetActorLocation();
-				normal.Normalize();
-				FRotator rotation = UKismetMathLibrary::FindLookAtRotation(HitResult.GetActor()->GetActorLocation(),
-																		   HitResult.GetActor()->GetActorLocation() + normal);
-
-				GenerateBuilding(7, 7, 7, (HitResult.ImpactPoint - planet->GetActorLocation()).GetSafeNormal() * lowestLength + planet->GetActorLocation(), rotation);
-
-				/*int ClosestVertexID = FindVertex(HitResult.ImpactPoint, planet->GetDynamicMeshComponent(),indicesout);
-
-				
-				bool bIsValidVertex;
-				auto mesh = planet->GetDynamicMeshComponent()->GetDynamicMesh();
-				auto pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
-					mesh, ClosestVertexID, bIsValidVertex);
-				UE_LOG(LogTemp, Warning, TEXT("index: %f, %f, %f"), pos.X, pos.Y, pos.Z);
-				UE_LOG(LogTemp, Warning, TEXT("impact pos: %f, %f, %f"), HitResult.ImpactPoint.X,
-				       HitResult.ImpactPoint.Y, HitResult.ImpactPoint.Z);
-				FVector normal = (pos - planet->GetActorLocation());
-				normal.Normalize();
-
-				UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
-					mesh, ClosestVertexID, pos + normal * 100.f, bIsValidVertex);
-				pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(mesh, ClosestVertexID, bIsValidVertex);
-				UE_LOG(LogTemp, Warning, TEXT("index after change: %f, %f, %f"), pos.X, pos.Y, pos.Z);
-				planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
-				planet->GetDynamicMeshComponent()->UpdateCollision();*/
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("No selection found"));
-			}
-		}
-
-
-	}
 }
 
 void ASpaceShipPawn::Rise(const FInputActionValue& Value)
@@ -446,11 +342,49 @@ void ASpaceShipPawn::ProcessInput(float Deltatime)
 	PrimaryActorTick.TickGroup = prevtickgroup;
 }
 
-void ASpaceShipPawn::GenerateBuilding(int SizeX, int SizeY, int SizeZ, const FVector& Location,
-                                      const FRotator& Rotation)
+void ASpaceShipPawn::CycleAbility(const FInputActionValue& Value)
 {
-	if (!WFCGenerator) return;
-	WFCGenerator->StartWFC(SizeX, SizeY, SizeZ, Location, Rotation);
+	UItemAbilityComponent* OldAbility = CurrentAbilityComponent;
+	float Axis = Value.Get<float>();
+	if (Axis < 0)
+	{
+		CurrentAbilityIndex = (CurrentAbilityIndex + 1) % Abilities.Num();
+	}
+	else if (Axis > 0)
+	{
+		CurrentAbilityIndex = (CurrentAbilityIndex - 1);
+		if (CurrentAbilityIndex < 0)
+		{
+			CurrentAbilityIndex = Abilities.Num() - 1;
+		}
+	}
+	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
+	UItemAbilityComponent* NewAbility = CurrentAbilityComponent;
+
+	OldAbility->OnDeactivateAbility();
+	NewAbility->OnActivateAbility();
+	OnAbilityChanged.Broadcast(OldAbility->AbilityType, NewAbility->AbilityType);
+	
+	if (GEngine)
+	{
+		FString name = UEnum::GetValueAsString(Abilities[CurrentAbilityIndex]->AbilityType);
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("Axis: %s"), *name));
+	}
+}
+
+void ASpaceShipPawn::StartUseAbility(const FInputActionValue& Value)
+{
+	CurrentAbilityComponent->OnStartUseAbility(Front, Camera);
+}
+
+void ASpaceShipPawn::KeepUsingAbility(const FInputActionValue& Value)
+{
+	CurrentAbilityComponent->OnKeepUsingAbility(Front, Camera);
+}
+
+void ASpaceShipPawn::CompleteUseAbility(const FInputActionValue& Value)
+{
+	CurrentAbilityComponent->OnCompleteUseAbility(Front, Camera);
 }
 
 int ASpaceShipPawn::FindVertex(const FVector& target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID)
@@ -492,6 +426,42 @@ int ASpaceShipPawn::FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp,
 		}
 	}
 	return minID;
+}
+
+TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilityType eAbilityType)
+{
+	UItemAbilityComponent* AbilityComponent = nullptr;
+	switch (eAbilityType)
+	{
+	case EAbilityType::None:
+		break;
+	case EAbilityType::TerrainBuild:
+		AbilityComponent = NewObject<UTerrainBuildAbility>(this);
+		AbilityComponent->AbilityType =  EAbilityType::TerrainBuild;
+		break;
+	case EAbilityType::TerrainDig:
+		AbilityComponent = NewObject<UTerrainDigAbility>(this);
+		AbilityComponent->AbilityType = EAbilityType::TerrainDig;
+		break;
+	case EAbilityType::GetResource:
+		AbilityComponent = NewObject<UGetResourceAbility>(this);
+		AbilityComponent->AbilityType = EAbilityType::GetResource;
+		break;
+	case EAbilityType::MAX:
+		break;
+	default: ;
+	}
+
+	if (AbilityComponent)
+	{
+		AddOwnedComponent(AbilityComponent);
+		AbilityComponent->RegisterComponent();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SpaceShipPawn: Created Component is nullptr"));
+	}
+	return AbilityComponent;
 }
 
 void ASpaceShipPawn::DrawDebugInfo()

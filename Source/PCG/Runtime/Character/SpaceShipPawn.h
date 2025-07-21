@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "InputAction.h"
+#include "ItemAbilityComponent.h"
 #include "GameFramework/DefaultPawn.h"
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "SpaceShipPawn.generated.h"
@@ -35,6 +36,7 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	void SetupPlayerAbilityComponent();
 
 	void Move(const FInputActionValue& Value);
 	void StopMove(const FInputActionValue& Value);
@@ -44,13 +46,19 @@ public:
 	void Rise(const FInputActionValue& Value);
 	void DigTerrain(const FInputActionValue& Value);
 	void ProcessInput(float Deltatime);
+	void CycleAbility(const FInputActionValue& Value);
+	void StartUseAbility(const FInputActionValue& Value);
+	void KeepUsingAbility(const FInputActionValue& Value);
+	void CompleteUseAbility(const FInputActionValue& Value);
 
-	void GenerateBuilding(int SizeX, int SizeY, int SizeZ, const FVector& Location, const FRotator& Rotation);
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
+	TObjectPtr<UItemAbilityComponent> CreateAbilityComponent(EAbilityType eAbilityType);
 
 	void DrawDebugInfo();
 	void DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, const FVector& Acceleration);
+
+	float GetLaserRange() const { return LaserRange; }
 protected:
 	//Components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -82,13 +90,16 @@ protected:
 	TObjectPtr<UInputAction> RollAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UInputAction> SelectPointAction;
+	TObjectPtr<UInputAction> UseAbilityAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> RiseAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> DigTerrainAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> CycleAbilityAction;
 
 	//Control
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -112,6 +123,9 @@ protected:
 	float SelectRange = 10000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float LaserRange = 5000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Acceleration = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 2.f, ClampMax = 10.f))
@@ -129,14 +143,24 @@ protected:
 	FVector CurrentVelocity = FVector::ZeroVector;
 	FVector CurrentAcceleration = FVector::ZeroVector;
 	bool bIsRollAccelerating = false;
-
-	//WFC
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<AWFCGenerator> WFCGenerator;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float VertexSelectionTolerance = 500.f;
 
-	//Equipment
+	//Ability
+	bool bIsAbilityInitialized = false;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	EAbilityType CurrentAbilityType;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UItemAbilityComponent> CurrentAbilityComponent;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UItemAbilityComponent>> Abilities;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnAbilityChanged OnAbilityChanged;
+
+	int CurrentAbilityIndex = 0;
 };

@@ -161,7 +161,7 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfigAt(FVector Location,
     
     if (bUseAsyncGeneration)
     {
-        ExecuteGenerationAsync();
+        ExecuteGenerationAsyncAt(Location, Rotation);
     }
     else
     {
@@ -319,6 +319,31 @@ void UWFCGeneratorComponent::ExecuteGenerationAsync()
         {
             FWFCGenerationResult Result = GenerationFuture.Get();
             OnGenerationFinished(Result);
+        }
+    });
+}
+
+void UWFCGeneratorComponent::ExecuteGenerationAsyncAt(FVector Location, FRotator Rotation)
+{
+    UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Executing asynchronous generation"));
+
+    // 在后台线程执行WFC生成
+    GenerationFuture = Async(EAsyncExecution::ThreadPool, [this]() -> FWFCGenerationResult
+    {
+        if (WFCCore)
+        {
+            return WFCCore->Generate();
+        }
+        return FWFCGenerationResult();
+    });
+
+    // 在游戏线程上等待结果
+    AsyncTask(ENamedThreads::GameThread, [this, &Location, &Rotation]()
+    {
+        if (GenerationFuture.IsValid())
+        {
+            FWFCGenerationResult Result = GenerationFuture.Get();
+            OnGenerationFinished(Result,  Location, Rotation);
         }
     });
 }

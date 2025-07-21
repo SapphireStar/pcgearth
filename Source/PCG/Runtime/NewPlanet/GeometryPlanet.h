@@ -54,8 +54,10 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "PlanetRadius(km)")
 	float PlanetRadius = 10.f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* PlanetSphereStaticMesh;
+	
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMaterial* Material;
@@ -103,10 +105,19 @@ protected:
 
 #pragma region Foliage
 public:
+	UFUNCTION(BlueprintCallable)
+	void InitializeISMFoliage(UInstancedStaticMeshComponent* ISMComponent);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void OnGetHitByLaser(UInstancedStaticMeshComponent* ISMComponent, int32 ItemIndex, float Damage);
+public:
 	UPROPERTY(BlueprintAssignable)
 	FOnISMInstanceHit OnISMInstanceHit;
 protected:
-UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInstancedStaticMeshComponent> ISMFoliage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<float> ISMFoliageItemsHealth;
 #pragma  endregion 
 };

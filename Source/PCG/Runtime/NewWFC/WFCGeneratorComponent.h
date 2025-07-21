@@ -134,6 +134,7 @@ private:
     // 生成流程
     void ExecuteGeneration();
     void ExecuteGenerationAsync();
+    void ExecuteGenerationAsyncAt(FVector Location, FRotator Rotation);
     void ExecuteGenerationAt(FVector Location, FRotator Rotation);
     void OnGenerationFinished(const FWFCGenerationResult& Result);
     void OnGenerationFinished(const FWFCGenerationResult& Result, FVector Location, FRotator Rotation);

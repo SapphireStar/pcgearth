@@ -51,6 +51,10 @@ bool UWFCTileSet::AreSocketsCompatible(const FString& Socket1, const FString& So
         {
             return SocketDef.CompatibleSockets.Contains(Socket2);
         }
+    }
+    
+    for (const FWFCSocket& SocketDef : SocketDefinitions)
+    {
         if (SocketDef.SocketName.Equals(Socket2, ESearchCase::IgnoreCase))
         {
             return SocketDef.CompatibleSockets.Contains(Socket1);

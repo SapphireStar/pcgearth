@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "ShapeGenerator.h"
 #include "GeometryActors/GeneratedDynamicMeshActor.h"
+#include "GeometryActors/GeneratedDynamicMeshActor.h"
 #include "GeometryScript/MeshNormalsFunctions.h"
 #include "GeometryScript/MeshQueryFunctions.h"
 #include "ProceduralMeshComponent/Public/ProceduralMeshComponent.h"

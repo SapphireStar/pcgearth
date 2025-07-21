@@ -4,13 +4,9 @@
 #include "GeometryPlanet.h"
 
 #include "MineSphere.h"
-#include "NoiseApplier.h"
 #include "RHICommandList.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Rendering/Texture2DResource.h"
-#include "GeometryScript/MeshDeformFunctions.h"
-#include "GeometryScript/MeshPrimitiveFunctions.h"
-#include "GeometryScript/MeshSelectionFunctions.h"
-#include "GeometryScript/MeshSubdivideFunctions.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 
@@ -244,4 +240,15 @@ void AGeometryPlanet::SetPixelValue(int32 Offset, float X, float Y, float Z, flo
 	TextureDataFloat[start + 1] = Y;
 	TextureDataFloat[start + 2] = Z;
 	TextureDataFloat[start + 3] = A;
+}
+
+void AGeometryPlanet::InitializeISMFoliage(UInstancedStaticMeshComponent* ISMComponent)
+{
+	ISMFoliageItemsHealth.Init(100, ISMComponent->GetInstanceCount());
+}
+
+
+void AGeometryPlanet::OnGetHitByLaser_Implementation(UInstancedStaticMeshComponent* ISMComponent, int32 ItemIndex, float Damage)
+{
+	OnISMInstanceHit.Broadcast(ISMComponent, ItemIndex, Damage);
 }
