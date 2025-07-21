@@ -22,7 +22,7 @@ AGeometryPlanet::AGeometryPlanet()
 	PlanetSphereStaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlanetSphere"));
 	PlanetSphereStaticMesh->AttachToComponent(DynamicMeshComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	PlanetSphereStaticMesh->SetRelativeLocation(FVector(0, 0, 0));
-	PlanetSphereStaticMesh->SetRelativeRotation(FRotator(0, 0, 0));
+	PlanetSphereStaticMesh->SetRelativeRotation(FRotator(0, 0, 0));	
 }
 
 // Called when the game starts or when spawned

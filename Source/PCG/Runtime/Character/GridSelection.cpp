@@ -46,10 +46,13 @@ void AGridSelectionManager::Tick(float DeltaTime)
 	}
 }
 
-void AGridSelectionManager::StartGridSelection(const FVector& StartPoint)
+void AGridSelectionManager::StartGridSelection(const FVector& StartPoint, const FRotator& Rotation)
 {
 	ClearSelection();
 
+	// 设置网格旋转
+	GridRotation = Rotation;
+	
 	InitialSelectedPoint = SnapToGrid(StartPoint);
 	
 	GridCenter = InitialSelectedPoint;
@@ -59,7 +62,8 @@ void AGridSelectionManager::StartGridSelection(const FVector& StartPoint)
 
 	SelectedGridPoints.Add(InitialSelectedPoint);
 
-	UE_LOG(LogTemp, Warning, TEXT("Started grid selection at: %s"), *InitialSelectedPoint.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("Started grid selection at: %s with rotation: %s"), 
+		*InitialSelectedPoint.ToString(), *GridRotation.ToString());
 }
 
 void AGridSelectionManager::EndGridSelection()
@@ -111,7 +115,7 @@ void AGridSelectionManager::EndGridSelection()
 					static_cast<int>((GridBounds.Max.Y - GridBounds.Min.Y) / GridSize),
 					comp->Configuration.GridSize.Z);
 				FVector GeneratePos = GridBounds.GetCenter();
-				comp->StartGenerationWithCustomConfigAt(GeneratePos, FRotator::ZeroRotator);
+				comp->StartGenerationWithCustomConfigAt(GeneratePos, GridRotation);
 			}
 		}
 	}
@@ -174,12 +178,19 @@ bool AGridSelectionManager::PreviewSelectGrid(const FVector& WorldPosition)
 		SelectedGridPoints.RemoveAt(1);
 	}
 
-	FVector GridPointA = SnapToGrid(FVector(SelectedGridPoints[0].X, GridPoint.Y, GridPoint.Z));
-	FVector GridPointB = SnapToGrid(FVector(GridPoint.X, SelectedGridPoints[0].Y, GridPoint.Z));
-	SelectedGridPoints.Add(GridPointA);
+	// 在旋转的网格空间中计算预览点
+	FVector LocalInitial = WorldToLocal(SelectedGridPoints[0]);
+	FVector LocalTarget = WorldToLocal(GridPoint);
+	
+	FVector LocalPointA = FVector(LocalInitial.X, LocalTarget.Y, LocalTarget.Z);
+	FVector LocalPointB = FVector(LocalTarget.X, LocalInitial.Y, LocalTarget.Z);
+	
+	FVector GridPointA = LocalToWorld(LocalPointA);
+	FVector GridPointB = LocalToWorld(LocalPointB);
+	
+	SelectedGridPoints.Add(SnapToGrid(GridPointA));
 	SelectedGridPoints.Add(GridPoint);
-	SelectedGridPoints.Add(GridPointB);
-
+	SelectedGridPoints.Add(SnapToGrid(GridPointB));
 
 	return true;
 }
@@ -209,13 +220,21 @@ void AGridSelectionManager::GenerateGrid()
 	{
 		for (int32 Y = -GridHeight / 2; Y <= GridHeight / 2; Y++)
 		{
-			FVector GridPoint = GridCenter + FVector(X * GridSize, Y * GridSize, 0);
-			GridPoints.Add(GridPoint);
-			GridPointAvailability.Add(GridPoint, true);
+			// 在本地坐标系中生成网格点，然后转换到世界坐标系
+			FVector LocalGridPoint = FVector(X * GridSize, Y * GridSize, 0);
+			FVector WorldGridPoint = LocalToWorld(LocalGridPoint);
+			
+			GridPoints.Add(WorldGridPoint);
+			GridPointAvailability.Add(WorldGridPoint, true);
 		}
 	}
+	
 	GridPlaneMesh->UpdateCollisionFromStaticMesh();
-	GridPlaneMesh->SetWorldLocation(GridCenter - FVector(GridWidth * GridSize / 2, GridHeight * GridSize / 2, 0));
+	
+	// 设置网格平面的位置和旋转
+	FVector PlaneLocation = GridCenter - LocalToWorld(FVector(GridWidth * GridSize / 2, GridHeight * GridSize / 2, 0)) + GridCenter;
+	GridPlaneMesh->SetWorldLocation(PlaneLocation);
+	GridPlaneMesh->SetWorldRotation(GridRotation);
 }
 
 void AGridSelectionManager::DrawDebugGrid()
@@ -229,17 +248,26 @@ void AGridSelectionManager::DrawDebugGrid()
 	float GridAlpha = 0.3f;
 	GridColor.A = (uint8)(255 * GridAlpha);
 
+	// 绘制旋转后的网格线
 	for (int32 Y = -GridHeight / 2; Y <= GridHeight / 2; Y++)
 	{
-		FVector StartPoint = GridCenter + FVector(-GridWidth / 2 * GridSize, Y * GridSize, 0);
-		FVector EndPoint = GridCenter + FVector(GridWidth / 2 * GridSize, Y * GridSize, 0);
+		FVector LocalStart = FVector(-GridWidth / 2 * GridSize, Y * GridSize, 0);
+		FVector LocalEnd = FVector(GridWidth / 2 * GridSize, Y * GridSize, 0);
+		
+		FVector StartPoint = LocalToWorld(LocalStart);
+		FVector EndPoint = LocalToWorld(LocalEnd);
+		
 		DrawDebugLine(GetWorld(), StartPoint, EndPoint, GridColor, false, 0.0f, 0, 1.0f);
 	}
 
 	for (int32 X = -GridWidth / 2; X <= GridWidth / 2; X++)
 	{
-		FVector StartPoint = GridCenter + FVector(X * GridSize, -GridHeight / 2 * GridSize, 0);
-		FVector EndPoint = GridCenter + FVector(X * GridSize, GridHeight / 2 * GridSize, 0);
+		FVector LocalStart = FVector(X * GridSize, -GridHeight / 2 * GridSize, 0);
+		FVector LocalEnd = FVector(X * GridSize, GridHeight / 2 * GridSize, 0);
+		
+		FVector StartPoint = LocalToWorld(LocalStart);
+		FVector EndPoint = LocalToWorld(LocalEnd);
+		
 		DrawDebugLine(GetWorld(), StartPoint, EndPoint, GridColor, false, 0.0f, 0, 1.0f);
 	}
 
@@ -261,11 +289,15 @@ void AGridSelectionManager::DrawDebugGrid()
 		}
 	}
 
-	FVector MinCorner = GridCenter + FVector(-GridWidth / 2 * GridSize, -GridHeight / 2 * GridSize, 0);
-	FVector MaxCorner = GridCenter + FVector(GridWidth / 2 * GridSize, GridHeight / 2 * GridSize, 0);
-	DrawDebugBox(GetWorld(), (MinCorner + MaxCorner) * 0.5f,
-	             FVector(GridWidth * GridSize * 0.5f, GridHeight * GridSize * 0.5f, 10.0f),
-	             FColor::Blue, false, 0.0f, 0, 2.0f);
+	// 绘制旋转后的网格边界框
+	FVector LocalMin = FVector(-GridWidth / 2 * GridSize, -GridHeight / 2 * GridSize, -10.0f);
+	FVector LocalMax = FVector(GridWidth / 2 * GridSize, GridHeight / 2 * GridSize, 10.0f);
+	FVector LocalCenter = (LocalMin + LocalMax) * 0.5f;
+	FVector LocalExtent = (LocalMax - LocalMin) * 0.5f;
+	
+	FVector WorldCenter = LocalToWorld(LocalCenter);
+	
+	DrawDebugBox(GetWorld(), WorldCenter, LocalExtent, GridRotation.Quaternion(), FColor::Blue, false, 0.0f, 0, 2.0f);
 }
 
 void AGridSelectionManager::DrawSelectedPoints()
@@ -376,20 +408,50 @@ void AGridSelectionManager::ClearVisualElements()
 
 FVector AGridSelectionManager::SnapToGrid(const FVector& WorldPosition) const
 {
+	// 将世界坐标转换到本地网格坐标系
+	FVector LocalPosition = WorldToLocal(WorldPosition);
+	
+	// 在本地坐标系中对齐到网格
+	FVector SnappedLocal = SnapToLocalGrid(LocalPosition);
+	
+	// 转换回世界坐标系
+	return LocalToWorld(SnappedLocal);
+}
+
+FVector AGridSelectionManager::SnapToLocalGrid(const FVector& LocalPosition) const
+{
+	int32 GridX = FMath::RoundToInt(LocalPosition.X / GridSize);
+	int32 GridY = FMath::RoundToInt(LocalPosition.Y / GridSize);
+	int32 GridZ = FMath::RoundToInt(LocalPosition.Z / GridSize);
+
+	return FVector(GridX * GridSize, GridY * GridSize, GridZ * GridSize);
+}
+
+FVector AGridSelectionManager::WorldToLocal(const FVector& WorldPosition) const
+{
+	// 平移到网格中心
 	FVector RelativePos = WorldPosition - GridCenter;
+	
+	// 应用反向旋转
+	FQuat InverseRotation = GridRotation.Quaternion().Inverse();
+	return InverseRotation.RotateVector(RelativePos);
+}
 
-	int32 GridX = FMath::RoundToInt(RelativePos.X / GridSize);
-	int32 GridY = FMath::RoundToInt(RelativePos.Y / GridSize);
-	int32 GridZ = FMath::RoundToInt(RelativePos.Z / GridSize);
-
-	return GridCenter + FVector(GridX * GridSize, GridY * GridSize, GridZ * GridSize);
+FVector AGridSelectionManager::LocalToWorld(const FVector& LocalPosition) const
+{
+	// 应用旋转
+	FQuat Rotation = GridRotation.Quaternion();
+	FVector RotatedPos = Rotation.RotateVector(LocalPosition);
+	
+	// 平移到世界坐标
+	return RotatedPos + GridCenter;
 }
 
 bool AGridSelectionManager::IsValidGridPosition(const FVector& GridPosition) const
 {
-	FVector RelativePos = GridPosition - GridCenter;
-	int32 GridX = FMath::RoundToInt(RelativePos.X / GridSize);
-	int32 GridY = FMath::RoundToInt(RelativePos.Y / GridSize);
+	FVector LocalPos = WorldToLocal(GridPosition);
+	int32 GridX = FMath::RoundToInt(LocalPos.X / GridSize);
+	int32 GridY = FMath::RoundToInt(LocalPos.Y / GridSize);
 
 	return FMath::Abs(GridX) <= GridWidth / 2 && FMath::Abs(GridY) <= GridHeight / 2;
 }

@@ -11,6 +11,8 @@ struct FShapeSettings;
 class USphereComponent;
 class AMineSphere;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnISMInstanceHit, UInstancedStaticMeshComponent*, ISMComponent, int32, Item, float, Damage);
+
 UCLASS()
 class PCG_API AGeometryPlanet : public AGeneratedDynamicMeshActor
 {
@@ -95,5 +97,16 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UShapeGenerator> NoiseShapeGenerator;*/
-#pragma	endregion 
+#pragma	endregion
+
+
+
+#pragma region Foliage
+public:
+	UPROPERTY(BlueprintAssignable)
+	FOnISMInstanceHit OnISMInstanceHit;
+protected:
+UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInstancedStaticMeshComponent> ISMFoliage;
+#pragma  endregion 
 };

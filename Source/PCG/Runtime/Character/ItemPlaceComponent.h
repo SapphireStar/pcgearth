@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ItemAbilityComponent.h"
 #include "Components/ActorComponent.h"
 #include "ItemPlaceComponent.generated.h"
 
@@ -13,7 +14,7 @@ class UDynamicMeshComponent;
 class AWFCGenerator;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class PCG_API UItemPlaceComponent : public UActorComponent
+class PCG_API UItemPlaceComponent : public UItemAbilityComponent
 {
 	GENERATED_BODY()
 

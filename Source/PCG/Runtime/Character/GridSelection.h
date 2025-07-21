@@ -30,6 +30,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
     FVector GridCenter = FVector::ZeroVector;
     
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
+    FRotator GridRotation = FRotator::ZeroRotator;
+    
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UStaticMeshComponent* GridPlaneMesh;
     
@@ -62,7 +65,7 @@ protected:
 
 public:
     UFUNCTION(BlueprintCallable, Category = "Grid Selection")
-    void StartGridSelection(const FVector& StartPoint);
+    void StartGridSelection(const FVector& StartPoint, const FRotator& Rotation = FRotator::ZeroRotator);
     
     UFUNCTION(BlueprintCallable, Category = "Grid Selection")
     void EndGridSelection();
@@ -97,6 +100,9 @@ protected:
                                const FVector& Line2Start, const FVector& Line2End) const;
     
     FVector SnapToGrid(const FVector& WorldPosition) const;
+    FVector SnapToLocalGrid(const FVector& LocalPosition) const;
+    FVector WorldToLocal(const FVector& WorldPosition) const;
+    FVector LocalToWorld(const FVector& LocalPosition) const;
     bool IsValidGridPosition(const FVector& GridPosition) const;
     bool WouldCreateCrossingEdge(const FVector& NewPoint) const;
     bool DoLinesIntersect(const FVector& Line1Start, const FVector& Line1End, 
