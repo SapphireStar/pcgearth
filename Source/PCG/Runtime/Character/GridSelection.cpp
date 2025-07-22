@@ -10,7 +10,7 @@ AGridSelectionManager::AGridSelectionManager()
 	RootSceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	RootComponent = RootSceneComponent;
 
-	// 创建网格平面（设置为不可见，仅用于碰撞检测）
+	//创建网格平面（设置为不可见，仅用于碰撞检测）
 	ECollisionChannel CollisionChannel;
 	FCollisionResponseParams ResponseParams;
 
@@ -50,7 +50,6 @@ void AGridSelectionManager::StartGridSelection(const FVector& StartPoint, const 
 {
 	ClearSelection();
 
-	// 设置网格旋转
 	GridRotation = Rotation;
 	
 	InitialSelectedPoint = SnapToGrid(StartPoint);
@@ -66,7 +65,7 @@ void AGridSelectionManager::StartGridSelection(const FVector& StartPoint, const 
 		*InitialSelectedPoint.ToString(), *GridRotation.ToString());
 }
 
-void AGridSelectionManager::EndGridSelection()
+FBox AGridSelectionManager::EndGridSelection()
 {
 	bIsInGridSelectionMode = false;
 
@@ -104,24 +103,27 @@ void AGridSelectionManager::EndGridSelection()
 		}
 	}
 	
-	if (GridBounds.Min.X < GridBounds.Max.X && GridBounds.Min.Y < GridBounds.Max.Y)
+	/*if (GridBounds.Min.X < GridBounds.Max.X && GridBounds.Min.Y < GridBounds.Max.Y)
 	{
 		for (TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 		{
 			if (auto comp = ActorItr->GetComponentByClass<UWFCGeneratorComponent>())
 			{
-				comp->Configuration.GridSize = FIntVector(
-					static_cast<int>((GridBounds.Max.X - GridBounds.Min.X) / GridSize),
-					static_cast<int>((GridBounds.Max.Y - GridBounds.Min.Y) / GridSize),
-					comp->Configuration.GridSize.Z);
 				FVector GeneratePos = GridBounds.GetCenter();
 				comp->StartGenerationWithCustomConfigAt(GeneratePos, GridRotation);
 			}
 		}
-	}
+	}*/
 
 	UE_LOG(LogTemp, Warning, TEXT("Grid selection completed with %d points"), FinalShape.Num());
 
+	ClearSelection();
+	return GridBounds;
+}
+
+void AGridSelectionManager::ShutDownGridSelection()
+{
+	bIsInGridSelectionMode = false;
 	ClearSelection();
 }
 
@@ -178,7 +180,6 @@ bool AGridSelectionManager::PreviewSelectGrid(const FVector& WorldPosition)
 		SelectedGridPoints.RemoveAt(1);
 	}
 
-	// 在旋转的网格空间中计算预览点
 	FVector LocalInitial = WorldToLocal(SelectedGridPoints[0]);
 	FVector LocalTarget = WorldToLocal(GridPoint);
 	
@@ -220,7 +221,6 @@ void AGridSelectionManager::GenerateGrid()
 	{
 		for (int32 Y = -GridHeight / 2; Y <= GridHeight / 2; Y++)
 		{
-			// 在本地坐标系中生成网格点，然后转换到世界坐标系
 			FVector LocalGridPoint = FVector(X * GridSize, Y * GridSize, 0);
 			FVector WorldGridPoint = LocalToWorld(LocalGridPoint);
 			
@@ -231,7 +231,6 @@ void AGridSelectionManager::GenerateGrid()
 	
 	GridPlaneMesh->UpdateCollisionFromStaticMesh();
 	
-	// 设置网格平面的位置和旋转
 	FVector PlaneLocation = GridCenter - LocalToWorld(FVector(GridWidth * GridSize / 2, GridHeight * GridSize / 2, 0)) + GridCenter;
 	GridPlaneMesh->SetWorldLocation(PlaneLocation);
 	GridPlaneMesh->SetWorldRotation(GridRotation);
@@ -248,7 +247,6 @@ void AGridSelectionManager::DrawDebugGrid()
 	float GridAlpha = 0.3f;
 	GridColor.A = (uint8)(255 * GridAlpha);
 
-	// 绘制旋转后的网格线
 	for (int32 Y = -GridHeight / 2; Y <= GridHeight / 2; Y++)
 	{
 		FVector LocalStart = FVector(-GridWidth / 2 * GridSize, Y * GridSize, 0);
@@ -289,7 +287,6 @@ void AGridSelectionManager::DrawDebugGrid()
 		}
 	}
 
-	// 绘制旋转后的网格边界框
 	FVector LocalMin = FVector(-GridWidth / 2 * GridSize, -GridHeight / 2 * GridSize, -10.0f);
 	FVector LocalMax = FVector(GridWidth / 2 * GridSize, GridHeight / 2 * GridSize, 10.0f);
 	FVector LocalCenter = (LocalMin + LocalMax) * 0.5f;
@@ -408,13 +405,10 @@ void AGridSelectionManager::ClearVisualElements()
 
 FVector AGridSelectionManager::SnapToGrid(const FVector& WorldPosition) const
 {
-	// 将世界坐标转换到本地网格坐标系
 	FVector LocalPosition = WorldToLocal(WorldPosition);
 	
-	// 在本地坐标系中对齐到网格
 	FVector SnappedLocal = SnapToLocalGrid(LocalPosition);
 	
-	// 转换回世界坐标系
 	return LocalToWorld(SnappedLocal);
 }
 
@@ -429,21 +423,17 @@ FVector AGridSelectionManager::SnapToLocalGrid(const FVector& LocalPosition) con
 
 FVector AGridSelectionManager::WorldToLocal(const FVector& WorldPosition) const
 {
-	// 平移到网格中心
 	FVector RelativePos = WorldPosition - GridCenter;
 	
-	// 应用反向旋转
 	FQuat InverseRotation = GridRotation.Quaternion().Inverse();
 	return InverseRotation.RotateVector(RelativePos);
 }
 
 FVector AGridSelectionManager::LocalToWorld(const FVector& LocalPosition) const
 {
-	// 应用旋转
 	FQuat Rotation = GridRotation.Quaternion();
 	FVector RotatedPos = Rotation.RotateVector(LocalPosition);
 	
-	// 平移到世界坐标
 	return RotatedPos + GridCenter;
 }
 

@@ -23,7 +23,6 @@ protected:
     virtual void BeginPlay() override;
 
 public:
-    // 配置属性
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WFC Configuration")
     TObjectPtr<UWFCTileSet> TileSet;
 
@@ -45,7 +44,6 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WFC Configuration")
     bool bUseAsyncGeneration = false;
 
-    // 事件委托
     UPROPERTY(BlueprintAssignable, Category = "WFC Events")
     FOnWFCGenerationComplete OnGenerationComplete;
 
@@ -77,7 +75,6 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
     FWFCGenerationResult GetLastResult() const { return LastResult; }
 
-    // 配置方法
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void SetTileSet(UWFCTileSet* NewTileSet);
 
@@ -86,8 +83,7 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void ClearConstraints();
-
-    // 可视化控制
+    
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void SetVisualizationEnabled(bool bEnabled);
 
@@ -101,14 +97,11 @@ public:
     void PrevCollapseStep();
 
 protected:
-    // 内部状态
     UPROPERTY()
     bool bIsGenerating = false;
 
-    // 核心组件
     TUniquePtr<FWFCCore> WFCCore;
     
-    // 可视化
     UPROPERTY()
     TMap<FWFCCoordinate, TObjectPtr<AActor>> SpawnedActors;
 
@@ -118,10 +111,8 @@ protected:
     UPROPERTY()
     TObjectPtr<USceneComponent> RootVisualization;
 
-    // 异步生成支持
     TFuture<FWFCGenerationResult> GenerationFuture;
 
-    // 调试
     UPROPERTY()
     FWFCGenerationResult LastResult;
 
@@ -131,7 +122,6 @@ protected:
     int CurCollapseHistoryStep;
 
 private:
-    // 生成流程
     void ExecuteGeneration();
     void ExecuteGenerationAsync();
     void ExecuteGenerationAsyncAt(FVector Location, FRotator Rotation);
@@ -139,13 +129,9 @@ private:
     void OnGenerationFinished(const FWFCGenerationResult& Result);
     void OnGenerationFinished(const FWFCGenerationResult& Result, FVector Location, FRotator Rotation);
 
-    // 可视化
     void CreateVisualization(const FWFCGenerationResult& Result);
     USceneComponent* CreateVisualizationAt(const FWFCGenerationResult& Result,  FVector Location, FRotator Rotation);
     void ClearVisualization();
     AActor* SpawnTileActor(const FWFCCoordinate& Position, int32 TileIndex);
     FVector CoordinateToWorldPosition(const FWFCCoordinate& Coord) const;
-
-    // 移除未使用的方法声明
-    // void AsyncGenerationTask(); // 这个方法在cpp中没有实现，所以移除
 };

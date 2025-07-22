@@ -10,7 +10,6 @@ UWFCGeneratorComponent::UWFCGeneratorComponent()
 {
     PrimaryComponentTick.bCanEverTick = false;
     
-    // 设置默认配置
     Configuration.GridSize = FIntVector(5, 5, 3);
     Configuration.GenerationMode = EWFCGenerationMode::GroundFirst;
     Configuration.MaxIterations = 1000;
@@ -22,7 +21,6 @@ void UWFCGeneratorComponent::BeginPlay()
 {
     Super::BeginPlay();
 
-    // 创建根可视化组件
     if (bVisualizeTiles && GetOwner())
     {
         RootVisualization = NewObject<USceneComponent>(GetOwner());
@@ -30,7 +28,6 @@ void UWFCGeneratorComponent::BeginPlay()
         RootVisualization->RegisterComponent();
     }
 
-    // 初始化WFC核心
     WFCCore = MakeUnique<FWFCCore>();
 
     if (bAutoGenerateOnBeginPlay && TileSet)
@@ -56,7 +53,7 @@ void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomCo
 
     CompleteTileSet = NewObject<UWFCTileSet>();
 
-    for (int i = 0; i < TileSet->TileRuleSets.Num(); i++)
+    /*for (int i = 0; i < TileSet->TileRuleSets.Num(); i++)
     {
         for (int j = 0; j < TileSet->TileRuleSets[i].Tiles.Num(); j++)
         {
@@ -70,17 +67,10 @@ void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomCo
         {
             CompleteTileSet->SocketDefinitions.Add(TileSet->SocketRuleSets[i].Sockets[j]);
         }
-    }
-    
-    /*for (int i = 0; i < TileSet->Tiles.Num(); i++)
-    {
-        CompleteTileSet->Tiles.Add(TileSet->Tiles[i]);
-    }
-    for (int i = 0; i < TileSet->SocketDefinitions.Num(); i++)
-    {
-        CompleteTileSet->SocketDefinitions.Add(TileSet->SocketDefinitions[i]);
     }*/
-    CompleteTileSet->DefaultConfiguration = TileSet->DefaultConfiguration;
+    
+
+    //CompleteTileSet->DefaultConfiguration = TileSet->DefaultConfiguration;
 
     UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Starting generation with grid size %s"), 
         *CustomConfig.GridSize.ToString());
@@ -89,7 +79,7 @@ void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomCo
     Configuration = CustomConfig;
     
     // 初始化WFC核心
-    if (!WFCCore->Initialize(CompleteTileSet, Configuration))
+    if (!WFCCore->Initialize(TileSet, Configuration))
     {
         UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
         bIsGenerating = false;
@@ -136,7 +126,7 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
 
     ClearVisualization();
     
-    if (!WFCCore->Initialize(CompleteTileSet, Configuration))
+    if (!WFCCore->Initialize(TileSet, Configuration))
     {
         UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
         bIsGenerating = false;
@@ -156,7 +146,6 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
 void UWFCGeneratorComponent::StartGenerationWithCustomConfigAt(FVector Location,
     FRotator Rotation)
 {
-    //更新GridSize
     WFCCore->UpdateGrid(Configuration);
     
     if (bUseAsyncGeneration)
@@ -179,10 +168,8 @@ void UWFCGeneratorComponent::StopGeneration()
     bIsGenerating = false;
     UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation stopped"));
 
-    // 如果有异步任务在运行，等待其完成
     if (GenerationFuture.IsValid())
     {
-        // 注意：这里不应该在游戏线程上等待，实际项目中需要更优雅的处理
         GenerationFuture.Wait();
     }
 }
@@ -302,7 +289,6 @@ void UWFCGeneratorComponent::ExecuteGenerationAsync()
 {
     UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Executing asynchronous generation"));
 
-    // 在后台线程执行WFC生成
     GenerationFuture = Async(EAsyncExecution::ThreadPool, [this]() -> FWFCGenerationResult
     {
         if (WFCCore)
@@ -312,7 +298,6 @@ void UWFCGeneratorComponent::ExecuteGenerationAsync()
         return FWFCGenerationResult();
     });
 
-    // 在游戏线程上等待结果
     AsyncTask(ENamedThreads::GameThread, [this]()
     {
         if (GenerationFuture.IsValid())
@@ -327,7 +312,6 @@ void UWFCGeneratorComponent::ExecuteGenerationAsyncAt(FVector Location, FRotator
 {
     UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Executing asynchronous generation"));
 
-    // 在后台线程执行WFC生成
     GenerationFuture = Async(EAsyncExecution::ThreadPool, [this]() -> FWFCGenerationResult
     {
         if (WFCCore)
@@ -337,7 +321,6 @@ void UWFCGeneratorComponent::ExecuteGenerationAsyncAt(FVector Location, FRotator
         return FWFCGenerationResult();
     });
 
-    // 在游戏线程上等待结果
     AsyncTask(ENamedThreads::GameThread, [this, &Location, &Rotation]()
     {
         if (GenerationFuture.IsValid())
@@ -378,13 +361,11 @@ void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Re
         UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Generation failed: %s"), *Result.ErrorMessage);
     }
 
-    // 创建可视化
     if (bVisualizeTiles && Result.bSuccess)
     {
         CreateVisualization(Result);
     }
 
-    // 广播完成事件
     OnGenerationComplete.Broadcast(Result);
 }
 
@@ -406,19 +387,17 @@ void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Re
         UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Generation failed: %s"), *Result.ErrorMessage);
     }
 
-    // 创建可视化
     if (bVisualizeTiles && Result.bSuccess)
     {
         CreateVisualizationAt(Result, Location, Rotation);
     }
 
-    // 广播完成事件
     OnGenerationComplete.Broadcast(Result);
 }
 
 void UWFCGeneratorComponent::CreateVisualization(const FWFCGenerationResult& Result)
 {
-    if (!GetOwner() || !CompleteTileSet)
+    if (!GetOwner() || !TileSet)
     {
         return;
     }
@@ -449,7 +428,7 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAt(const FWFCGenerat
     ParentComp->SetupAttachment(GetOwner()->GetRootComponent());
     ParentComp->RegisterComponent();
     SpawnedTileParents.Add(ParentComp);
-    if (!GetOwner() || !CompleteTileSet)
+    if (!GetOwner() || !TileSet)
     {
         UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: no valid TileSet"));
         return ParentComp;
@@ -492,23 +471,21 @@ void UWFCGeneratorComponent::ClearVisualization()
 
 AActor* UWFCGeneratorComponent::SpawnTileActor(const FWFCCoordinate& Position, int32 TileIndex)
 {
-    if (!GetOwner() || !CompleteTileSet)
+    if (!GetOwner() || !TileSet)
     {
         return nullptr;
     }
 
-    FWFCTileDefinition TileDef = CompleteTileSet->GetTile(TileIndex);
+    FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
     if (!TileDef.Mesh)
     {
         UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Tile %d has no mesh"), TileIndex);
         return nullptr;
     }
 
-    // 计算世界位置
     FVector WorldPosition = CoordinateToWorldPosition(Position);
     FRotator WorldRotation = TileDef.BaseRotation;
 
-    // 创建Actor
     UWorld* World = GetOwner()->GetWorld();
     AActor* TileActor = World->SpawnActor<AActor>(AActor::StaticClass(), WorldPosition, WorldRotation);
     
@@ -518,11 +495,9 @@ AActor* UWFCGeneratorComponent::SpawnTileActor(const FWFCCoordinate& Position, i
         return nullptr;
     }
 
-    // 设置名称
     TileActor->SetActorLabel(FString::Printf(TEXT("WFC_Tile_%s_%s"), 
         *Position.ToString(), *TileDef.TileName));
 
-    // 创建静态网格组件
     UStaticMeshComponent* MeshComponent = NewObject<UStaticMeshComponent>(TileActor);
     MeshComponent->SetStaticMesh(TileDef.Mesh);
     
@@ -537,7 +512,6 @@ AActor* UWFCGeneratorComponent::SpawnTileActor(const FWFCCoordinate& Position, i
     TileActor->SetRootComponent(MeshComponent);
     MeshComponent->RegisterComponent();
 
-    // 附加到根可视化组件
     if (RootVisualization)
     {
         TileActor->AttachToComponent(RootVisualization, 

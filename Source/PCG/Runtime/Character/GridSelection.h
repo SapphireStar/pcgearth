@@ -68,7 +68,16 @@ public:
     void StartGridSelection(const FVector& StartPoint, const FRotator& Rotation = FRotator::ZeroRotator);
     
     UFUNCTION(BlueprintCallable, Category = "Grid Selection")
-    void EndGridSelection();
+    FBox EndGridSelection();
+
+    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    void ShutDownGridSelection();
+
+    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    FRotator GetGridRotation() const{return GridRotation;}
+
+    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    float GetGridSize() const {return  GridSize;}
     
     UFUNCTION(BlueprintCallable, Category = "Grid Selection")
     bool TrySelectGridPoint(const FVector& WorldPosition);

@@ -38,13 +38,17 @@ TArray<int32> UWFCTileSet::GetTilesByCategory(EWFCTileCategory Category) const
 
 bool UWFCTileSet::AreSocketsCompatible(const FString& Socket1, const FString& Socket2) const
 {
-    // 空Socket处理
     if (Socket1.IsEmpty() || Socket2.IsEmpty())
     {
         return Socket1.IsEmpty() && Socket2.IsEmpty();
     }
+    
+    if (Socket1.Equals("0") || Socket2.Equals("0"))
+    {
+        return true;
+    }
 
-    // 查找Socket1的定义
+
     for (const FWFCSocket& SocketDef : SocketDefinitions)
     {
         if (SocketDef.SocketName.Equals(Socket1, ESearchCase::IgnoreCase))
@@ -60,6 +64,7 @@ bool UWFCTileSet::AreSocketsCompatible(const FString& Socket1, const FString& So
             return SocketDef.CompatibleSockets.Contains(Socket1);
         }
     }
+    
     return false;
     //return Socket1.Equals(Socket2, ESearchCase::IgnoreCase);
 }
@@ -81,38 +86,32 @@ bool UWFCTileSet::ValidateTileSet(FString& OutErrorMessage) const
 {
     TArray<FString> Errors;
 
-    // 检查瓦片数量
     if (Tiles.Num() == 0)
     {
         Errors.Add(TEXT("No tiles defined in tile set"));
     }
 
-    // 检查每个瓦片
     for (int32 i = 0; i < Tiles.Num(); i++)
     {
         const FWFCTileDefinition& Tile = Tiles[i];
         
-        // 检查瓦片名称
         if (Tile.TileName.IsEmpty())
         {
             Errors.Add(FString::Printf(TEXT("Tile %d has empty name"), i));
         }
 
-        // 检查Socket数量
         if (Tile.Sockets.Num() != 6)
         {
             Errors.Add(FString::Printf(TEXT("Tile %d (%s) has %d sockets, expected 6"), 
                 i, *Tile.TileName, Tile.Sockets.Num()));
         }
 
-        // 检查Mesh
         if (!Tile.Mesh)
         {
             Errors.Add(FString::Printf(TEXT("Tile %d (%s) has no mesh assigned"), i, *Tile.TileName));
         }
     }
 
-    // 检查Socket定义
     TSet<FString> DefinedSockets;
     for (const FWFCSocket& SocketDef : SocketDefinitions)
     {
@@ -129,7 +128,6 @@ bool UWFCTileSet::ValidateTileSet(FString& OutErrorMessage) const
         DefinedSockets.Add(SocketDef.SocketName);
     }
 
-    // 检查Socket引用
     TSet<FString> UsedSockets;
     for (const FWFCTileDefinition& Tile : Tiles)
     {
@@ -150,7 +148,6 @@ bool UWFCTileSet::ValidateTileSet(FString& OutErrorMessage) const
         }
     }
 
-    // 汇总错误信息
     if (Errors.Num() > 0)
     {
         OutErrorMessage = FString::Join(Errors, TEXT("\n"));
@@ -163,25 +160,40 @@ bool UWFCTileSet::ValidateTileSet(FString& OutErrorMessage) const
 
 void UWFCTileSet::GenerateRotationVariants()
 {
+    Tiles.Empty();
+    SocketDefinitions.Empty();
+    for (int i = 0; i < TileRuleSets.Num(); i++)
+    {
+        for (int j = 0; j < TileRuleSets[i].Tiles.Num(); j++)
+        {
+            Tiles.Add(TileRuleSets[i].Tiles[j]);
+        }
+    }
+
+    for (int i = 0; i < SocketRuleSets.Num(); i++)
+    {
+        for (int j = 0; j < SocketRuleSets[i].Sockets.Num(); j++)
+        {
+            SocketDefinitions.Add(SocketRuleSets[i].Sockets[j]);
+        }
+    }
+    
     TArray<FWFCTileDefinition> OriginalTiles = Tiles;
     
     for (const FWFCTileDefinition& OriginalTile : OriginalTiles)
     {
         if (!OriginalTile.bCanRotate) continue;
 
-        // 生成90°, 180°, 270°旋转变体
         for (int32 RotationSteps = 1; RotationSteps < 4; RotationSteps++)
         {
             FWFCTileDefinition RotatedTile = OriginalTile;
             RotatedTile.TileName = FString::Printf(TEXT("%s_Rot%d"), 
                 *OriginalTile.TileName, RotationSteps * 90);
             
-            // 旋转Socket
             RotatedTile.Sockets = RotateSockets(OriginalTile.Sockets, RotationSteps);
             
-            // 更新旋转信息
             RotatedTile.BaseRotation = FRotator(0, RotationSteps * 90.0f, 0);
-            RotatedTile.bCanRotate = false; // 避免对变体再次生成旋转
+            RotatedTile.bCanRotate = false;
 
             Tiles.Add(RotatedTile);
         }
@@ -197,12 +209,10 @@ TArray<FString> UWFCTileSet::RotateSockets(const TArray<FString>& OriginalSocket
     TArray<FString> RotatedSockets;
     RotatedSockets.SetNum(6);
 
-    // Z轴旋转不影响上下方向
-    RotatedSockets[0] = OriginalSockets[0]; // Up
-    RotatedSockets[1] = OriginalSockets[1]; // Down
+    RotatedSockets[0] = OriginalSockets[0];
+    RotatedSockets[1] = OriginalSockets[1]; 
 
-    // 水平方向旋转映射：North->East->South->West->North
-    int32 HorizontalMapping[4] = {2, 5, 3, 4}; // North, East, South, West
+    int32 HorizontalMapping[4] = {2, 5, 3, 4}; 
     
     for (int32 i = 0; i < 4; i++)
     {

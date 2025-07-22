@@ -20,7 +20,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	// 重写基类的生命周期函数
 	virtual void OnInitializeAbility() override;
 	virtual void OnActivateAbility() override;
 	virtual void OnTickAbility() override;

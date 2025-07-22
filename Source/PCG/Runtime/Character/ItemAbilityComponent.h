@@ -1,4 +1,3 @@
-// ItemAbilityComponent.h - 更新后的版本
 #pragma once
 
 #include "CoreMinimal.h"
@@ -13,11 +12,9 @@ enum class EAbilityType : uint8
 	TerrainBuild,
 	TerrainDig,
 	GetResource,
-	// 可以继续添加其他能力类型
 	MAX UMETA(Hidden)
 };
 
-// 委托声明 - 当能力切换时通知
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityChanged, EAbilityType, OldAbility, EAbilityType, NewAbility);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityActivated, EAbilityType, AbilityType);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityDeactivated, EAbilityType, AbilityType);
@@ -62,14 +59,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void OnDeactivateAbility();
 
-	// 能力状态查询
 	UFUNCTION(BlueprintPure)
 	bool IsActivated() const { return bIsActivated; }
 
 	UFUNCTION(BlueprintPure)
 	bool IsInitialized() const { return bIsInitialized; }
 
-	// 能力信息
 	UFUNCTION(BlueprintPure)
 	FString GetAbilityName() const { return AbilityName; }
 
@@ -86,14 +81,12 @@ public:
 	virtual void OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera);
 
 public:
-	// 委托事件
 	UPROPERTY(BlueprintAssignable)
 	FOnAbilityStatusChanged OnAbilityActivated;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnAbilityStatusChanged OnAbilityDeactivated;
 
-	// 能力状态
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsActivated = false;
 
@@ -104,14 +97,12 @@ public:
 	EAbilityType AbilityType = EAbilityType::None;
 
 protected:
-	// 能力基本信息
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability Info")
 	FString AbilityName = TEXT("Base Ability");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability Info", meta = (MultiLine = true))
 	FString AbilityDescription = TEXT("Base ability component");
 
-	// 能力图标（可选）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability Info")
 	TObjectPtr<class UTexture2D> AbilityIcon;
 };

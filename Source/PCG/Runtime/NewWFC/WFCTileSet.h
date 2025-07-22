@@ -6,6 +6,51 @@
 #include "WFCTypes.h"
 #include "WFCTileSet.generated.h"
 
+USTRUCT(BlueprintType)
+struct PCG_API FWFCTileRuleSetRow : public FTableRowBase
+{
+    GENERATED_BODY()
+
+public:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tile Rule Set")
+    FString RuleSetName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tile Rule Set")
+    TArray<FWFCTileDefinition> Tiles;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tile Rule Set")
+    FString Description;
+
+    FWFCTileRuleSetRow()
+    {
+        RuleSetName = TEXT("");
+        Description = TEXT("");
+    }
+};
+
+USTRUCT(BlueprintType)
+struct PCG_API FWFCSocketRuleSetRow : public FTableRowBase
+{
+    GENERATED_BODY()
+
+public:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Socket Rule Set")
+    FString RuleSetName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Socket Rule Set")
+    TArray<FWFCSocket> Sockets;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Socket Rule Set")
+    FString Description;
+
+    FWFCSocketRuleSetRow()
+    {
+        RuleSetName = TEXT("");
+        Description = TEXT("");
+    }
+};
+
+
 UCLASS(BlueprintType)
 class PCG_API UWFCTileSet : public UDataAsset
 {
@@ -60,7 +105,7 @@ public:
     bool ValidateTileSet(FString& OutErrorMessage) const;
 
     // 自动生成旋转变体
-    UFUNCTION(BlueprintCallable, Category = "WFC")
+    UFUNCTION(BlueprintCallable, CallInEditor, Category = "WFC")
     void GenerateRotationVariants();
 
 protected:

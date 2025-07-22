@@ -1,4 +1,3 @@
-// TerrainDigAbility.cpp
 
 #include "TerrainDigAbility.h"
 #include "Camera/CameraComponent.h"

@@ -74,11 +74,9 @@ void AGeometryPlanet::GenerateMineAreas()
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
     
-	// 设置要忽略的Actor
 	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(this); // 忽略自己
+	ActorsToIgnore.Add(this); 
     TArray<AActor*> ResultActors;
-	// 执行球形重叠检测
 	bool bHit = UKismetSystemLibrary::SphereOverlapActors(
 		GetWorld(),
 		GetActorLocation(),
@@ -140,17 +138,13 @@ void AGeometryPlanet::GenerateMineMaterialTexture()
 
 void AGeometryPlanet::InitializeTexture16Bytes()
 {
-	// Get Total Pixels in Texture
 	TextureTotalPixels = TextureWidth * TextureHeight;
 
-	// Get Total Bytes of Texture - Each pixel has 4 bytes for RGBA
 	TextureDataSize = TextureTotalPixels * 16;
 	TextureDataSqrtSize = TextureWidth * 4;
 
-	// Initialize Texture Data Array
 	TextureDataFloat = new float[TextureTotalPixels * 4];
 
-	// Create Dynamic Texture Object
 	DynamicTexture = UTexture2D::CreateTransient(TextureWidth, TextureHeight, PF_A32B32G32R32F);
 	DynamicTexture->CompressionSettings = TextureCompressionSettings::TC_VectorDisplacementmap;
 	DynamicTexture->SRGB = 0;
@@ -159,10 +153,8 @@ void AGeometryPlanet::InitializeTexture16Bytes()
 	DynamicTexture->AddToRoot();
 	DynamicTexture->UpdateResource();
 
-	//Create Update Region Struct Instance
 	TextureRegion = new FUpdateTextureRegion2D(0, 0, 0, 0, TextureWidth, TextureHeight);
 
-	//FillTexture(FLinearColor::Black);
 	UpdateTexture16Bytes();
 }
 

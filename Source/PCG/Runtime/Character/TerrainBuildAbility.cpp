@@ -1,5 +1,3 @@
-// TerrainBuildAbility.cpp
-
 #include "TerrainBuildAbility.h"
 #include "EngineUtils.h"
 #include "Camera/CameraComponent.h"
@@ -9,6 +7,7 @@
 #include "GeometryScript/MeshSelectionFunctions.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "PCG/Runtime/PCGGameMode.h"
 #include "PCG/Runtime/NewPlanet/GeometryPlanet.h"
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "PCG/Runtime/NewWFC/WFCGeneratorComponent.h"
@@ -21,7 +20,7 @@ UTerrainBuildAbility::UTerrainBuildAbility()
 void UTerrainBuildAbility::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if (!WFCGeneratorComponent && GetWorld())
 	{
 		for (TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
@@ -33,35 +32,43 @@ void UTerrainBuildAbility::BeginPlay()
 			}
 		}
 	}
+
+	if (!GridSelection && GetWorld())
+	{
+		for (TActorIterator<AGridSelectionManager> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+		{
+			GridSelection = *ActorItr;
+			break;
+		}
+	}
 }
 
 void UTerrainBuildAbility::OnInitializeAbility()
 {
 	Super::OnInitializeAbility();
+	PlayerData = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData;
 	UE_LOG(LogTemp, Log, TEXT("TerrainBuildAbility initialized"));
 }
 
 void UTerrainBuildAbility::OnActivateAbility()
 {
 	Super::OnActivateAbility();
+	bIsGridSlectionStarted = false;
 	UE_LOG(LogTemp, Log, TEXT("TerrainBuildAbility activated - Ready to build!"));
-	
-	// 激活时可以显示建造预览等
 }
 
 void UTerrainBuildAbility::OnTickAbility()
 {
 	Super::OnTickAbility();
-	// 如果需要持续更新的逻辑，可以在这里实现
-	// 例如：显示建造预览、更新UI等
 }
 
 void UTerrainBuildAbility::OnDeactivateAbility()
 {
 	Super::OnDeactivateAbility();
+	GridSelection->ShutDownGridSelection();
+	bIsGridSlectionStarted = false;
+	DeselectPlanet();
 	UE_LOG(LogTemp, Log, TEXT("TerrainBuildAbility deactivated"));
-	
-	// 停用时清理预览等
 }
 
 void UTerrainBuildAbility::OnStartUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera)
@@ -83,42 +90,70 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 		return;
 	}
 
-	FVector End = TraceStartComp->GetComponentLocation() + Camera->GetForwardVector() * SelectRange;
-	TArray<AActor*> ActorsToIgnore;
-	FHitResult HitResult;
-	
-	UKismetSystemLibrary::LineTraceSingle(
-		GetWorld(),
-		TraceStartComp->GetComponentLocation(),
-		End,
-		UEngineTypes::ConvertToTraceType(ECC_Visibility),
-		true,
-		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
-		HitResult,
-		true,
-		FLinearColor::Red,
-		FLinearColor::Green,
-		5.f);
-
-	if (HitResult.bBlockingHit)
+	if (!GridSelection)
 	{
-		if (AGeometryPlanet* planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
+		UE_LOG(LogTemp, Warning, TEXT("Grid Selection is invalid"));
+		return;
+	}
+
+	if (!bIsGridSlectionStarted)
+	{
+		FVector End = TraceStartComp->GetComponentLocation() + Camera->GetForwardVector() * SelectRange;
+		TArray<AActor*> ActorsToIgnore;
+		FHitResult HitResult;
+
+		UKismetSystemLibrary::LineTraceSingle(
+			GetWorld(),
+			TraceStartComp->GetComponentLocation(),
+			End,
+			UEngineTypes::ConvertToTraceType(ECC_Visibility),
+			true,
+			ActorsToIgnore,
+			EDrawDebugTrace::ForDuration,
+			HitResult,
+			true,
+			FLinearColor::Red,
+			FLinearColor::Green,
+			5.f);
+
+		if (HitResult.bBlockingHit)
 		{
-			ProcessTerrainBuild(planet, HitResult);
+			if (AGeometryPlanet* planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
+			{
+				SelectPlanet(planet, HitResult);
+				GridSelection->StartGridSelection(HitResult.ImpactPoint,
+				                                  FindNormalOnPlanet(HitResult.ImpactPoint,
+				                                                     planet->GetActorLocation()));
+				bIsGridSlectionStarted = true;
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Hit non-planet object, cannot build here"));
+			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Hit non-planet object, cannot build here"));
+			UE_LOG(LogTemp, Warning, TEXT("No valid build target found"));
 		}
+	}
+	else if (Planet)
+	{
+		bIsGridSlectionStarted = false;
+		FBox GridBounds = GridSelection->EndGridSelection();
+		FVector GeneratePos = GridBounds.GetCenter();
+		ProcessTerrainBuild(Planet, LastHitResult, GridBounds);
+		//WFCGeneratorComponent->StartGenerationWithCustomConfigAt(GeneratePos, GridSelection->GetGridRotation());
+		DeselectPlanet();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("No valid build target found"));
+		DeselectPlanet();
+		bIsGridSlectionStarted = false;
+		UE_LOG(LogTemp, Warning, TEXT("No valid planet found"));
 	}
 }
 
-void UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FHitResult& HitResult)
+void UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds)
 {
 	if (!Planet)
 	{
@@ -127,7 +162,7 @@ void UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FH
 
 	FVector ImpactRelativePoint = HitResult.ImpactPoint - Planet->GetActorLocation();
 	FGeometryScriptMeshSelection selection;
-	
+
 	UGeometryScriptLibrary_MeshSelectionFunctions::SelectMeshElementsInSphere(
 		Planet->GetDynamicMeshComponent()->GetDynamicMesh(),
 		selection,
@@ -137,7 +172,7 @@ void UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FH
 		false,
 		1
 	);
-	
+
 	TArray<int32> indicesout;
 	selection.ConvertToMeshIndexArray(
 		Planet->GetDynamicMeshComponent()->GetDynamicMesh()->GetMeshRef(),
@@ -147,10 +182,10 @@ void UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FH
 	{
 		// 平整地形以便建造
 		FlattenTerrain(Planet, indicesout);
-		
+
 		// 在平整的地形上生成建筑
-		SpawnBuilding(Planet, HitResult);
-		
+		SpawnBuilding(Planet, HitResult, GridBounds);
+
 		UE_LOG(LogTemp, Log, TEXT("Building constructed successfully!"));
 	}
 	else
@@ -174,7 +209,6 @@ void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<
 		mesh, LowestVertexID, bIsValidVertex);
 	float lowestLength = lowestPos.Length();
 
-	// 将选中区域的顶点平整到最低点的高度
 	for (int i : VertexIndices)
 	{
 		if (i != LowestVertexID)
@@ -182,7 +216,7 @@ void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<
 			auto pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
 				mesh, i, bIsValidVertex);
 			FVector normal = pos.GetSafeNormal();
-			
+
 			UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
 				mesh, i, normal * lowestLength, bIsValidVertex);
 		}
@@ -192,17 +226,20 @@ void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<
 	Planet->GetDynamicMeshComponent()->UpdateCollision();
 }
 
-void UTerrainBuildAbility::SpawnBuilding(AGeometryPlanet* Planet, const FHitResult& HitResult)
+void UTerrainBuildAbility::SpawnBuilding(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds)
 {
-	// 计算建筑朝向（垂直于星球表面）
 	FVector normal = HitResult.ImpactPoint - Planet->GetActorLocation();
 	normal.Normalize();
 	FRotator rotation = UKismetMathLibrary::MakeRotFromZ(normal);
-	
-	// 使用WFC生成器生成建筑
+
 	if (WFCGeneratorComponent)
 	{
-		WFCGeneratorComponent->StartGenerationWithCustomConfigAt(HitResult.ImpactPoint, rotation);
+		if (TryConsumeWood())
+		{
+			CalculateWFCGridSize(GridBounds);
+			WFCGeneratorComponent->StartGenerationWithCustomConfigAt(GridBounds.GetCenter(),
+			                                                         GridSelection->GetGridRotation());
+		}
 	}
 	else
 	{
@@ -210,7 +247,29 @@ void UTerrainBuildAbility::SpawnBuilding(AGeometryPlanet* Planet, const FHitResu
 	}
 }
 
-int UTerrainBuildAbility::FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID)
+bool UTerrainBuildAbility::TryConsumeWood()
+{
+	if (WFCGeneratorComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Try consume wood"));
+		int volume = WFCGeneratorComponent->Configuration.GridSize.X * WFCGeneratorComponent->Configuration.GridSize.Y *
+			WFCGeneratorComponent->Configuration.GridSize.Z;
+		if (PlayerData->GetPlayerWoodValue() >= volume)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%d Wood consumed"), volume);
+			PlayerData->ChangePlayerWoodValue(PlayerData->GetPlayerWoodValue() - volume);
+			return true;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Player wood not available"), volume);
+		}
+	}
+	return false;
+}
+
+int UTerrainBuildAbility::FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp,
+                                     TArray<int32> VertexID)
 {
 	auto DynamicMesh = DynamicMeshComp->GetDynamicMesh();
 	bool bHasIdGroup;
@@ -248,4 +307,29 @@ int UTerrainBuildAbility::FindLowestVertex(UDynamicMeshComponent* DynamicMeshCom
 		}
 	}
 	return minID;
+}
+
+FRotator UTerrainBuildAbility::FindNormalOnPlanet(FVector ImpactPosition, FVector PlanetPosition)
+{
+	FVector normal = (ImpactPosition - PlanetPosition).GetSafeNormal();
+	return UKismetMathLibrary::MakeRotFromZ(normal);
+}
+
+void UTerrainBuildAbility::CalculateWFCGridSize(FBox GridBounds)
+{
+	int SizeX = static_cast<int>((GridBounds.Max.X - GridBounds.Min.X)/GridSelection->GetGridSize());
+	int SizeY = static_cast<int>((GridBounds.Max.Y - GridBounds.Min.Y)/GridSelection->GetGridSize());
+	WFCGeneratorComponent->Configuration.GridSize = FIntVector(SizeX, SizeY, WFCGeneratorComponent->Configuration.GridSize.Z);
+}
+
+void UTerrainBuildAbility::SelectPlanet(AGeometryPlanet* Planet, FHitResult& HitResult)
+{
+	this->Planet = Planet;
+	LastHitResult = HitResult;
+}
+
+void UTerrainBuildAbility::DeselectPlanet()
+{
+	this->Planet = nullptr;
+	LastHitResult = FHitResult();
 }

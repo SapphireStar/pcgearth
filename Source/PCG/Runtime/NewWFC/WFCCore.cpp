@@ -4,20 +4,18 @@
 const TArray<FIntVector> FWFCCore::DirectionVectors = {
 	FIntVector(0, 0, 1), // Up
 	FIntVector(0, 0, -1), // Down  
-	FIntVector(0, 1, 0), // North
-	FIntVector(0, -1, 0), // South
-	FIntVector(1, 0, 0), // East
-	FIntVector(-1, 0, 0) // West
+	FIntVector(0, 1, 0), // Right
+	FIntVector(0, -1, 0), // Left
+	FIntVector(1, 0, 0), // Front
+	FIntVector(-1, 0, 0) // Back
 };
 
 FWFCCore::FWFCCore()
 {
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Constructor called"));
 }
 
 FWFCCore::~FWFCCore()
 {
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Destructor called"));
 	Reset();
 }
 
@@ -30,7 +28,7 @@ bool FWFCCore::Initialize(UWFCTileSet* InTileSet, const FWFCConfiguration& InCon
 	}
 
 	FString ValidationError;
-	InTileSet->GenerateRotationVariants();
+	//InTileSet->GenerateRotationVariants();
 	if (!InTileSet->ValidateTileSet(ValidationError))
 	{
 		UE_LOG(LogTemp, Error, TEXT("WFCCore: TileSet validation failed: %s"), *ValidationError);
@@ -50,10 +48,8 @@ bool FWFCCore::Initialize(UWFCTileSet* InTileSet, const FWFCConfiguration& InCon
 	UE_LOG(LogTemp, Log, TEXT("WFCCore: Initializing with %d tiles, grid size %s, seed %d"),
 	       TileSet->GetTileCount(), *Config.GridSize.ToString(), Config.RandomSeed);
 
-	// 重置之前的状态
 	Reset();
 
-	// 执行初始化步骤
 	InitializeGrid();
 	BuildPropagationRules();
 	ApplyConstraints();
@@ -71,6 +67,11 @@ void FWFCCore::UpdateGrid(const FWFCConfiguration& InConfig)
 void FWFCCore::InitializeGrid()
 {
 	Grid.Empty();
+	if (!TileSet)
+	{
+		UE_LOG(LogTemp, Error, TEXT("WFCCore: TileSet is null"));
+		return;
+	}
 
 	const int32 TileCount = TileSet->GetTileCount();
 	const int32 TotalCells = Config.GridSize.X * Config.GridSize.Y * Config.GridSize.Z;
@@ -87,11 +88,9 @@ void FWFCCore::InitializeGrid()
 				FWFCCoordinate Coord(X, Y, Z);
 				FWFCCell& Cell = Grid.Add(Coord, FWFCCell(TileCount));
 
-				// 初始状态：所有瓦片都可能
 				Cell.PossibleTiles.SetRange(0, TileCount, true);
-				CellPreProcess(Cell, Coord);
 				Cell.Entropy = CalculateEntropy(Cell);
-
+				
 				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Initialized cell %s with entropy %.3f"),
 				       *Coord.ToString(), Cell.Entropy);
 			}
@@ -105,7 +104,7 @@ void FWFCCore::BuildPropagationRules()
 {
 	const int32 TileCount = TileSet->GetTileCount();
 	PropagationRules.Empty();
-	PropagationRules.SetNum(6); // 6个方向
+	PropagationRules.SetNum(6);
 
 	UE_LOG(LogTemp, Log, TEXT("WFCCore: Building propagation rules for %d tiles"), TileCount);
 
@@ -113,7 +112,7 @@ void FWFCCore::BuildPropagationRules()
 	{
 		PropagationRules[Dir].SetNum(TileCount);
 		EWFCDirection Direction = static_cast<EWFCDirection>(Dir);
-		EWFCDirection OppositeDirection = static_cast<EWFCDirection>(Dir ^ 1); // 位运算获取相反方向
+		EWFCDirection OppositeDirection = static_cast<EWFCDirection>(Dir ^ 1);
 
 		const TCHAR* DirectionNames[] = {
 			TEXT("Up"), TEXT("Down"), TEXT("North"), TEXT("South"), TEXT("East"), TEXT("West")
@@ -156,7 +155,6 @@ void FWFCCore::BuildPropagationRules()
 
 	UE_LOG(LogTemp, Log, TEXT("WFCCore: Propagation rules building complete"));
 
-	// 验证传播规则的对称性
 	ValidatePropagationRules();
 }
 
@@ -175,7 +173,6 @@ void FWFCCore::ValidatePropagationRules()
 		{
 			for (int32 TileB : PropagationRules[Dir][TileA])
 			{
-				// 检查对称性：如果A在方向Dir上兼容B，那么B在相反方向上也应该兼容A
 				if (!PropagationRules[OppositeDir][TileB].Contains(TileA))
 				{
 					UE_LOG(LogTemp, Warning,
@@ -203,7 +200,6 @@ void FWFCCore::ApplyConstraints()
 	{
 		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Applying constraint: %s"), *Constraint.ConstraintName);
 
-		// 应用必须位置约束
 		for (const FWFCCoordinate& Pos : Constraint.RequiredPositions)
 		{
 			if (IsValidCoordinate(Pos))
@@ -218,7 +214,6 @@ void FWFCCore::ApplyConstraints()
 			}
 		}
 
-		// 应用禁止位置约束
 		for (const FWFCCoordinate& Pos : Constraint.ForbiddenPositions)
 		{
 			if (FWFCCell* Cell = GetCell(Pos))
@@ -240,7 +235,6 @@ void FWFCCore::ApplyConstraints()
 			}
 		}
 
-		// 应用层级约束
 		if (Constraint.MinLayer >= 0 || Constraint.MaxLayer >= 0)
 		{
 			int32 AffectedCells = 0;
@@ -273,7 +267,6 @@ void FWFCCore::ApplyConstraints()
 		}
 	}
 
-	// 在约束应用后运行一次传播
 	if (!PropagationQueue.IsEmpty())
 	{
 		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Running initial constraint propagation"));
@@ -283,36 +276,28 @@ void FWFCCore::ApplyConstraints()
 	UE_LOG(LogTemp, Log, TEXT("WFCCore: Constraint application complete"));
 }
 
-void FWFCCore::CellPreProcess(FWFCCell& Cell, const FWFCCoordinate& Coord)
+void FWFCCore::CellPreProcess()
 {
-	//第一层只能放置地面类型的砖块
-
-		/*if (Coord.Z == 0)
+	for (const auto& [Coord, Cell] : Grid)
+	{
+		if (Coord.X == 0 && Coord.Y == 0 &&  Coord.Z == 0)
 		{
-			for (int i = 0; i < Cell.PossibleTiles.Num(); i++)
-			{
-				if (Cell.PossibleTiles[i] && TileSet->Tiles[i].Category == EWFCTileCategory::Empty)
-					continue;
-				if (Cell.PossibleTiles[i] && TileSet->Tiles[i].Category != EWFCTileCategory::Ground)
-				{
-					Cell.PossibleTiles[i] = false;
-				}
-			}
+			CollapseCellTo(Coord, 1);
 		}
-		else
+		if (Coord.X == 2 && Coord.Y == 0 &&  Coord.Z == 0)
 		{
-			for (int i = 0; i < Cell.PossibleTiles.Num(); i++)
-			{
-				if (Cell.PossibleTiles[i] && TileSet->Tiles[i].Category == EWFCTileCategory::Empty)
-					continue;
-				if (Cell.PossibleTiles[i] && TileSet->Tiles[i].Category == EWFCTileCategory::Ground)
-				{
-					Cell.PossibleTiles[i] = false;
-				}
-			}
-		}*/
-	
-
+			CollapseCellTo(Coord, 5);
+		}
+		if (Coord.X == 2 && Coord.Y == 2 &&  Coord.Z == 0)
+		{
+			CollapseCellTo(Coord, 6);
+		}
+		if (Coord.X == 0 && Coord.Y == 2 &&  Coord.Z == 0)
+		{
+			CollapseCellTo(Coord, 7);
+		}
+		PropagateConstraints();
+	}
 }
 
 
@@ -324,23 +309,21 @@ FWFCGenerationResult FWFCCore::Generate()
 	UE_LOG(LogTemp, Log, TEXT("WFCCore: Starting generation with mode %d, max iterations %d"),
 	       (int32)Config.GenerationMode, Config.MaxIterations);
 
-	// 重置运行时状态
 	TileInstanceCounts.Empty();
 	ChangeHistory.Empty();
 	CollapseHistory.Empty();
 	InitializeGrid();
 
-	// 清空传播队列
 	while (!PropagationQueue.IsEmpty())
 	{
 		FWFCCoordinate Dummy;
 		PropagationQueue.Dequeue(Dummy);
 	}
 
-	// 执行生成循环
+	CellPreProcess();
+
 	Result.bSuccess = RunGenerationLoop();
 
-	// 收集结果
 	if (Result.bSuccess)
 	{
 		for (const auto& [Coord, Cell] : Grid)
@@ -363,7 +346,6 @@ FWFCGenerationResult FWFCCore::Generate()
 		Result.ErrorMessage = TEXT("Generation failed - contradiction detected or max iterations reached");
 		UE_LOG(LogTemp, Warning, TEXT("WFCCore: %s"), *Result.ErrorMessage);
 
-		// 收集部分结果
 		for (const auto& [Coord, Cell] : Grid)
 		{
 			if (Cell.IsCollapsed())
@@ -392,12 +374,10 @@ bool FWFCCore::RunGenerationLoop()
 
 	for (int32 Iteration = 0; Iteration < Config.MaxIterations; Iteration++)
 	{
-		// 选择下一个要坍缩的单元
 		FWFCCoordinate NextCoord = SelectNextCell();
 
 		if (NextCoord == FWFCCoordinate(-1, -1, -1))
 		{
-			// 没有更多单元需要坍缩，生成完成
 			UE_LOG(LogTemp, Log, TEXT("WFCCore: Generation completed at iteration %d - no more cells to collapse"),
 			       Iteration);
 			return true;
@@ -406,7 +386,6 @@ bool FWFCCore::RunGenerationLoop()
 		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Iteration %d - selected cell %s"), Iteration,
 		       *NextCoord.ToString());
 
-		// 保存当前状态用于回溯
 		if (Config.bEnableBacktracking)
 		{
 			SaveState();
@@ -417,13 +396,12 @@ bool FWFCCore::RunGenerationLoop()
 		{
 			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Collapse failed for cell %s"), *NextCoord.ToString());
 
-			// 坍缩失败，尝试回溯
 			if (Config.bEnableBacktracking && CanBacktrack())
 			{
 				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Attempting backtrack"));
 				if (Backtrack())
 				{
-					continue; // 重试
+					continue; 
 				}
 			}
 
@@ -431,19 +409,17 @@ bool FWFCCore::RunGenerationLoop()
 			return false;
 		}
 
-		// 传播约束
 		if (!PropagateConstraints())
 		{
 			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Propagation failed after collapsing cell %s"),
 			       *NextCoord.ToString());
 
-			// 传播失败，尝试回溯
 			if (Config.bEnableBacktracking && CanBacktrack())
 			{
 				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Attempting backtrack after propagation failure"));
 				if (Backtrack())
 				{
-					continue; // 重试
+					continue;
 				}
 			}
 
@@ -452,7 +428,6 @@ bool FWFCCore::RunGenerationLoop()
 			return false;
 		}
 
-		// 每100次迭代记录一次进度
 		if (Iteration % 100 == 0)
 		{
 			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Progress - Iteration %d, %s"), Iteration,
@@ -484,7 +459,6 @@ FWFCCoordinate FWFCCore::SelectCellRandom()
 	float MinEntropy = FLT_MAX;
 	TArray<FWFCCoordinate> Candidates;
 
-	// 找到熵值最小的未坍缩单元
 	for (const auto& [Coord, Cell] : Grid)
 	{
 		if (!Cell.IsCollapsed() && Cell.GetPossibleTileCount() > 0)
@@ -502,7 +476,6 @@ FWFCCoordinate FWFCCore::SelectCellRandom()
 		}
 	}
 
-	// 从候选者中随机选择
 	if (Candidates.Num() > 0)
 	{
 		int32 SelectedIndex = RandomGenerator.RandRange(0, Candidates.Num() - 1);
@@ -516,7 +489,6 @@ FWFCCoordinate FWFCCore::SelectCellRandom()
 
 FWFCCoordinate FWFCCore::SelectCellGroundFirst()
 {
-	// 优先选择地板类别的瓦片
 	TArray<int32> GroundTiles = TileSet->GetTilesByCategory(EWFCTileCategory::Ground);
 
 	float MinEntropy = FLT_MAX;
@@ -528,7 +500,6 @@ FWFCCoordinate FWFCCore::SelectCellGroundFirst()
 	{
 		if (Cell.IsCollapsed() || Cell.GetPossibleTileCount() == 0) continue;
 
-		// 检查是否可以放置地板瓦片
 		bool CanPlaceGround = false;
 		for (int32 GroundTile : GroundTiles)
 		{
@@ -571,7 +542,6 @@ FWFCCoordinate FWFCCore::SelectCellGroundFirst()
 		}
 	}
 
-	// 优先从地板候选者中选择
 	if (GroundCandidates.Num() > 0)
 	{
 		int32 SelectedIndex = RandomGenerator.RandRange(0, GroundCandidates.Num() - 1);
@@ -580,7 +550,6 @@ FWFCCoordinate FWFCCore::SelectCellGroundFirst()
 		return GroundCandidates[SelectedIndex];
 	}
 
-	// 如果没有地板候选者，从其他候选者中选择
 	if (OtherCandidates.Num() > 0)
 	{
 		int32 SelectedIndex = RandomGenerator.RandRange(0, OtherCandidates.Num() - 1);
@@ -595,7 +564,6 @@ FWFCCoordinate FWFCCore::SelectCellGroundFirst()
 
 FWFCCoordinate FWFCCore::SelectCellLayered()
 {
-	// 从最低层开始，逐层完成
 	for (int32 Z = 0; Z < Config.GridSize.Z; Z++)
 	{
 		float MinEntropy = FLT_MAX;
@@ -706,17 +674,14 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 		return false;
 	}
 
-	// 选择要放置的瓦片
 	int32 SelectedTile = SelectRandomTile(*Cell, Coord);
-
 
 	if (SelectedTile < 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
 		return false;
 	}
-
-	// 检查约束
+	
 	if (!CheckConstraints(Coord, SelectedTile))
 	{
 		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Constraint check failed for tile %d at %s"),
@@ -724,23 +689,73 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 		return false;
 	}
 
-	// 执行坍缩
 	Cell->bCollapsed = true;
 	Cell->CollapsedTileIndex = SelectedTile;
 	Cell->PossibleTiles.SetRange(0, Cell->PossibleTiles.Num(), false);
 	Cell->PossibleTiles[SelectedTile] = true;
 	Cell->Entropy = 0.0f;
 
-	// 更新实例计数
 	TileInstanceCounts.FindOrAdd(SelectedTile, 0)++;
 
-	// 记录坍缩历史
 	CollapseHistory.Add(Coord);
 
-	// 加入传播队列
 	QueuePropagation(Coord);
 
 	LogGenerationStep(Coord, SelectedTile);
+
+	return true;
+}
+
+bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
+{
+	FWFCCell* Cell = GetCell(Coord);
+	if (!Cell || Cell->IsCollapsed())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Cannot collapse - cell is null or already collapsed at %s"),
+			   *Coord.ToString());
+		return false;
+	}
+
+	if (Cell->GetPossibleTileCount() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Cannot collapse - no possible tiles at %s"), *Coord.ToString());
+		return false;
+	}
+
+
+	FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
+	if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Try collapse %s to tile %s failed"), *Coord.ToString(), *TileSet->GetTile(TileIndex).TileName);
+		return false;
+	}
+
+	if (TileIndex < 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
+		return false;
+	}
+	
+	if (!CheckConstraints(Coord, TileIndex))
+	{
+		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Constraint check failed for tile %d at %s"),
+			   TileIndex, *Coord.ToString());
+		return false;
+	}
+
+	Cell->bCollapsed = true;
+	Cell->CollapsedTileIndex = TileIndex;
+	Cell->PossibleTiles.SetRange(0, Cell->PossibleTiles.Num(), false);
+	Cell->PossibleTiles[TileIndex] = true;
+	Cell->Entropy = 0.0f;
+
+	TileInstanceCounts.FindOrAdd(TileIndex, 0)++;
+
+	CollapseHistory.Add(Coord);
+
+	QueuePropagation(Coord);
+
+	LogGenerationStep(Coord, TileIndex);
 
 	return true;
 }
@@ -755,7 +770,6 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 		if (Cell.PossibleTiles[i])
 		{
 			FWFCTileDefinition TileDef = TileSet->GetTile(i);
-			//如果cell位于边界，且位于边界的socket标记为不能在边界，则跳过
 			if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
 			{
 				continue;
@@ -775,7 +789,6 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 		return ValidTiles[0];
 	}
 
-	// 加权随机选择
 	float TotalWeight = 0.0f;
 	for (float Weight : Weights)
 	{
@@ -784,7 +797,6 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 
 	if (TotalWeight <= 0.0f)
 	{
-		// 如果总权重为0，均匀随机选择
 		return ValidTiles[RandomGenerator.RandRange(0, ValidTiles.Num() - 1)];
 	}
 
@@ -793,6 +805,11 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 
 	for (int32 i = 0; i < ValidTiles.Num(); i++)
 	{
+		// 跳过empty连接方块，将其作为最后保底选择
+		if (TileSet->GetTile(ValidTiles[i]).Category == EWFCTileCategory::Empty)
+		{
+			continue;
+		}
 		CurrentWeight += Weights[i];
 		if (RandomValue <= CurrentWeight)
 		{
@@ -800,14 +817,13 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 		}
 	}
 
-	// 备选返回
 	return ValidTiles.Last();
 }
 
 bool FWFCCore::PropagateConstraints()
 {
 	int32 PropagationSteps = 0;
-	const int32 MaxPropagationSteps = Config.GridSize.X * Config.GridSize.Y * Config.GridSize.Z * 10; // 防止无限循环
+	const int32 MaxPropagationSteps = Config.GridSize.X * Config.GridSize.Y * Config.GridSize.Z * 10;
 
 	while (!PropagationQueue.IsEmpty() && PropagationSteps < MaxPropagationSteps)
 	{
@@ -842,7 +858,6 @@ bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
 		return true;
 	}
 
-	// 遍历所有方向的邻居
 	for (int32 Dir = 0; Dir < 6; Dir++)
 	{
 		FWFCCoordinate NeighborCoord = GetNeighbor(Coord, static_cast<EWFCDirection>(Dir));
@@ -853,7 +868,6 @@ bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
 			continue;
 		}
 
-		// 检查邻居的每个可能瓦片
 		TArray<int32> TilesToRemove;
 		for (int32 NeighborTile = 0; NeighborTile < NeighborCell->PossibleTiles.Num(); NeighborTile++)
 		{
@@ -862,7 +876,6 @@ bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
 				continue;
 			}
 
-			// 检查是否有源单元的瓦片支持这个邻居瓦片
 			bool HasSupport = false;
 			for (int32 SourceTile = 0; SourceTile < SourceCell->PossibleTiles.Num(); SourceTile++)
 			{
@@ -880,7 +893,6 @@ bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
 			}
 		}
 
-		// 移除不支持的瓦片
 		for (int32 TileToRemove : TilesToRemove)
 		{
 			if (!RemoveTileOption(NeighborCoord, TileToRemove))
@@ -900,29 +912,25 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 	FWFCCell* Cell = GetCell(Coord);
 	if (!Cell || TileIndex < 0 || TileIndex >= Cell->PossibleTiles.Num() || !Cell->PossibleTiles[TileIndex])
 	{
-		return true; // 已经移除或不存在
+		return true;
 	}
 
-	// 记录变更用于回溯
 	if (bTrackChanges && ChangeHistory.Num() > 0)
 	{
 		ChangeHistory.Last().Emplace(Coord, TileIndex, true);
 	}
 
-	// 移除瓦片选项
 	Cell->PossibleTiles[TileIndex] = false;
 	Cell->Entropy = CalculateEntropy(*Cell);
 
-	// 检查是否还有可能的瓦片
 	int32 RemainingOptions = Cell->GetPossibleTileCount();
 	if (RemainingOptions == 0)
 	{
 		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Cell at %s has no remaining options after removing tile %d"),
 		       *Coord.ToString(), TileIndex);
-		return false; // 矛盾
+		return false;
 	}
 
-	// 如果只剩一个选项，自动坍缩
 	if (RemainingOptions == 1 && !Cell->IsCollapsed())
 	{
 		for (int32 i = 0; i < Cell->PossibleTiles.Num(); i++)
@@ -941,7 +949,6 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 		}
 	}
 
-	// 加入传播队列
 	QueuePropagation(Coord);
 
 	return true;
@@ -985,26 +992,15 @@ float FWFCCore::CalculateEntropy(const FWFCCell& Cell) const
 
 bool FWFCCore::CheckConstraints(const FWFCCoordinate& Coord, int32 TileIndex) const
 {
-	// 检查实例数量限制
 	if (!CheckInstanceLimits(TileIndex))
 	{
 		return false;
 	}
 
-	// 检查支撑需求
 	if (!CheckSupportRequirement(Coord, TileIndex))
 	{
 		return false;
 	}
-
-	/*// 检查位置特定约束
-	if (const TArray<int32>* AllowedTiles = PositionConstraints.Find(Coord))
-	{
-		if (!AllowedTiles->Contains(TileIndex))
-		{
-			return false;
-		}
-	}*/
 
 	return true;
 }
@@ -1014,7 +1010,7 @@ bool FWFCCore::CheckInstanceLimits(int32 TileIndex) const
 	FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
 	if (TileDef.MaxInstancesPerGeneration <= 0)
 	{
-		return true; // 无限制
+		return true;
 	}
 
 	int32 CurrentCount = TileInstanceCounts.FindRef(TileIndex);
@@ -1029,13 +1025,12 @@ bool FWFCCore::CheckSupportRequirement(const FWFCCoordinate& Coord, int32 TileIn
 		return true;
 	}
 
-	// 检查下方是否有支撑
 	FWFCCoordinate BelowCoord = GetNeighbor(Coord, EWFCDirection::Down);
 	const FWFCCell* BelowCell = GetCell(BelowCoord);
 
 	if (!BelowCell)
 	{
-		return Coord.Z == 0; // 在地面层
+		return Coord.Z == 0;
 	}
 
 	if (BelowCell->IsCollapsed())
@@ -1044,7 +1039,6 @@ bool FWFCCore::CheckSupportRequirement(const FWFCCoordinate& Coord, int32 TileIn
 		return BelowTile.Category != EWFCTileCategory::Empty;
 	}
 
-	// 检查下方是否可能有支撑瓦片
 	for (int32 i = 0; i < BelowCell->PossibleTiles.Num(); i++)
 	{
 		if (BelowCell->PossibleTiles[i])
@@ -1060,7 +1054,6 @@ bool FWFCCore::CheckSupportRequirement(const FWFCCoordinate& Coord, int32 TileIn
 	return false;
 }
 
-// 回溯相关方法
 bool FWFCCore::CanBacktrack() const
 {
 	return Config.bEnableBacktracking &&
@@ -1070,7 +1063,7 @@ bool FWFCCore::CanBacktrack() const
 
 void FWFCCore::SaveState()
 {
-	ChangeHistory.Emplace(); // 添加新的变更层
+	ChangeHistory.Emplace();
 }
 
 bool FWFCCore::Backtrack()
@@ -1083,7 +1076,6 @@ bool FWFCCore::Backtrack()
 
 	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Backtracking from depth %d"), ChangeHistory.Num());
 
-	// 恢复最后一个状态
 	const TArray<FWFCChange>& LastChanges = ChangeHistory.Last();
 	for (int32 i = LastChanges.Num() - 1; i >= 0; i--)
 	{
@@ -1099,7 +1091,6 @@ bool FWFCCore::Backtrack()
 		}
 	}
 
-	// 移除最后的坍缩和变更 n
 	ChangeHistory.Pop();
 	if (CollapseHistory.Num() > 0)
 	{
@@ -1107,12 +1098,10 @@ bool FWFCCore::Backtrack()
 		FWFCCell* Cell = GetCell(LastCollapse);
 		if (Cell)
 		{
-			// 恢复坍缩前的状态
 			int32 CollapsedTile = Cell->CollapsedTileIndex;
 			Cell->bCollapsed = false;
 			Cell->CollapsedTileIndex = -1;
 
-			// 减少实例计数
 			if (int32* Count = TileInstanceCounts.Find(CollapsedTile))
 			{
 				(*Count)--;
@@ -1122,7 +1111,6 @@ bool FWFCCore::Backtrack()
 				}
 			}
 
-			// 重新计算熵值
 			Cell->Entropy = CalculateEntropy(*Cell);
 
 			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Uncollapsed cell %s (was tile %d)"),
@@ -1133,7 +1121,6 @@ bool FWFCCore::Backtrack()
 	return true;
 }
 
-// 辅助方法
 bool FWFCCore::IsValidCoordinate(const FWFCCoordinate& Coord) const
 {
 	return Coord.X >= 0 && Coord.X < Config.GridSize.X &&
@@ -1186,7 +1173,6 @@ FWFCCoordinate FWFCCore::GetNeighbor(const FWFCCoordinate& Coord, EWFCDirection 
 		return Neighbor;
 	}
 
-	// 非周期性边界：返回无效坐标如果超出范围
 	if (!IsValidCoordinate(Neighbor))
 	{
 		return FWFCCoordinate(-1, -1, -1);
@@ -1239,7 +1225,6 @@ TArray<FWFCCoordinate> FWFCCore::GetNeighbors(const FWFCCoordinate& Coord) const
 	return Neighbors;
 }
 
-// 调试方法
 void FWFCCore::LogGenerationStep(const FWFCCoordinate& Coord, int32 TileIndex) const
 {
 	if (TileSet)

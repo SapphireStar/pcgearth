@@ -11,10 +11,10 @@ enum class EWFCDirection : uint8
 {
     Up = 0      UMETA(DisplayName = "Up (+Z)"),
     Down = 1    UMETA(DisplayName = "Down (-Z)"),
-    North = 2   UMETA(DisplayName = "North (+Y)"),
-    South = 3   UMETA(DisplayName = "South (-Y)"),
-    East = 4    UMETA(DisplayName = "East (+X)"),
-    West = 5    UMETA(DisplayName = "West (-X)")
+    Right = 2   UMETA(DisplayName = "Right (+Y)"),
+    Left = 3   UMETA(DisplayName = "Left (-Y)"),
+    Front = 4    UMETA(DisplayName = "Front (+X)"),
+    Back = 5    UMETA(DisplayName = "Back (-X)")
 };
 
 UENUM(BlueprintType)
@@ -46,7 +46,6 @@ enum class EWFCGenerationMode : uint8
     Custom = 99         UMETA(DisplayName = "Custom Order")
 };
 
-// 坐标结构
 USTRUCT(BlueprintType)
 struct FWFCCoordinate
 {
@@ -80,7 +79,6 @@ struct FWFCCoordinate
     }
 };
 
-// Socket定义
 USTRUCT(BlueprintType)
 struct FWFCSocket
 {
@@ -99,7 +97,6 @@ struct FWFCSocket
     FWFCSocket(const FString& Name) : SocketName(Name) {}
 };
 
-// 瓦片定义
 USTRUCT(BlueprintType)
 struct FWFCTileDefinition
 {
@@ -120,7 +117,7 @@ struct FWFCTileDefinition
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ArraySizeEnum = "EWFCDirection"))
     TArray<FString> Sockets;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = 0.1, ClampMax = 10.0))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = 0.0, ClampMax = 10.0))
     float Weight = 1.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -129,16 +126,15 @@ struct FWFCTileDefinition
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FRotator BaseRotation = FRotator::ZeroRotator;
 
-    // 约束条件
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int32 MaxInstancesPerGeneration = -1; // -1表示无限制
+    int32 MaxInstancesPerGeneration = -1;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool bRequiresSupport = false; // 是否需要下方支撑
+    bool bRequiresSupport = false; 
 
     FWFCTileDefinition()
     {
-        Sockets.SetNum(6); // 确保有6个方向的socket
+        Sockets.SetNum(6);
     }
 
     FString GetSocket(EWFCDirection Direction) const
@@ -219,7 +215,6 @@ struct FWFCGenerationConstraint
     int32 MaxInstances = -1;
 };
 
-// WFC配置
 USTRUCT(BlueprintType)
 struct FWFCConfiguration
 {
@@ -250,7 +245,6 @@ struct FWFCConfiguration
     TArray<FWFCGenerationConstraint> Constraints;
 };
 
-// 生成结果
 USTRUCT(BlueprintType)
 struct FWFCGenerationResult
 {
