@@ -15,6 +15,7 @@
 #include "MaterialHLSLTree.h"
 #include "TerrainBuildAbility.h"
 #include "TerrainDigAbility.h"
+#include "TestWFCAbility.h"
 #include "GeometryScript/MeshSelectionFunctions.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -185,12 +186,15 @@ void ASpaceShipPawn::SetupPlayerAbilityComponent()
 	TObjectPtr<UItemAbilityComponent> TerrainBuild = CreateAbilityComponent(EAbilityType::TerrainBuild);
 	TObjectPtr<UItemAbilityComponent> TerrainDig =  CreateAbilityComponent(EAbilityType::TerrainDig);
 	TObjectPtr<UItemAbilityComponent> GetResource = CreateAbilityComponent(EAbilityType::GetResource);
+	TObjectPtr<UItemAbilityComponent> TestWFC = CreateAbilityComponent(EAbilityType::TestWFC);
 	if (TerrainBuild != nullptr)
 		Abilities.Add(TerrainBuild);
 	if (TerrainDig != nullptr)
 		Abilities.Add(TerrainDig);
 	if (GetResource != nullptr)
 		Abilities.Add(GetResource);
+	if (TestWFC != nullptr)
+		Abilities.Add(TestWFC);
 
 	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
 	CurrentAbilityComponent->OnActivateAbility();
@@ -567,9 +571,14 @@ TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilit
 		AbilityComponent = NewObject<UGetResourceAbility>(this);
 		AbilityComponent->AbilityType = EAbilityType::GetResource;
 		break;
+	case EAbilityType::TestWFC:
+		AbilityComponent = NewObject<UTestWFCAbility>(this);
+		AbilityComponent->AbilityType = EAbilityType::TestWFC;
+		break;
 	case EAbilityType::MAX:
 		break;
-	default: ;
+	default:
+		UE_LOG(LogTemp, Error, TEXT("SpaceShipPawn::CreateAbilityComponent: Haven't define the initialization for EAbilityType: %d"), static_cast<int>(eAbilityType));
 	}
 
 	if (AbilityComponent)

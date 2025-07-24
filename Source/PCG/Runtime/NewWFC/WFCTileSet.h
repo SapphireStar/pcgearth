@@ -114,5 +114,7 @@ protected:
     
     // 旋转Socket数组
     TArray<FString> RotateSockets(const TArray<FString>& OriginalSockets, int32 RotationSteps) const;
+
+    bool HasSocket(const FString& SocketName, int32& outIndex) const;
 };
 

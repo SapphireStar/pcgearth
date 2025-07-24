@@ -12,6 +12,7 @@ enum class EAbilityType : uint8
 	TerrainBuild,
 	TerrainDig,
 	GetResource,
+	TestWFC,
 	MAX UMETA(Hidden)
 };
 

@@ -91,6 +91,8 @@ private:
     bool IsValidCoordinate(const FWFCCoordinate& Coord) const;
     bool IsValidCoordinate(int X, int Y, int Z) const;
     bool IsEdgeCoordinate(const FWFCCoordinate& Coord) const;
+    bool IsWallCoordinate(const FWFCCoordinate& Coord) const;
+    bool CheckDecorators(const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const;
     bool CheckCanAtEdge(const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const;
     FWFCCoordinate GetNeighbor(const FWFCCoordinate& Coord, EWFCDirection Direction) const;
     TArray<FWFCCoordinate> GetNeighbors(const FWFCCoordinate& Coord) const;

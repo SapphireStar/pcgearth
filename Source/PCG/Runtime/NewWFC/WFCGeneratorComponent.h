@@ -44,6 +44,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WFC Configuration")
     bool bUseAsyncGeneration = false;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WFC Configuration")
+    int GenerationActorPerFrame = 5;
+
     UPROPERTY(BlueprintAssignable, Category = "WFC Events")
     FOnWFCGenerationComplete OnGenerationComplete;
 
@@ -131,7 +134,9 @@ private:
 
     void CreateVisualization(const FWFCGenerationResult& Result);
     USceneComponent* CreateVisualizationAt(const FWFCGenerationResult& Result,  FVector Location, FRotator Rotation);
+    USceneComponent* CreateVisualizationAtByFrame(const FWFCGenerationResult& Result,  FVector Location, FRotator Rotation);
     void ClearVisualization();
     AActor* SpawnTileActor(const FWFCCoordinate& Position, int32 TileIndex);
     FVector CoordinateToWorldPosition(const FWFCCoordinate& Coord) const;
+    FVector CoordinateToLocalPosition(const FWFCCoordinate& Coord) const;
 };

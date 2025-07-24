@@ -137,7 +137,7 @@ void FWFCCore::BuildPropagationRules()
 				{
 					PropagationRules[Dir][TileA].Add(TileB);
 					TotalRules++;
-
+					
 					UE_LOG(LogTemp, VeryVerbose,
 					       TEXT("WFCCore: Rule %s: Tile %d (%s) -> Tile %d (%s) via sockets '%s' <-> '%s'"),
 					       DirectionNames[Dir], TileA, *TileDefA.TileName, TileB, *TileDefB.TileName, *SocketA,
@@ -278,7 +278,7 @@ void FWFCCore::ApplyConstraints()
 
 void FWFCCore::CellPreProcess()
 {
-	for (const auto& [Coord, Cell] : Grid)
+	/*for (const auto& [Coord, Cell] : Grid)
 	{
 		if (Coord.X == 0 && Coord.Y == 0 &&  Coord.Z == 0)
 		{
@@ -297,7 +297,16 @@ void FWFCCore::CellPreProcess()
 			CollapseCellTo(Coord, 7);
 		}
 		PropagateConstraints();
+	}*/
+	for (const auto& [Coord, Cell] : Grid)
+	{
+		if (IsWallCoordinate(Coord))
+		{
+			CollapseCellTo(Coord, 0);
+			PropagateConstraints();
+		}
 	}
+	
 }
 
 
@@ -724,11 +733,15 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 
 
 	FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
-	if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
+	if (!CheckDecorators(TileDef, Coord))
+	{
+		return false;
+	}
+	/*if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Try collapse %s to tile %s failed"), *Coord.ToString(), *TileSet->GetTile(TileIndex).TileName);
 		return false;
-	}
+	}*/
 
 	if (TileIndex < 0)
 	{
@@ -770,12 +783,16 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 		if (Cell.PossibleTiles[i])
 		{
 			FWFCTileDefinition TileDef = TileSet->GetTile(i);
-			if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
+			if (!CheckDecorators(TileDef, Coord))
 			{
 				continue;
 			}
+			/*if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
+			{
+				continue;
+			}*/
 			ValidTiles.Add(i);
-			Weights.Add(FMath::Max(TileDef.Weight, 0.01f)); // 确保权重为正
+			Weights.Add(FMath::Max(TileDef.Weight, 0.01f)); //确保权重为正
 		}
 	}
 
@@ -1140,6 +1157,20 @@ bool FWFCCore::IsEdgeCoordinate(const FWFCCoordinate& Coord) const
 	return Coord.X == 0 || Coord.X == Config.GridSize.X - 1 ||
 		Coord.Y == 0 || Coord.Y == Config.GridSize.Y - 1 ||
 		Coord.Z == 0 || Coord.Z == Config.GridSize.Z - 1;
+}
+
+bool FWFCCore::IsWallCoordinate(const FWFCCoordinate& Coord) const
+{
+	return Coord.X == 0 || Coord.X == Config.GridSize.X - 1 ||
+	Coord.Y == 0 || Coord.Y == Config.GridSize.Y - 1 ||
+	Coord.Z == 0 || Coord.Z == Config.GridSize.Z - 1;
+}
+
+bool FWFCCore::CheckDecorators(const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const
+{
+	
+
+	return true;
 }
 
 bool FWFCCore::CheckCanAtEdge(const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const

@@ -268,3 +268,33 @@ struct FWFCGenerationResult
     UPROPERTY(BlueprintReadOnly)
     float GenerationTimeSeconds = 0.0f;
 };
+
+USTRUCT(BlueprintType)
+struct FWFCVisualizationTile
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FVector Location;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FRotator Rotation;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TObjectPtr<UStaticMesh> StaticMesh;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TObjectPtr<UMaterial> Material;
+};
+
+USTRUCT(BlueprintType)
+struct FWFCVisualizationData
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FWFCVisualizationTile> Tiles;
+
+    FVector ParentLocation;
+    FRotator ParentRotation;
+};
