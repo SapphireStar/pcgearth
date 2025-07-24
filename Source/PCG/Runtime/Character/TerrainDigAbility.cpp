@@ -152,7 +152,6 @@ void UTerrainDigAbility::DigTerrain(AGeometryPlanetActor* Planet, const TArray<i
 		mesh, LowestVertexID, bIsValidVertex);
 	float lowestLength = lowestPos.Length();
 
-	// 将选中区域的顶点向内挖掘
 	for (int i : VertexIndices)
 	{
 		if (i != LowestVertexID)
@@ -161,15 +160,15 @@ void UTerrainDigAbility::DigTerrain(AGeometryPlanetActor* Planet, const TArray<i
 				mesh, i, bIsValidVertex);
 			FVector normal = pos.GetSafeNormal();
 			
-			// 向星球中心方向挖掘
-			float newLength = FMath::Max(lowestLength - DigDepth, lowestLength * 0.1f); // 防止挖得太深
+			
+			float newLength = FMath::Max(lowestLength - DigDepth, lowestLength * 0.1f); //防止挖得太深
 			UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
 				mesh, i, normal * newLength, bIsValidVertex);
 		}
 	}
 
-	Planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
-	Planet->GetDynamicMeshComponent()->UpdateCollision();
+	/*Planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
+	Planet->GetDynamicMeshComponent()->UpdateCollision();*/
 }
 
 int UTerrainDigAbility::FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID)

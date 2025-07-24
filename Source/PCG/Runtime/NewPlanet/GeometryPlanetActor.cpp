@@ -17,10 +17,7 @@ AGeometryPlanetActor::AGeometryPlanetActor()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	DynamicMeshComponent = CreateDefaultSubobject<UDynamicMeshComponent>(TEXT("DynamicMeshComponent"));
-	SetRootComponent(DynamicMeshComponent);
-	DynamicMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	DynamicMeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
-	DynamicMeshComponent->bUseAsyncCooking = true;
+	SetRootComponent(DynamicMeshComponent);	
 	if (Material)
 	{
 		DynamicMeshComponent->SetMaterial(0, Material);
@@ -65,12 +62,10 @@ void AGeometryPlanetActor::Tick(float DeltaTime)
 void AGeometryPlanetActor::RebuildGeneratedMesh(UDynamicMesh* TargetMesh)
 {
 	GeneratePlanet(TargetMesh);
-
 }
 
 void AGeometryPlanetActor::MarkPlanetRefresh(bool bImmediate, bool bImmediateEventFrozen)
 {
-
 	UDynamicMeshComponent* Component = DynamicMeshComponent;
 	if (Component == nullptr)
 	{
