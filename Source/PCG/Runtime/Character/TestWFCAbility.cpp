@@ -106,7 +106,7 @@ void UTestWFCAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, 
 
 		if (HitResult.bBlockingHit)
 		{
-			if (AGeometryPlanet* planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
+			if (AGeometryPlanetActor* planet = Cast<AGeometryPlanetActor>(HitResult.GetActor()))
 			{
 				WFCGeneratorComponent->StartGenerationWithCustomConfigAt(HitResult.Location, UKismetMathLibrary::MakeRotFromZ(HitResult.ImpactNormal));
 				bIsGridSlectionStarted = true;
@@ -123,7 +123,7 @@ void UTestWFCAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, 
 	
 }
 
-bool UTestWFCAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
+bool UTestWFCAbility::ProcessTerrainBuild(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
 {
 	if (!Planet)
 	{
@@ -172,7 +172,7 @@ bool UTestWFCAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FHitRes
 	return true;
 }
 
-void UTestWFCAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<int32>& VertexIndices, FBox GridBounds)
+void UTestWFCAbility::FlattenTerrain(AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices, FBox GridBounds)
 {
 	if (!Planet || VertexIndices.Num() == 0)
 	{
@@ -204,7 +204,7 @@ void UTestWFCAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<int32
 	Planet->GetDynamicMeshComponent()->UpdateCollision();
 }
 
-bool UTestWFCAbility::SpawnBuilding(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
+bool UTestWFCAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
 {
 	FVector normal = HitResult.ImpactPoint - Planet->GetActorLocation();
 	normal.Normalize();
@@ -364,7 +364,7 @@ AMineSphere* UTestWFCAbility::CheckIsOnMineSphere(FBox GridBounds)
 	return nullptr;
 }
 
-void UTestWFCAbility::SelectPlanet(AGeometryPlanet* Planet, FHitResult& HitResult)
+void UTestWFCAbility::SelectPlanet(AGeometryPlanetActor* Planet, FHitResult& HitResult)
 {
 	this->Planet = Planet;
 	LastHitResult = HitResult;

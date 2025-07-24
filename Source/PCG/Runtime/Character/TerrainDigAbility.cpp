@@ -86,7 +86,7 @@ void UTerrainDigAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartCom
 
 	if (HitResult.bBlockingHit)
 	{
-		if (AGeometryPlanet* planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
+		if (AGeometryPlanetActor* planet = Cast<AGeometryPlanetActor>(HitResult.GetActor()))
 		{
 			ProcessTerrainDig(planet, HitResult);
 		}
@@ -101,7 +101,7 @@ void UTerrainDigAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartCom
 	}
 }
 
-void UTerrainDigAbility::ProcessTerrainDig(AGeometryPlanet* Planet, const FHitResult& HitResult)
+void UTerrainDigAbility::ProcessTerrainDig(AGeometryPlanetActor* Planet, const FHitResult& HitResult)
 {
 	if (!Planet)
 	{
@@ -137,7 +137,7 @@ void UTerrainDigAbility::ProcessTerrainDig(AGeometryPlanet* Planet, const FHitRe
 	}
 }
 
-void UTerrainDigAbility::DigTerrain(AGeometryPlanet* Planet, const TArray<int32>& VertexIndices)
+void UTerrainDigAbility::DigTerrain(AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices)
 {
 	if (!Planet || VertexIndices.Num() == 0)
 	{

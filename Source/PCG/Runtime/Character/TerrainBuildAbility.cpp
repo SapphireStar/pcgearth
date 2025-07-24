@@ -118,7 +118,7 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 
 		if (HitResult.bBlockingHit)
 		{
-			if (AGeometryPlanet* planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
+			if (AGeometryPlanetActor* planet = Cast<AGeometryPlanetActor>(HitResult.GetActor()))
 			{
 				SelectPlanet(planet, HitResult);
 				GridSelection->StartGridSelection(HitResult.ImpactPoint,
@@ -167,7 +167,7 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 	}
 }
 
-bool UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
+bool UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
 {
 	if (!Planet)
 	{
@@ -216,7 +216,7 @@ bool UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FH
 	return true;
 }
 
-void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<int32>& VertexIndices, FBox GridBounds)
+void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices, FBox GridBounds)
 {
 	if (!Planet || VertexIndices.Num() == 0)
 	{
@@ -248,7 +248,7 @@ void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<
 	Planet->GetDynamicMeshComponent()->UpdateCollision();
 }
 
-bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
+bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
 {
 	FVector normal = HitResult.ImpactPoint - Planet->GetActorLocation();
 	normal.Normalize();
@@ -408,7 +408,7 @@ AMineSphere* UTerrainBuildAbility::CheckIsOnMineSphere(FBox GridBounds)
 	return nullptr;
 }
 
-void UTerrainBuildAbility::SelectPlanet(AGeometryPlanet* Planet, FHitResult& HitResult)
+void UTerrainBuildAbility::SelectPlanet(AGeometryPlanetActor* Planet, FHitResult& HitResult)
 {
 	this->Planet = Planet;
 	LastHitResult = HitResult;

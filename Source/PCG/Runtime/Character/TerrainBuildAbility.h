@@ -50,9 +50,9 @@ public:
 
 
 private:
-	bool ProcessTerrainBuild(class AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere);
-	void FlattenTerrain(class AGeometryPlanet* Planet, const TArray<int32>& VertexIndices, FBox GridBounds);
-	bool SpawnBuilding(class AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere);
+	bool ProcessTerrainBuild(class AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere);
+	void FlattenTerrain(class AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices, FBox GridBounds);
+	bool SpawnBuilding(class AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere);
 	void SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere);
 	bool TryConsumeWood(int& outVolume);
 	
@@ -63,7 +63,7 @@ private:
 	bool ValidateGridBounds(FBox GridBounds);
 	AMineSphere* CheckIsOnMineSphere(FBox GridBounds);
 	
-	void SelectPlanet(AGeometryPlanet* Planet, FHitResult& HitResult);
+	void SelectPlanet(AGeometryPlanetActor* Planet, FHitResult& HitResult);
 	void DeselectPlanet();
 
 protected:
@@ -84,7 +84,7 @@ private:
 	TObjectPtr<AGridSelectionManager> GridSelection;
 
 	UPROPERTY()
-	TObjectPtr<AGeometryPlanet> Planet;
+	TObjectPtr<AGeometryPlanetActor> Planet;
 
 	UPROPERTY()
 	TArray<TObjectPtr<AFactoryBuilding>> SpawnedFactories;

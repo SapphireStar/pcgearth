@@ -29,8 +29,8 @@ public:
 	virtual void OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera) override;
 
 private:
-	void ProcessTerrainDig(class AGeometryPlanet* Planet, const FHitResult& HitResult);
-	void DigTerrain(class AGeometryPlanet* Planet, const TArray<int32>& VertexIndices);
+	void ProcessTerrainDig(class AGeometryPlanetActor* Planet, const FHitResult& HitResult);
+	void DigTerrain(class AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 
 protected:

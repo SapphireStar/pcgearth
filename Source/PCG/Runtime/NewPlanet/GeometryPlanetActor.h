@@ -70,7 +70,7 @@ public:
 	
 	void UpdateTexture16Bytes(bool bFreeData = false);
 	
-
+	UDynamicMeshComponent* GetDynamicMeshComponent();
 
 	void SetPixelValue(int32 Offset, float X, float	Y, float Z, float A);
 

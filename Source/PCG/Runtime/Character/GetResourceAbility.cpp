@@ -79,7 +79,7 @@ void UGetResourceAbility::OnKeepUsingAbility(UPrimitiveComponent* TraceStartComp
 
 	if (bHit)
 	{
-		if (AGeometryPlanet* Planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
+		if (AGeometryPlanetActor* Planet = Cast<AGeometryPlanetActor>(HitResult.GetActor()))
 		{
 			if (UInstancedStaticMeshComponent* ISM= Cast<UInstancedStaticMeshComponent>(HitResult.Component))
 				Planet->OnGetHitByLaser(ISM, HitResult.Item, 100 * GetWorld()->DeltaTimeSeconds);

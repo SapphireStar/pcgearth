@@ -18,6 +18,9 @@ AGeometryPlanetActor::AGeometryPlanetActor()
 	PrimaryActorTick.bCanEverTick = true;
 	DynamicMeshComponent = CreateDefaultSubobject<UDynamicMeshComponent>(TEXT("DynamicMeshComponent"));
 	SetRootComponent(DynamicMeshComponent);
+	DynamicMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	DynamicMeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
+	DynamicMeshComponent->bUseAsyncCooking = true;
 	if (Material)
 	{
 		DynamicMeshComponent->SetMaterial(0, Material);
@@ -26,6 +29,7 @@ AGeometryPlanetActor::AGeometryPlanetActor()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No material found"));
 	}
+	
 	PlanetSphereStaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlanetSphere"));
 	PlanetSphereStaticMesh->AttachToComponent(DynamicMeshComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	PlanetSphereStaticMesh->SetRelativeLocation(FVector(0, 0, 0));
@@ -61,6 +65,7 @@ void AGeometryPlanetActor::Tick(float DeltaTime)
 void AGeometryPlanetActor::RebuildGeneratedMesh(UDynamicMesh* TargetMesh)
 {
 	GeneratePlanet(TargetMesh);
+
 }
 
 void AGeometryPlanetActor::MarkPlanetRefresh(bool bImmediate, bool bImmediateEventFrozen)
@@ -291,6 +296,11 @@ void AGeometryPlanetActor::UpdateTexture16Bytes(bool bFreeData)
 			}
 			delete RegionData;
 		});
+}
+
+UDynamicMeshComponent* AGeometryPlanetActor::GetDynamicMeshComponent()
+{
+	return DynamicMeshComponent;
 }
 
 
