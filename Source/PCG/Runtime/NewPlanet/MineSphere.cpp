@@ -38,7 +38,7 @@ void AMineSphere::UpdateMineSphere(float Radius)
 	RemainMinralCount = (4/3 * PI * Radius * Radius * Radius)/MineralDivider;
 }
 
-void AMineSphere::SetMotherWorldPlanet(AGeometryPlanet* planet)
+void AMineSphere::SetMotherWorldPlanet(AActor* planet)
 {
 	this->MotherWorldPlanet =  planet;
 	

@@ -26,7 +26,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	virtual void UpdateMineSphere(float Radius);
-	virtual void SetMotherWorldPlanet(AGeometryPlanet* planet);
+	virtual void SetMotherWorldPlanet(AActor* planet);
 
 	UFUNCTION(BlueprintCallable)
 	int TryStartOneMine(int Value);
@@ -53,5 +53,5 @@ protected:
 
 private:
 	UPROPERTY()
-	TObjectPtr<AGeometryPlanet> MotherWorldPlanet;
+	TObjectPtr<AActor> MotherWorldPlanet;
 };

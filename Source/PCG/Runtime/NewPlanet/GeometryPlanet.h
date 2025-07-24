@@ -3,30 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GeometryPlanetActor.h"
 #include "GeometryActors/GeneratedDynamicMeshActor.h"
 #include "PCG/Runtime/Planet/ShapeGenerator.h"
 #include "GeometryPlanet.generated.h"
 
-USTRUCT(BlueprintType)
-struct PCG_API FMineSphereSpawnConfiguration
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 500, ClampMax = 1000))
-	float RadiusMin;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 1000, ClampMax =3000))
-	float RadiusMax;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int Seed;
-};
-
 struct FShapeSettings;
 class USphereComponent;
 class AMineSphere;
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnISMInstanceHit, UInstancedStaticMeshComponent*, ISMComponent, int32, Item, float, Damage);
 
 UCLASS()
 class PCG_API AGeometryPlanet : public AGeneratedDynamicMeshActor
