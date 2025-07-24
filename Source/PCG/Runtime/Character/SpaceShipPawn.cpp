@@ -199,6 +199,122 @@ void ASpaceShipPawn::SetupPlayerAbilityComponent()
 
 void ASpaceShipPawn::Move(const FInputActionValue& Value)
 {
+    // 获取输入值
+    FVector2D InputVector = Value.Get<FVector2D>();
+    float X = InputVector.X;
+    float Y = InputVector.Y;
+    
+    // 计算移动方向
+    FVector CameraForward = Camera->GetForwardVector() * Y;
+    FVector CameraRight = Camera->GetRightVector() * X;
+    FVector DesiredMoveDirection = (CameraForward + CameraRight).GetSafeNormal();
+    
+    // 获取当前速度信息
+    FVector CurrentVelocity = MainBody->GetPhysicsLinearVelocity();
+    float CurrentSpeed = CurrentVelocity.Size();
+    FVector CurrentDirection = CurrentVelocity.GetSafeNormal();
+    
+    bool bHasInput = !DesiredMoveDirection.IsNearlyZero();
+    
+    if (bHasInput)
+    {
+        // 有输入时的处理
+        bIsAccelerating = true;
+        CurrentAcceleration = DesiredMoveDirection;
+        
+        // 计算当前速度方向与期望方向的夹角
+        float DotProduct = FVector::DotProduct(CurrentDirection, DesiredMoveDirection);
+        float Angle = FMath::Acos(FMath::Clamp(DotProduct, -1.0f, 1.0f)) * 180.0f / PI;
+        
+        // 根据速度和角度调整行为
+        if (CurrentSpeed < LowSpeedThreshold)
+        {
+            // 低速时：直接响应，高灵敏度
+            MainBody->SetLinearDamping(0.1f);
+            MainBody->AddForce(DesiredMoveDirection * Acceleration * HighResponsivenessFactor);
+        }
+        else
+        {
+            // 高速时：根据角度调整策略
+            if (Angle < 15.0f)
+            {
+                // 方向基本一致，继续加速或保持
+                MainBody->SetLinearDamping(0.2f);
+                MainBody->AddForce(DesiredMoveDirection * Acceleration);
+                
+                // 微调速度方向，使其更精确地朝向期望方向
+                FVector AdjustedVelocity = CurrentSpeed * DesiredMoveDirection;
+                MainBody->SetPhysicsLinearVelocity(AdjustedVelocity);
+            }
+            else if (Angle < 45.0f)
+            {
+                // 中等角度转向，适度减速
+                MainBody->SetLinearDamping(1.0f);
+                MainBody->AddForce(DesiredMoveDirection * Acceleration * 0.8f);
+            }
+            else if (Angle < 90.0f)
+            {
+                // 大角度转向，显著减速
+                MainBody->SetLinearDamping(3.0f);
+                MainBody->AddForce(DesiredMoveDirection * Acceleration * 0.6f);
+            }
+            else
+            {
+                // 反向操作，快速刹车
+                MainBody->SetLinearDamping(FastBrakeDamping);
+                // 施加反向力进行快速制动
+                MainBody->AddForce(-CurrentDirection * Acceleration * EmergencyBrakeFactor);
+                // 然后朝新方向加速
+                MainBody->AddForce(DesiredMoveDirection * Acceleration * 0.4f);
+            }
+        }
+        
+        DrawVectorDebugArrows(MainBody, DesiredMoveDirection);
+    }
+    else
+    {
+        // 无输入时的刹车处理
+        bIsAccelerating = false;
+        CurrentAcceleration = FVector::ZeroVector;
+        
+        if (CurrentSpeed > StopThreshold)
+        {
+            // 根据当前速度调整刹车力度
+            if (CurrentSpeed > HighSpeedThreshold)
+            {
+                // 高速刹车：强力制动
+                MainBody->SetLinearDamping(FastBrakeDamping);
+                MainBody->AddForce(-CurrentDirection * Deceleration * EmergencyBrakeFactor);
+            }
+            else if (CurrentSpeed > MediumSpeedThreshold)
+            {
+                // 中速刹车：适度制动
+                MainBody->SetLinearDamping(MediumBrakeDamping);
+                MainBody->AddForce(-CurrentDirection * Deceleration * 2.0f);
+            }
+            else
+            {
+                // 低速刹车：轻柔制动
+                MainBody->SetLinearDamping(SmoothBrakeDamping);
+            }
+        }
+        else
+        {
+            // 接近停止时，完全停止
+            MainBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
+            MainBody->SetLinearDamping(0.1f);
+        }
+    }
+    
+    // 限制最大速度
+    if (CurrentSpeed > MaxSpeed)
+    {
+        FVector LimitedVelocity = CurrentDirection * MaxSpeed;
+        MainBody->SetPhysicsLinearVelocity(LimitedVelocity);
+    }
+}
+/*void ASpaceShipPawn::Move(const FInputActionValue& Value)
+{
 	int X = Value.Get<FVector2D>().X;
 	int Y = Value.Get<FVector2D>().Y;
 	FVector CameraForward = Camera->GetForwardVector() * Y;
@@ -211,11 +327,15 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
 	DrawVectorDebugArrows(MainBody, Move.GetSafeNormal());
 	float angle = FMath::Acos(FVector::DotProduct(MainBody->GetPhysicsLinearVelocity().GetSafeNormal(),
 	                                              Move.GetSafeNormal())) * 180.f / PI;
-	/*if (angle > 15)
+	if (angle < 15)
 	{
 		MainBody->SetPhysicsLinearVelocity(MainBody->GetPhysicsLinearVelocity().Length() * Move.GetSafeNormal());
 	}
-	else */if (angle > 45)
+	else if (angle > 15)
+	{
+		MainBody->SetLinearDamping(0.5f);
+	}
+	else if (angle > 45)
 	{
 		MainBody->SetLinearDamping(2.f);
 	}
@@ -228,7 +348,7 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
 		MainBody->SetLinearDamping(0.01f);
 	}
 	//AddActorWorldOffset(Move * GetWorld()->DeltaTimeSeconds * Speed);
-}
+}*/
 
 void ASpaceShipPawn::StopMove(const FInputActionValue& Value)
 {

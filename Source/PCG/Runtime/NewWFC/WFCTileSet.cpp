@@ -43,10 +43,6 @@ bool UWFCTileSet::AreSocketsCompatible(const FString& Socket1, const FString& So
         return Socket1.IsEmpty() && Socket2.IsEmpty();
     }
     
-    if (Socket1.Equals("0") || Socket2.Equals("0"))
-    {
-        return true;
-    }
 
 
     for (const FWFCSocket& SocketDef : SocketDefinitions)

@@ -138,12 +138,26 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 	}
 	else if (Planet)
 	{
-		bIsGridSlectionStarted = false;
-		FBox GridBounds = GridSelection->EndGridSelection();
-		FVector GeneratePos = GridBounds.GetCenter();
-		ProcessTerrainBuild(Planet, LastHitResult, GridBounds);
-		//WFCGeneratorComponent->StartGenerationWithCustomConfigAt(GeneratePos, GridSelection->GetGridRotation());
-		DeselectPlanet();
+		FBox GridBounds = GridSelection->PeekGridSelection();
+		AMineSphere* MineSphere = CheckIsOnMineSphere(GridBounds);
+		if (ValidateGridBounds(GridBounds) && MineSphere)
+		{
+			if (ProcessTerrainBuild(Planet, LastHitResult, GridBounds, MineSphere))
+			{
+				bIsGridSlectionStarted = false;
+				GridSelection->EndGridSelection();
+				DeselectPlanet();
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Process Terrain Build failed"));
+			}
+			
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Grid selection is invalid"));
+		}
 	}
 	else
 	{
@@ -153,11 +167,11 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 	}
 }
 
-void UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds)
+bool UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
 {
 	if (!Planet)
 	{
-		return;
+		return false;
 	}
 
 	FVector ImpactRelativePoint = HitResult.ImpactPoint - Planet->GetActorLocation();
@@ -166,7 +180,7 @@ void UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FH
 	UGeometryScriptLibrary_MeshSelectionFunctions::SelectMeshElementsInSphere(
 		Planet->GetDynamicMeshComponent()->GetDynamicMesh(),
 		selection,
-		ImpactRelativePoint,
+		FVector(GridBounds.GetCenter().X, GridBounds.GetCenter().Y, HitResult.ImpactPoint.Z) - Planet->GetActorLocation(),
 		VertexSelectionTolerance,
 		EGeometryScriptMeshSelectionType::Vertices,
 		false,
@@ -180,21 +194,29 @@ void UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanet* Planet, const FH
 
 	if (indicesout.Num() > 0)
 	{
-		// 平整地形以便建造
-		FlattenTerrain(Planet, indicesout);
+		
 
-		// 在平整的地形上生成建筑
-		SpawnBuilding(Planet, HitResult, GridBounds);
+		if (SpawnBuilding(Planet, HitResult, GridBounds,MineSphere))
+		{
+			FlattenTerrain(Planet, indicesout, GridBounds);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to spawn building"));
+			return false;
+		}
 
 		UE_LOG(LogTemp, Log, TEXT("Building constructed successfully!"));
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No suitable terrain found for building"));
+		return false;
 	}
+	return true;
 }
 
-void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<int32>& VertexIndices)
+void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<int32>& VertexIndices, FBox GridBounds)
 {
 	if (!Planet || VertexIndices.Num() == 0)
 	{
@@ -226,7 +248,7 @@ void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanet* Planet, const TArray<
 	Planet->GetDynamicMeshComponent()->UpdateCollision();
 }
 
-void UTerrainBuildAbility::SpawnBuilding(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds)
+bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
 {
 	FVector normal = HitResult.ImpactPoint - Planet->GetActorLocation();
 	normal.Normalize();
@@ -234,20 +256,36 @@ void UTerrainBuildAbility::SpawnBuilding(AGeometryPlanet* Planet, const FHitResu
 
 	if (WFCGeneratorComponent)
 	{
-		if (TryConsumeWood())
+		int volume = 0;
+		if (TryConsumeWood(volume))
 		{
 			CalculateWFCGridSize(GridBounds);
 			WFCGeneratorComponent->StartGenerationWithCustomConfigAt(GridBounds.GetCenter(),
 			                                                         GridSelection->GetGridRotation());
+			
+			SpawnFactoryActor(GridBounds.GetCenter(), volume, MineSphere);
+			return true;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to consume wood!"));
+			return false;
 		}
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No WFC generator available for building construction"));
+		return false;
 	}
 }
 
-bool UTerrainBuildAbility::TryConsumeWood()
+void UTerrainBuildAbility::SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere)
+{
+	AFactoryBuilding* Factory = GetWorld()->SpawnActor<AFactoryBuilding>();
+	Factory->BuildFactoryAt(Position, Volume, MineSphere);
+}
+
+bool UTerrainBuildAbility::TryConsumeWood(int& outVolume)
 {
 	if (WFCGeneratorComponent)
 	{
@@ -258,13 +296,15 @@ bool UTerrainBuildAbility::TryConsumeWood()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%d Wood consumed"), volume);
 			PlayerData->ChangePlayerWoodValue(PlayerData->GetPlayerWoodValue() - volume);
+			outVolume = volume;
 			return true;
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Player wood not available"), volume);
+			UE_LOG(LogTemp, Warning, TEXT("Player wood not available"));
 		}
 	}
+	outVolume = 0;
 	return false;
 }
 
@@ -319,7 +359,53 @@ void UTerrainBuildAbility::CalculateWFCGridSize(FBox GridBounds)
 {
 	int SizeX = static_cast<int>((GridBounds.Max.X - GridBounds.Min.X)/GridSelection->GetGridSize());
 	int SizeY = static_cast<int>((GridBounds.Max.Y - GridBounds.Min.Y)/GridSelection->GetGridSize());
-	WFCGeneratorComponent->Configuration.GridSize = FIntVector(SizeX, SizeY, WFCGeneratorComponent->Configuration.GridSize.Z);
+	WFCGeneratorComponent->Configuration.GridSize = FIntVector(SizeY, SizeX, WFCGeneratorComponent->Configuration.GridSize.Z);
+}
+
+bool UTerrainBuildAbility::ValidateGridBounds(FBox GridBounds)
+{
+	if (GridBounds.Max.X <= GridBounds.Min.X ||
+		GridBounds.Max.Y <= GridBounds.Min.Y)
+	{
+		UE_LOG(LogTemp, Error, TEXT("TerrainBuildAbility: Grid size invalid"));
+		return false;
+	}
+
+	if (GridBounds.Max.X - GridBounds.Min.X < GridSelection->GetGridSize()/2 ||
+		GridBounds.Max.Y - GridBounds.Min.Y < GridSelection->GetGridSize()/2)
+	{
+		UE_LOG(LogTemp, Error, TEXT("TerrainBuildAbility: Grid size too small"));
+		return false;
+	}
+
+	return true;
+}
+
+AMineSphere* UTerrainBuildAbility::CheckIsOnMineSphere(FBox GridBounds)
+{
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+    
+	UClass* ActorClassFilter = AMineSphere::StaticClass();
+	
+	TArray<AActor*> ActorsToIgnore;
+	TArray<AActor*> FoundActors;
+	
+	UKismetSystemLibrary::BoxOverlapActors(
+		GetWorld(),
+		GridBounds.GetCenter(),
+		GridBounds.GetExtent(),
+		ObjectTypes,
+		ActorClassFilter,
+		ActorsToIgnore,
+		FoundActors
+	);
+	if (FoundActors.Num() > 0)
+	{
+		return Cast<AMineSphere>(FoundActors[0]);
+	}
+	return nullptr;
 }
 
 void UTerrainBuildAbility::SelectPlanet(AGeometryPlanet* Planet, FHitResult& HitResult)

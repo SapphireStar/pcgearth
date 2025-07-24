@@ -6,6 +6,7 @@
 #include "MineSphere.h"
 #include "RHICommandList.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "GeometryScript/MeshQueryFunctions.h"
 #include "Rendering/Texture2DResource.h"
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -25,8 +26,9 @@ AGeometryPlanet::AGeometryPlanet()
 void AGeometryPlanet::BeginPlay()
 {
 	Super::BeginPlay();
-	GenerateMineAreas();
-	GenerateMineMaterialTexture();
+	MineSpheres.Empty();
+	SpawnMineSpheres();
+	UpdateMineAreas();
 }
 
 // Called every frame
@@ -42,7 +44,7 @@ void AGeometryPlanet::Tick(float DeltaTime)
 			DynamicMaterialInstance->SetScalarParameterValue("PlanetRadius", PlanetRadius * 1000);
 			DynamicMaterialInstance->SetScalarParameterValue("DataCount", TextureDataSize);
 		}
-			
+			bIsTextureInitialized = true;
 	}
 }
 
@@ -69,6 +71,34 @@ void AGeometryPlanet::ApplyNoiseToPlanet()
 	NoiseApplier::ApplySimpleNoise(DynamicMeshComponent->GetDynamicMesh(), FGeometryScriptMeshSelection(), nullptr, NoiseShapeGenerator);*/
 }
 
+void AGeometryPlanet::SpawnMineSpheres()
+{
+	UDynamicMesh* DynamicMesh = GetDynamicMeshComponent()->GetDynamicMesh();
+	int VertexCount  =GetDynamicMeshComponent()->GetMesh()->VertexCount();
+	for (int i = 0; i < VertexCount; i++)
+	{
+		float shouldSpawnMineSphere = RandomStream.FRand();
+		if (!(shouldSpawnMineSphere < 0.001))
+		{
+			continue;
+		}
+		bool isValidVertex = false;
+		FVector VertexPosition = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
+			DynamicMesh,
+			i,
+			isValidVertex);
+		if (isValidVertex)
+		{
+			FVector Normal = VertexPosition.GetSafeNormal();
+			FVector Position = VertexPosition + GetActorLocation();
+			AMineSphere* MineSphere = GetWorld()->SpawnActor<AMineSphere>();
+			MineSphere->UpdateMineSphere(RandomStream.FRandRange(MineConfiguration.RadiusMin, MineConfiguration.RadiusMax));
+			MineSphere->SetMotherWorldPlanet(this);
+			MineSphere->SetActorLocation(Position - Normal *  RandomStream.FRandRange(0, MineSphere->GetRadius() - 300));
+		}
+	}
+}
+
 void AGeometryPlanet::GenerateMineAreas()
 {
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
@@ -92,8 +122,8 @@ void AGeometryPlanet::GenerateMineAreas()
 	    {
 		    if (auto mineralArea = Cast<AMineSphere>(ResultActors[i]))
 		    {
-		    	mineralArea->InitializeMineSphere(this);
-			    MineralAreas.Add(mineralArea);
+		    	mineralArea->SetMotherWorldPlanet(this);
+			    MineSpheres.Add(mineralArea);
 		    }
 	    }
     }
@@ -101,8 +131,12 @@ void AGeometryPlanet::GenerateMineAreas()
 
 void AGeometryPlanet::GenerateMineMaterialTexture()
 {
+	while (TextureDataSize < MineSpheres.Num())
+	{
+		TextureDataSize *= 2;
+	}
 	//UGeometryScriptLibrary_MeshDeformFunctions::ApplyPerlinNoiseToMesh()
-	if (MineralAreas.Num() == 0)
+	if (MineSpheres.Num() == 0)
 	{
 		MinePositions.Init(FVector::ZeroVector, TextureDataSize);
 		MineRadius.Init(0, TextureDataSize);
@@ -112,19 +146,13 @@ void AGeometryPlanet::GenerateMineMaterialTexture()
 		//如果mineral area小于最小datalength 4的话，需要补齐剩下的data内容，将冗余data置0
 		MinePositions.Init(FVector::ZeroVector,TextureDataSize);
 		MineRadius.Init(0, TextureDataSize);
-		for (int i =0 ;i< MineralAreas.Num(); i++)
+		for (int i =0 ;i< MineSpheres.Num(); i++)
 		{
-			MinePositions[i] = (MineralAreas[i]->GetActorLocation());
-			MineRadius[i] = (MineralAreas[i]->GetRadius());
+			MinePositions[i] = (MineSpheres[i]->GetActorLocation());
+			MineRadius[i] = (MineSpheres[i]->GetRadius());
 		}
 	}
-	
 
-
-	while (TextureDataSize < MinePositions.Num())
-	{
-		TextureDataSize *= 2;
-	}
 	TextureWidth = TextureDataSize;
 	DynamicMaterialInstance = UMaterialInstanceDynamic::Create(Material, this);
 	DynamicMeshComponent->SetMaterial(0, DynamicMaterialInstance);
@@ -134,6 +162,14 @@ void AGeometryPlanet::GenerateMineMaterialTexture()
 		SetPixelValue(i, MinePositions[i].X, MinePositions[i].Y, MinePositions[i].Z, MineRadius[i]);
 	}
 	UpdateTexture16Bytes();
+
+	bIsTextureInitialized = false;
+}
+
+void AGeometryPlanet::UpdateMineAreas()
+{
+	GenerateMineAreas();
+	GenerateMineMaterialTexture();
 }
 
 void AGeometryPlanet::InitializeTexture16Bytes()

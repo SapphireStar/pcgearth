@@ -39,3 +39,30 @@ struct PCG_API FPlayerStatusNew
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FResourceStatusNew Mine;
 };
+
+USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FSystemStatus
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int RemainDays;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int CurrentTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int TargetMineCount;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FPlayerDataContainer
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FPlayerStatusNew PlayerStatus;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FSystemStatus SystemStatus;
+};
+

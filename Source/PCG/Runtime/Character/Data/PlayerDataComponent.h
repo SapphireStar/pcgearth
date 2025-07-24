@@ -9,7 +9,12 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerStatusChanged, FPlayerStatusNew, OldValue, const FPlayerStatusNew&, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWoodChanged, int, OldValue, int, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMineChanged, int, OldValue, int, NewValue);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemainDaysChanged, int, OldValue, int, NewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentTimeChanged, int, OldValue, int, NewValue);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDataComponentInitialized, UClass*, DataClassType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimeZeroGameOver, UClass*, DataClassType);
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PCG_API UPlayerDataComponent : public UActorComponent
 {
@@ -29,7 +34,7 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable)
-	void InitializePlayerData(FPlayerStatusNew InitialPlayerStatus);
+	void InitializePlayerData(FPlayerDataContainer InitialPlayerData);
 
 	UFUNCTION(BlueprintCallable)
 	void ChangePlayerWoodValue(int NewValue);
@@ -43,6 +48,23 @@ public:
 	UFUNCTION(BlueprintPure)
 	int GetPlayerMineValue() const{return PlayerStatus.Mine.Value;}
 
+
+	UFUNCTION(BlueprintCallable)
+	void ChangePlayerRemainDaysValue(int NewValue);
+	
+	UFUNCTION(BlueprintPure)
+	int GetPlayerRemainDaysValue() const {return SystemStatus.RemainDays; }
+
+	UFUNCTION(BlueprintCallable)
+	void ChangePlayerCurrentTimeValue(int NewValue);
+
+	UFUNCTION(BlueprintPure)
+	int GetPlayerCurrentTimeValue() const {return SystemStatus.CurrentTime; }
+
+
+	UFUNCTION(BlueprintCallable)
+	void BroadcastTimeZeroGameover();
+	
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerStatusChanged OnPlayerStatusChanged;
@@ -53,9 +75,20 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnMineChanged OnMineChanged;
 
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnRemainDaysChanged OnRemainDaysChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnCurrentTimeChanged OnCurrentTimeChanged;
+
+	
 	UPROPERTY(BlueprintAssignable)
 	FOnDataComponentInitialized OnInitialized;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnTimeZeroGameOver OnTimeZeroGameOver;
 private:
 	FPlayerStatusNew PlayerStatus;
+	FSystemStatus SystemStatus;
 };

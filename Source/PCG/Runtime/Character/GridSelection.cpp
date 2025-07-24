@@ -102,22 +102,52 @@ FBox AGridSelectionManager::EndGridSelection()
 			GridBounds.Max.Z = FinalShape[i].Z;
 		}
 	}
-	
-	/*if (GridBounds.Min.X < GridBounds.Max.X && GridBounds.Min.Y < GridBounds.Max.Y)
-	{
-		for (TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
-		{
-			if (auto comp = ActorItr->GetComponentByClass<UWFCGeneratorComponent>())
-			{
-				FVector GeneratePos = GridBounds.GetCenter();
-				comp->StartGenerationWithCustomConfigAt(GeneratePos, GridRotation);
-			}
-		}
-	}*/
 
 	UE_LOG(LogTemp, Warning, TEXT("Grid selection completed with %d points"), FinalShape.Num());
 
 	ClearSelection();
+	return GridBounds;
+}
+
+FBox AGridSelectionManager::PeekGridSelection()
+{
+	TArray<FVector> FinalShape = SelectedGridPoints;
+
+	if (FinalShape.Num() > 2 && FinalShape.Last() != InitialSelectedPoint)
+	{
+		FinalShape.Add(InitialSelectedPoint);
+	}
+
+	GridBounds.Min = FVector::OneVector * 10000000;
+	GridBounds.Max = -FVector::OneVector * 10000000;
+	for (int i = 0; i < FinalShape.Num(); i++)
+	{
+		if (FinalShape[i].X < GridBounds.Min.X)
+		{
+			GridBounds.Min.X = FinalShape[i].X;
+		}
+		if (FinalShape[i].X > GridBounds.Max.X)
+		{
+			GridBounds.Max.X = FinalShape[i].X;
+		}
+		if (FinalShape[i].Y < GridBounds.Min.Y)
+		{
+			GridBounds.Min.Y = FinalShape[i].Y;
+		}
+		if (FinalShape[i].Y > GridBounds.Max.Y)
+		{
+			GridBounds.Max.Y = FinalShape[i].Y;
+		}
+		if (FinalShape[i].Z < GridBounds.Min.Z)
+		{
+			GridBounds.Min.Z = FinalShape[i].Z;
+		}
+		if (FinalShape[i].Z > GridBounds.Max.Z)
+		{
+			GridBounds.Max.Z = FinalShape[i].Z;
+		}
+	}
+	
 	return GridBounds;
 }
 

@@ -5,13 +5,14 @@
 
 APCGGameMode::APCGGameMode()
 {
-	
+	PlayerData = CreateDefaultSubobject<UPlayerDataComponent>(TEXT("PlayerData"));
 
 }
 
 void APCGGameMode::BeginPlay()
 {
-	PlayerData = NewObject<UPlayerDataComponent>();
-	PlayerData->RegisterComponent();
+	/*PlayerData = NewObject<UPlayerDataComponent>();
+	AddOwnedComponent(PlayerData);
+	PlayerData->RegisterComponent();*/
 	Super::BeginPlay();
 }

@@ -25,8 +25,17 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	virtual void InitializeMineSphere(AGeometryPlanet* planet);
-	float GetRadius(){return Radius;}
+	virtual void UpdateMineSphere(float Radius);
+	virtual void SetMotherWorldPlanet(AGeometryPlanet* planet);
+
+	UFUNCTION(BlueprintCallable)
+	int TryStartOneMine(int Value);
+
+	UFUNCTION(BlueprintPure)
+	float GetRadius() const { return Radius; }
+
+	UFUNCTION(BlueprintPure)
+	bool GetCanMine() const { return RemainMinralCount > 0; }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -34,6 +43,13 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Radius;
+
+	//矿藏量根据半径计算，该Divider用于控制矿藏量
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int MineralDivider = 10000000;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int RemainMinralCount;
 
 private:
 	UPROPERTY()

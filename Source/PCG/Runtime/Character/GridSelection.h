@@ -71,6 +71,9 @@ public:
     FBox EndGridSelection();
 
     UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    FBox PeekGridSelection();
+
+    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
     void ShutDownGridSelection();
 
     UFUNCTION(BlueprintCallable, Category = "Grid Selection")

@@ -22,7 +22,7 @@ AMineSphere::AMineSphere()
 void AMineSphere::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	UpdateMineSphere(Radius);
 }
 
 // Called every frame
@@ -31,9 +31,30 @@ void AMineSphere::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AMineSphere::InitializeMineSphere(AGeometryPlanet* planet)
+void AMineSphere::UpdateMineSphere(float Radius)
+{
+	this->Radius = Radius;
+	Sphere->SetSphereRadius(Radius);
+	RemainMinralCount = (4/3 * PI * Radius * Radius * Radius)/MineralDivider;
+}
+
+void AMineSphere::SetMotherWorldPlanet(AGeometryPlanet* planet)
 {
 	this->MotherWorldPlanet =  planet;
 	
+}
+
+int AMineSphere::TryStartOneMine(int Value)
+{
+	if (RemainMinralCount >= Value)
+	{
+		RemainMinralCount -= Value;
+		return Value;
+	}
+	else
+	{
+		RemainMinralCount = 0;
+		return RemainMinralCount;
+	}
 }
 

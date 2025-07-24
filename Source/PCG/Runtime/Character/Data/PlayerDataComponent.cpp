@@ -34,24 +34,44 @@ void UPlayerDataComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	// ...
 }
 
-void UPlayerDataComponent::InitializePlayerData(FPlayerStatusNew InitialPlayerStatus)
+void UPlayerDataComponent::InitializePlayerData(FPlayerDataContainer InitialPlayerData)
 {
-	PlayerStatus = InitialPlayerStatus;
+	PlayerStatus = InitialPlayerData.PlayerStatus;
+	SystemStatus = InitialPlayerData.SystemStatus;
 	OnInitialized.Broadcast(UPlayerDataComponent::StaticClass());
 	OnPlayerStatusChanged.Broadcast(PlayerStatus, PlayerStatus);
 }
 
 void UPlayerDataComponent::ChangePlayerWoodValue(int NewValue)
 {
-	float WoodOld = PlayerStatus.Wood.Value;
+	int WoodOld = PlayerStatus.Wood.Value;
 	PlayerStatus.Wood.Value = NewValue;
 	OnWoodChanged.Broadcast(WoodOld, NewValue);
 }
 
 void UPlayerDataComponent::ChangePlayerMineValue(int NewValue)
 {
-	float MineOld = PlayerStatus.Mine.Value;
+	int MineOld = PlayerStatus.Mine.Value;
 	PlayerStatus.Mine.Value = NewValue;
 	OnMineChanged.Broadcast(MineOld, NewValue);
+}
+
+void UPlayerDataComponent::ChangePlayerRemainDaysValue(int NewValue)
+{
+	int RemainDaysOld = SystemStatus.RemainDays;
+	SystemStatus.RemainDays = NewValue;
+	OnRemainDaysChanged.Broadcast(RemainDaysOld, NewValue);
+}
+
+void UPlayerDataComponent::ChangePlayerCurrentTimeValue(int NewValue)
+{
+	int CurrentTimeOld = SystemStatus.CurrentTime;
+	SystemStatus.CurrentTime = NewValue;
+	OnCurrentTimeChanged.Broadcast(CurrentTimeOld, NewValue);
+}
+
+void UPlayerDataComponent::BroadcastTimeZeroGameover()
+{
+	OnTimeZeroGameOver.Broadcast(UPlayerDataComponent::StaticClass());
 }
 

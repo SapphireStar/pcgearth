@@ -7,6 +7,21 @@
 #include "PCG/Runtime/Planet/ShapeGenerator.h"
 #include "GeometryPlanet.generated.h"
 
+USTRUCT(BlueprintType)
+struct PCG_API FMineSphereSpawnConfiguration
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 500, ClampMax = 1000))
+	float RadiusMin;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 1000, ClampMax =3000))
+	float RadiusMax;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int Seed;
+};
+
 struct FShapeSettings;
 class USphereComponent;
 class AMineSphere;
@@ -43,11 +58,22 @@ public:
 	void ApplyNoiseToPlanet();
 
 	UFUNCTION(BlueprintCallable)
+	void SpawnMineSpheres();
+
+	UFUNCTION(BlueprintCallable)
 	void GenerateMineAreas();
-	void InitializeTexture16Bytes();
-	void UpdateTexture16Bytes(bool bFreeData = false);
+	
 	UFUNCTION(BlueprintCallable)
 	void GenerateMineMaterialTexture();
+	
+	UFUNCTION(BlueprintCallable)
+	void UpdateMineAreas();
+	
+	void InitializeTexture16Bytes();
+	
+	void UpdateTexture16Bytes(bool bFreeData = false);
+	
+
 
 	void SetPixelValue(int32 Offset, float X, float	Y, float Z, float A);
 
@@ -57,7 +83,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* PlanetSphereStaticMesh;
-	
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UMaterial* Material;
@@ -71,12 +96,20 @@ public:
 	int32 TextureHeight = 1;
 	
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FMineSphereSpawnConfiguration MineConfiguration;
+	
 	UPROPERTY()
 	TArray<FVector> MinePositions;
+	
 	UPROPERTY()
 	TArray<float> MineRadius;
+	
 	UPROPERTY()
-	TArray<AMineSphere*> MineralAreas;
+	TArray<AMineSphere*> MineSpheres;
+	
+	FRandomStream RandomStream;
+
 	
 private:
 	bool bIsTextureInitialized = false;

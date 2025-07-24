@@ -1,9 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "FactoryBuilding.h"
 #include "GridSelection.h"
 #include "ItemAbilityComponent.h"
 #include "Data/PlayerDataComponent.h"
+#include "PCG/Runtime/NewPlanet/MineSphere.h"
 #include "TerrainBuildAbility.generated.h"
 
 class UWFCGeneratorComponent;
@@ -11,6 +13,20 @@ class UCameraComponent;
 class UDynamicMeshComponent;
 class AWFCGenerator;
 
+USTRUCT(BlueprintType)
+struct FBuildingPreviewMessage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bCanPlaceBuilding;
+
+	UPROPERTY(BlueprintReadWrite)
+	int RequiredWood;
+
+	UPROPERTY(BlueprintReadWrite)
+	FString Message;
+};
 UCLASS()
 class PCG_API UTerrainBuildAbility : public UItemAbilityComponent
 {
@@ -34,14 +50,19 @@ public:
 
 
 private:
-	void ProcessTerrainBuild(class AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds);
-	void FlattenTerrain(class AGeometryPlanet* Planet, const TArray<int32>& VertexIndices);
-	void SpawnBuilding(class AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds);
-	bool TryConsumeWood();
+	bool ProcessTerrainBuild(class AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere);
+	void FlattenTerrain(class AGeometryPlanet* Planet, const TArray<int32>& VertexIndices, FBox GridBounds);
+	bool SpawnBuilding(class AGeometryPlanet* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere);
+	void SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere);
+	bool TryConsumeWood(int& outVolume);
+	
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	FRotator FindNormalOnPlanet(FVector ImpactPosition, FVector PlanetPosition);
 	void CalculateWFCGridSize(FBox GridBounds);
+	bool ValidateGridBounds(FBox GridBounds);
+	AMineSphere* CheckIsOnMineSphere(FBox GridBounds);
+	
 	void SelectPlanet(AGeometryPlanet* Planet, FHitResult& HitResult);
 	void DeselectPlanet();
 
@@ -64,6 +85,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<AGeometryPlanet> Planet;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AFactoryBuilding>> SpawnedFactories;
 
 	FHitResult LastHitResult;
 
