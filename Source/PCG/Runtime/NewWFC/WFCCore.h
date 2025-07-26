@@ -6,13 +6,13 @@
 
 struct FWFCCell
 {
+    FWFCCell() = default;
+    FWFCCell(int32 TileCount) : PossibleTiles(false, TileCount) {}
+    
     TBitArray<> PossibleTiles;    
     bool bCollapsed = false;      
     int32 CollapsedTileIndex = -1;  
     float Entropy = 0.0f;      
-    
-    FWFCCell() = default;
-    FWFCCell(int32 TileCount) : PossibleTiles(false, TileCount) {}
     
     int32 GetPossibleTileCount() const { return PossibleTiles.CountSetBits(); }
     bool IsCollapsed() const { return bCollapsed; }
@@ -57,8 +57,8 @@ private:
     TArray<TArray<FWFCChange>> ChangeHistory; 
     TArray<FWFCCoordinate> CollapseHistory; 
     
-    TMap<FWFCCoordinate, TArray<int32>> PositionConstraints; // 位置特定的瓦片约束
-    TMap<int32, int32> TileInstanceCounts; // 瓦片使用计数
+    TMap<FWFCCoordinate, TArray<int32>> PositionConstraints;
+    TMap<int32, int32> TileInstanceCounts;
 
     static const TArray<FIntVector> DirectionVectors;
 
@@ -91,8 +91,9 @@ private:
     bool IsValidCoordinate(const FWFCCoordinate& Coord) const;
     bool IsValidCoordinate(int X, int Y, int Z) const;
     bool IsEdgeCoordinate(const FWFCCoordinate& Coord) const;
-    bool IsWallCoordinate(const FWFCCoordinate& Coord) const;
-    bool CheckDecorators(const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const;
+    bool IsBoundaryCoordinate(const FWFCCoordinate& Coord) const;
+    bool IsGroundCoordinate(const FWFCCoordinate& Coord) const;
+    bool CheckDecorators(int TileIndex, const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const;
     bool CheckCanAtEdge(const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const;
     FWFCCoordinate GetNeighbor(const FWFCCoordinate& Coord, EWFCDirection Direction) const;
     TArray<FWFCCoordinate> GetNeighbors(const FWFCCoordinate& Coord) const;

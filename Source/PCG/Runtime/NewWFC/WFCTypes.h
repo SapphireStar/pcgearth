@@ -243,6 +243,9 @@ struct FWFCConfiguration
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FWFCGenerationConstraint> Constraints;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool bShowEmptyTiles = false;
 };
 
 USTRUCT(BlueprintType)
@@ -285,6 +288,9 @@ struct FWFCVisualizationTile
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TObjectPtr<UMaterial> Material;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EWFCTileCategory Category;
 };
 
 USTRUCT(BlueprintType)
@@ -295,6 +301,7 @@ struct FWFCVisualizationData
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FWFCVisualizationTile> Tiles;
 
+    bool bShowEmptyTiles = false;
     FVector ParentLocation;
     FRotator ParentRotation;
 };

@@ -30,7 +30,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
-	
+#pragma region  Terrain
 	virtual void RebuildGeneratedMesh(UDynamicMesh* TargetMesh) override;
 	UFUNCTION(BlueprintCallable)
 	void MarkPlanetRefresh(bool bImmediate = false, bool bImmediateEventFrozen = false);
@@ -40,6 +40,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ApplyNoiseToPlanet();
+
+#pragma endregion
+	
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnMineSpheres();

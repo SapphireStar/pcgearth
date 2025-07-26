@@ -222,7 +222,7 @@ void UWFCTileSet::GenerateRotationVariants()
 
 	for (const FWFCTileDefinition& OriginalTile : OriginalTiles)
 	{
-		//if (!OriginalTile.bCanRotate) continue;
+		if (!OriginalTile.bCanRotate) continue;
 
 		for (int32 RotationSteps = 1; RotationSteps < 4; RotationSteps++)
 		{
@@ -234,6 +234,7 @@ void UWFCTileSet::GenerateRotationVariants()
 			RotatedTile.Category = OriginalTile.Category;
 			RotatedTile.BaseRotation = FRotator(0, RotationSteps * 90.0f, 0);
 			RotatedTile.bCanRotate = false;
+			RotatedTile.MaxInstancesPerGeneration = OriginalTile.MaxInstancesPerGeneration;
 			RotatedTile.bRequiresSupport = OriginalTile.bRequiresSupport;
 
 			Tiles.Add(RotatedTile);

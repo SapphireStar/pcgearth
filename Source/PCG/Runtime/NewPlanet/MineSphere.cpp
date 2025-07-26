@@ -53,8 +53,9 @@ int AMineSphere::TryStartOneMine(int Value)
 	}
 	else
 	{
+		int ReturnMineValue = RemainMinralCount;
 		RemainMinralCount = 0;
-		return RemainMinralCount;
+		return ReturnMineValue;
 	}
 }
 

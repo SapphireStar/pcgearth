@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "MineSphere.h"
+#include "TerrainDataTypes.h"
 #include "Components/DynamicMeshComponent.h"
 #include "GameFramework/Actor.h"
 #include "GeometryPlanetActor.generated.h"
@@ -43,7 +44,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
-	
+#pragma region  Terrain
 	virtual void RebuildGeneratedMesh(UDynamicMesh* TargetMesh);
 	UFUNCTION(BlueprintCallable)
 	void MarkPlanetRefresh(bool bImmediate = false, bool bImmediateEventFrozen = false);
@@ -53,6 +54,11 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ApplyNoiseToPlanet();
+	
+	UFUNCTION(BlueprintCallable)
+	void ApplyCraterToPlanet();
+
+#pragma endregion
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnMineSpheres();
@@ -126,6 +132,9 @@ private:
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TObjectPtr<UDynamicMeshComponent> DynamicMeshComponent;
+
+	UPROPERTY(Blueprintreadwrite, EditAnywhere)
+	TArray<FCraterData> CratersData;
 	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain")
 	FShapeSettings NoiseShapeSettings;
 

@@ -1,13 +1,12 @@
-// WFCCore.cpp - 修正后的实现文件
 #include "WFCCore.h"
 
 const TArray<FIntVector> FWFCCore::DirectionVectors = {
-	FIntVector(0, 0, 1), // Up
-	FIntVector(0, 0, -1), // Down  
-	FIntVector(0, 1, 0), // Right
-	FIntVector(0, -1, 0), // Left
-	FIntVector(1, 0, 0), // Front
-	FIntVector(-1, 0, 0) // Back
+	FIntVector(0, 0, 1),
+	FIntVector(0, 0, -1),
+	FIntVector(0, 1, 0),
+	FIntVector(0, -1, 0),
+	FIntVector(1, 0, 0),
+	FIntVector(-1, 0, 0)
 };
 
 FWFCCore::FWFCCore()
@@ -52,7 +51,7 @@ bool FWFCCore::Initialize(UWFCTileSet* InTileSet, const FWFCConfiguration& InCon
 
 	InitializeGrid();
 	BuildPropagationRules();
-	ApplyConstraints();
+	//ApplyConstraints();
 
 	UE_LOG(LogTemp, Log, TEXT("WFCCore: Initialization complete"));
 	return true;
@@ -90,7 +89,7 @@ void FWFCCore::InitializeGrid()
 
 				Cell.PossibleTiles.SetRange(0, TileCount, true);
 				Cell.Entropy = CalculateEntropy(Cell);
-				
+
 				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Initialized cell %s with entropy %.3f"),
 				       *Coord.ToString(), Cell.Entropy);
 			}
@@ -137,7 +136,7 @@ void FWFCCore::BuildPropagationRules()
 				{
 					PropagationRules[Dir][TileA].Add(TileB);
 					TotalRules++;
-					
+
 					UE_LOG(LogTemp, VeryVerbose,
 					       TEXT("WFCCore: Rule %s: Tile %d (%s) -> Tile %d (%s) via sockets '%s' <-> '%s'"),
 					       DirectionNames[Dir], TileA, *TileDefA.TileName, TileB, *TileDefB.TileName, *SocketA,
@@ -300,13 +299,12 @@ void FWFCCore::CellPreProcess()
 	}*/
 	for (const auto& [Coord, Cell] : Grid)
 	{
-		if (IsWallCoordinate(Coord))
+		if (IsBoundaryCoordinate(Coord))
 		{
 			CollapseCellTo(Coord, 0);
 			PropagateConstraints();
 		}
 	}
-	
 }
 
 
@@ -410,7 +408,7 @@ bool FWFCCore::RunGenerationLoop()
 				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Attempting backtrack"));
 				if (Backtrack())
 				{
-					continue; 
+					continue;
 				}
 			}
 
@@ -690,7 +688,7 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
 		return false;
 	}
-	
+
 	if (!CheckConstraints(Coord, SelectedTile))
 	{
 		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Constraint check failed for tile %d at %s"),
@@ -721,7 +719,7 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 	if (!Cell || Cell->IsCollapsed())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Cannot collapse - cell is null or already collapsed at %s"),
-			   *Coord.ToString());
+		       *Coord.ToString());
 		return false;
 	}
 
@@ -733,7 +731,7 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 
 
 	FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
-	if (!CheckDecorators(TileDef, Coord))
+	if (!CheckDecorators(TileIndex, TileDef, Coord))
 	{
 		return false;
 	}
@@ -748,11 +746,11 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
 		return false;
 	}
-	
+
 	if (!CheckConstraints(Coord, TileIndex))
 	{
 		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Constraint check failed for tile %d at %s"),
-			   TileIndex, *Coord.ToString());
+		       TileIndex, *Coord.ToString());
 		return false;
 	}
 
@@ -783,10 +781,11 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 		if (Cell.PossibleTiles[i])
 		{
 			FWFCTileDefinition TileDef = TileSet->GetTile(i);
-			if (!CheckDecorators(TileDef, Coord))
+			if (!CheckDecorators(i, TileDef, Coord))
 			{
 				continue;
 			}
+
 			/*if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
 			{
 				continue;
@@ -822,7 +821,7 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 
 	for (int32 i = 0; i < ValidTiles.Num(); i++)
 	{
-		// 跳过empty连接方块，将其作为最后保底选择
+		//跳过empty连接方块，将其作为最后保底选择
 		if (TileSet->GetTile(ValidTiles[i]).Category == EWFCTileCategory::Empty)
 		{
 			continue;
@@ -1007,12 +1006,13 @@ float FWFCCore::CalculateEntropy(const FWFCCell& Cell) const
 	return 0.0f;
 }
 
+//TODO:InstanceLimit的检查有问题，需要修改
 bool FWFCCore::CheckConstraints(const FWFCCoordinate& Coord, int32 TileIndex) const
 {
-	if (!CheckInstanceLimits(TileIndex))
+	/*if (!CheckInstanceLimits(TileIndex))
 	{
 		return false;
-	}
+	}*/
 
 	if (!CheckSupportRequirement(Coord, TileIndex))
 	{
@@ -1025,10 +1025,15 @@ bool FWFCCore::CheckConstraints(const FWFCCoordinate& Coord, int32 TileIndex) co
 bool FWFCCore::CheckInstanceLimits(int32 TileIndex) const
 {
 	FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
-	if (TileDef.MaxInstancesPerGeneration <= 0)
+	if (TileDef.TileName.Equals("smock_stack_bottom"))
 	{
-		return true;
+		FString TileName = TileDef.TileName;
+		if (TileDef.MaxInstancesPerGeneration <= 0)
+		{
+			return true;
+		}
 	}
+
 
 	int32 CurrentCount = TileInstanceCounts.FindRef(TileIndex);
 	return CurrentCount < TileDef.MaxInstancesPerGeneration;
@@ -1159,16 +1164,32 @@ bool FWFCCore::IsEdgeCoordinate(const FWFCCoordinate& Coord) const
 		Coord.Z == 0 || Coord.Z == Config.GridSize.Z - 1;
 }
 
-bool FWFCCore::IsWallCoordinate(const FWFCCoordinate& Coord) const
+bool FWFCCore::IsBoundaryCoordinate(const FWFCCoordinate& Coord) const
 {
 	return Coord.X == 0 || Coord.X == Config.GridSize.X - 1 ||
-	Coord.Y == 0 || Coord.Y == Config.GridSize.Y - 1 ||
-	Coord.Z == 0 || Coord.Z == Config.GridSize.Z - 1;
+		Coord.Y == 0 || Coord.Y == Config.GridSize.Y - 1 ||
+		Coord.Z == 0 || Coord.Z == Config.GridSize.Z - 1;
 }
 
-bool FWFCCore::CheckDecorators(const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const
+//因为在preprocess的时候，将整个grid四周填上了empty方块，因此地面从1开始算
+bool FWFCCore::IsGroundCoordinate(const FWFCCoordinate& Coord) const
 {
-	
+	return Coord.Z == 1;
+}
+
+bool FWFCCore::CheckDecorators(int TileIndex, const FWFCTileDefinition& Tile, const FWFCCoordinate& Coord) const
+{
+	if (!IsGroundCoordinate(Coord) && Tile.Category == EWFCTileCategory::Ground)
+	{
+		return false;
+	}
+	if (TileInstanceCounts.Contains(TileIndex) && Tile.MaxInstancesPerGeneration>0)
+	{
+		if (TileInstanceCounts[TileIndex] >= Tile.MaxInstancesPerGeneration)
+		{
+			return false;
+		}
+	}
 
 	return true;
 }

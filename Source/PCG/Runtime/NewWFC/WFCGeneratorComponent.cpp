@@ -460,6 +460,7 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAtByFrame(const FWFC
 	FWFCVisualizationData VisualizationData;
 	VisualizationData.ParentLocation = Location;
 	VisualizationData.ParentRotation = Rotation;
+	VisualizationData.bShowEmptyTiles = Configuration.bShowEmptyTiles;
 	
 	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Creating visualization for %d tiles"),
 		   Result.TileAssignments.Num());
@@ -468,12 +469,14 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAtByFrame(const FWFC
 	for (const auto& [Coord, TileIndex] : Result.TileAssignments)
 	{
 		FWFCVisualizationTile Tile;
+		FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
 		FVector WorldPosition = CoordinateToWorldPosition(Coord);
-		FRotator WorldRotation = TileSet->GetTile(TileIndex).BaseRotation;
+		FRotator WorldRotation = TileDef.BaseRotation;
 		Tile.Location =  WorldPosition;
 		Tile.Rotation = WorldRotation;
-		Tile.StaticMesh = TileSet->GetTile(TileIndex).Mesh;
-		Tile.Material = TileSet->GetTile(TileIndex).Material;
+		Tile.StaticMesh = TileDef.Mesh;
+		Tile.Material = TileDef.Material;
+		Tile.Category = TileDef.Category;
 		VisualizationData.Tiles.Add(Tile);
 	}
 	GetWorld()->SpawnActor<AWFCVisualizer>()->StartVisualization(GenerationActorPerFrame, VisualizationData);

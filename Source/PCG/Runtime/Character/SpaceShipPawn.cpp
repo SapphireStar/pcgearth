@@ -575,8 +575,6 @@ TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilit
 		AbilityComponent = NewObject<UTestWFCAbility>(this);
 		AbilityComponent->AbilityType = EAbilityType::TestWFC;
 		break;
-	case EAbilityType::MAX:
-		break;
 	default:
 		UE_LOG(LogTemp, Error, TEXT("SpaceShipPawn::CreateAbilityComponent: Haven't define the initialization for EAbilityType: %d"), static_cast<int>(eAbilityType));
 	}

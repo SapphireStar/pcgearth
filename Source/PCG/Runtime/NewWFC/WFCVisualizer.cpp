@@ -86,8 +86,15 @@ void AWFCVisualizer::ProcessSpawnTasks()
 	while (ActorSpawnedThisFrame < ActorsPerFrame && CurrentTileIndex < TotalTiles)
 	{
 		FWFCVisualizationTile& CurrentTile = VisualizationData.Tiles[CurrentTileIndex];
-		
-		SpawnTileActor(CurrentTile);
+		//如果tile类型为empty，则跳过
+		if (CurrentTile.Category != EWFCTileCategory::Empty)
+		{
+			SpawnTileActor(CurrentTile);
+		}
+		else if (VisualizationData.bShowEmptyTiles)
+		{
+			SpawnTileActor(CurrentTile);
+		}
 		CurrentTileIndex++;
 		ActorSpawnedThisFrame++;
 		if (OnVisualizationProgress.IsBound())

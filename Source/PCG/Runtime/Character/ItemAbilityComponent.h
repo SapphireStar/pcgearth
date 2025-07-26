@@ -13,7 +13,6 @@ enum class EAbilityType : uint8
 	TerrainDig,
 	GetResource,
 	TestWFC,
-	MAX UMETA(Hidden)
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityChanged, EAbilityType, OldAbility, EAbilityType, NewAbility);

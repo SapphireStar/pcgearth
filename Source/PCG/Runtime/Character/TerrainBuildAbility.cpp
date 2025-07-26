@@ -180,8 +180,8 @@ bool UTerrainBuildAbility::ProcessTerrainBuild(AGeometryPlanetActor* Planet, con
 	UGeometryScriptLibrary_MeshSelectionFunctions::SelectMeshElementsInSphere(
 		Planet->GetDynamicMeshComponent()->GetDynamicMesh(),
 		selection,
-		FVector(GridBounds.GetCenter().X, GridBounds.GetCenter().Y, HitResult.ImpactPoint.Z) - Planet->GetActorLocation(),
-		VertexSelectionTolerance,
+		GridBounds.GetCenter() - Planet->GetActorLocation(),
+		FVector::DistXY(GridBounds.Max, GridBounds.Min)/2.f,
 		EGeometryScriptMeshSelectionType::Vertices,
 		false,
 		1
@@ -406,6 +406,20 @@ AMineSphere* UTerrainBuildAbility::CheckIsOnMineSphere(FBox GridBounds)
 		return Cast<AMineSphere>(FoundActors[0]);
 	}
 	return nullptr;
+}
+
+FVector UTerrainBuildAbility::CalculateReferencePoint(UDynamicMeshComponent* Mesh, const TArray<int32>& VertexIndices,
+	bool bUseLowest)
+{
+	if (bUseLowest) {
+		int32 LowestVertexID = FindLowestVertex(Mesh, VertexIndices);
+		bool bIsValid;
+		return UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(Mesh->GetDynamicMesh(), LowestVertexID, bIsValid);
+	} else {
+		FVector Sum = FVector::ZeroVector;
+		int32 ValidCount = 0;
+		return Sum / ValidCount;
+	}
 }
 
 void UTerrainBuildAbility::SelectPlanet(AGeometryPlanetActor* Planet, FHitResult& HitResult)

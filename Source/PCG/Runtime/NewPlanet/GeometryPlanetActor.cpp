@@ -4,8 +4,11 @@
 #include "GeometryPlanetActor.h"
 
 #include "MineSphere.h"
+#include "NoiseApplier.h"
 #include "RHICommandList.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "GeometryScript/MeshBasicEditFunctions.h"
+#include "GeometryScript/MeshDeformFunctions.h"
 #include "GeometryScript/MeshQueryFunctions.h"
 #include "Rendering/Texture2DResource.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -107,6 +110,24 @@ void AGeometryPlanetActor::ApplyNoiseToPlanet()
 		NoiseShapeGenerator->Initialize(NoiseShapeSettings);
 	}
 	NoiseApplier::ApplySimpleNoise(DynamicMeshComponent->GetDynamicMesh(), FGeometryScriptMeshSelection(), nullptr, NoiseShapeGenerator);*/
+}
+
+void AGeometryPlanetActor::ApplyCraterToPlanet()
+{
+	FGeometryScriptIndexList VerticesList;
+	bool bHasGaps = false;
+	UGeometryScriptLibrary_MeshQueryFunctions::GetAllVertexIDs(DynamicMeshComponent->GetDynamicMesh(), VerticesList, bHasGaps);
+	TArray<int> VertexIDs = *VerticesList.List;
+	for (int i = 0; i < VertexIDs.Num(); i++)
+	{
+		for (int c = 0; c < CratersData.Num(); c++)
+		{
+			bool bIsValidVertex;
+			FVector VertexNewPos = NoiseApplier::ApplyCraterEffect(DynamicMeshComponent->GetDynamicMesh(), VertexIDs[i], GetActorLocation(), CratersData[c]);
+			UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(DynamicMeshComponent->GetDynamicMesh(), VertexIDs[i], VertexNewPos, bIsValidVertex);
+		}
+		
+	}
 }
 
 void AGeometryPlanetActor::SpawnMineSpheres()

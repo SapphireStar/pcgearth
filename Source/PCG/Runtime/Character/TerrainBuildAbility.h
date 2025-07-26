@@ -62,6 +62,7 @@ private:
 	void CalculateWFCGridSize(FBox GridBounds);
 	bool ValidateGridBounds(FBox GridBounds);
 	AMineSphere* CheckIsOnMineSphere(FBox GridBounds);
+	FVector CalculateReferencePoint(UDynamicMeshComponent* Mesh, const TArray<int32>& VertexIndices, bool bUseLowest);
 	
 	void SelectPlanet(AGeometryPlanetActor* Planet, FHitResult& HitResult);
 	void DeselectPlanet();
