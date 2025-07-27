@@ -128,7 +128,7 @@ void UTerrainDigAbility::ProcessTerrainDig(AGeometryPlanetActor* Planet, const F
 
 	if (indicesout.Num() > 0)
 	{
-		DigTerrain(Planet, indicesout);
+		DigTerrain(Planet, indicesout, false);
 		UE_LOG(LogTemp, Log, TEXT("Terrain dug successfully!"));
 	}
 	else
@@ -137,38 +137,61 @@ void UTerrainDigAbility::ProcessTerrainDig(AGeometryPlanetActor* Planet, const F
 	}
 }
 
-void UTerrainDigAbility::DigTerrain(AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices)
+void UTerrainDigAbility::DigTerrain(AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices, bool bForceAdaptive)
 {
 	if (!Planet || VertexIndices.Num() == 0)
 	{
 		return;
 	}
 
-	int LowestVertexID = FindLowestVertex(Planet->GetDynamicMeshComponent(), VertexIndices);
-	bool bIsValidVertex;
-	auto mesh = Planet->GetDynamicMeshComponent()->GetDynamicMesh();
-
-	auto lowestPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
-		mesh, LowestVertexID, bIsValidVertex);
-	float lowestLength = lowestPos.Length();
-
-	for (int i : VertexIndices)
+	auto Mesh = Planet->GetDynamicMeshComponent();
+    
+	// Analyze terrain variation
+	FTerrainAnalysis Analysis = AnalyzeTerrainVariation(Mesh, VertexIndices);
+    
+	// Get lowest vertex position
+	bool bIsValid;
+	FVector LowestPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
+		Mesh->GetDynamicMesh(), Analysis.LowestVertexID, bIsValid);
+	float LowestLength = LowestPos.Length();
+    
+	// Determine operation mode
+	bool bShouldFlatten = bForceAdaptive ? false : Analysis.bShouldFlatten;
+	float DigDepthToUse = bShouldFlatten ? 0.0f : CalculateAdaptiveDigDepth(Analysis);
+    
+	// Log decision for debugging
+	UE_LOG(LogTemp, Log, TEXT("Terrain Analysis - Accumulated Diff: %.2f, Should Flatten: %s, Dig Depth: %.2f"), 
+		Analysis.AccumulatedDifference, bShouldFlatten ? TEXT("Yes") : TEXT("No"), DigDepthToUse);
+    
+	// Apply terrain modification
+	for (int32 VertexID : VertexIndices)
 	{
-		if (i != LowestVertexID)
+		FVector CurrentPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
+			Mesh->GetDynamicMesh(), VertexID, bIsValid);
+        
+		if (!bIsValid) continue;
+        
+		FVector Normal = CurrentPos.GetSafeNormal();
+		float NewLength;
+        
+		if (bShouldFlatten)
 		{
-			auto pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
-				mesh, i, bIsValidVertex);
-			FVector normal = pos.GetSafeNormal();
-			
-			
-			float newLength = FMath::Max(lowestLength - DigDepth, lowestLength * 0.1f); //防止挖得太深
-			UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
-				mesh, i, normal * newLength, bIsValidVertex);
+			// Flatten all vertices to lowest vertex level
+			NewLength = LowestLength;
 		}
+		else
+		{
+			// Apply adaptive dig depth
+			float CurrentLength = CurrentPos.Length();
+			NewLength = FMath::Max(CurrentLength - DigDepthToUse, LowestLength * 0.1f);
+		}
+        
+		UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
+			Mesh->GetDynamicMesh(), VertexID, Normal * NewLength, bIsValid);
 	}
 
-	/*Planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
-	Planet->GetDynamicMeshComponent()->UpdateCollision();*/
+	//Planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
+	Planet->GetDynamicMeshComponent()->UpdateCollision();
 }
 
 int UTerrainDigAbility::FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID)
@@ -190,4 +213,56 @@ int UTerrainDigAbility::FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp,
 		}
 	}
 	return minID;
+}
+
+FTerrainAnalysis UTerrainDigAbility::AnalyzeTerrainVariation(UDynamicMeshComponent* Mesh, const TArray<int32>& VertexIndices)
+{
+	FTerrainAnalysis Analysis;
+    
+	Analysis.LowestVertexID = FindLowestVertex(Mesh, VertexIndices);
+	bool bIsValid;
+	FVector LowestPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
+		Mesh->GetDynamicMesh(), Analysis.LowestVertexID, bIsValid);
+	float LowestDistance = LowestPos.Length();
+    
+	float TotalDifference = 0.0f;
+	float MaxDiff = 0.0f;
+    
+	for (int32 VertexID : VertexIndices)
+	{
+		if (VertexID != Analysis.LowestVertexID)
+		{
+			FVector CurrentPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
+				Mesh->GetDynamicMesh(), VertexID, bIsValid);
+			float CurrentDistance = CurrentPos.Length();
+			float HeightDiff = CurrentDistance - LowestDistance;
+            
+			TotalDifference += HeightDiff;
+			MaxDiff = FMath::Max(MaxDiff, HeightDiff);
+		}
+	}
+    
+	Analysis.AccumulatedDifference = TotalDifference;
+	Analysis.MaxHeightDiff = MaxDiff;
+	Analysis.AverageHeight = TotalDifference / FMath::Max(1, VertexIndices.Num() - 1);
+	Analysis.bShouldFlatten = TotalDifference > HeightVariationThreshold;
+    
+	return Analysis;
+}
+
+float UTerrainDigAbility::CalculateAdaptiveDigDepth(const FTerrainAnalysis& Analysis)
+{
+	if (Analysis.bShouldFlatten)
+	{
+		return 0.0f;
+	}
+    
+	float NormalizedVariation = FMath::Clamp(
+		Analysis.AccumulatedDifference / HeightVariationThreshold, 
+		0.0f, 1.0f
+	);
+    
+	float AdaptiveDepth = FMath::Lerp(MaxDigDepth, MinDigDepth, NormalizedVariation);
+    
+	return AdaptiveDepth;
 }

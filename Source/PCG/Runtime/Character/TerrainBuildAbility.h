@@ -50,9 +50,9 @@ public:
 
 
 private:
-	bool ProcessTerrainBuild(class AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere);
+	bool ProcessBuilding(class AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere);
 	void FlattenTerrain(class AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices, FBox GridBounds);
-	bool SpawnBuilding(class AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere);
+	bool SpawnBuilding(class AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere, FVector LowestVertexPos);
 	void SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere);
 	bool TryConsumeWood(int& outVolume);
 	
@@ -62,7 +62,6 @@ private:
 	void CalculateWFCGridSize(FBox GridBounds);
 	bool ValidateGridBounds(FBox GridBounds);
 	AMineSphere* CheckIsOnMineSphere(FBox GridBounds);
-	FVector CalculateReferencePoint(UDynamicMeshComponent* Mesh, const TArray<int32>& VertexIndices, bool bUseLowest);
 	
 	void SelectPlanet(AGeometryPlanetActor* Planet, FHitResult& HitResult);
 	void DeselectPlanet();

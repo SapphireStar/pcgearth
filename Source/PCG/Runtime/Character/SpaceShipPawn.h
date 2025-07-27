@@ -102,37 +102,35 @@ protected:
 	TObjectPtr<UInputAction> CycleAbilityAction;
 
 	//Control
-	// 在你的 ASpaceShipPawn.h 文件中添加这些变量
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float LowSpeedThreshold = 500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float LowSpeedThreshold = 500.0f;  // 低速阈值
+	float MediumSpeedThreshold = 1500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MediumSpeedThreshold = 1500.0f;  // 中速阈值
+	float HighSpeedThreshold = 3000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float HighSpeedThreshold = 3000.0f;  // 高速阈值
+	float MaxSpeed = 5000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MaxSpeed = 5000.0f;  // 最大速度限制
+	float StopThreshold = 10.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float StopThreshold = 10.0f;  // 停止阈值
+	float HighResponsivenessFactor = 2.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float HighResponsivenessFactor = 2.0f;  // 低速时的高响应系数
+	float EmergencyBrakeFactor = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float EmergencyBrakeFactor = 3.0f;  // 紧急刹车系数
+	float FastBrakeDamping = 8.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float FastBrakeDamping = 8.0f;  // 快速刹车阻尼
+	float MediumBrakeDamping = 4.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MediumBrakeDamping = 4.0f;  // 中等刹车阻尼
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SmoothBrakeDamping = 2.0f;  // 平滑刹车阻尼
+	float SmoothBrakeDamping = 2.0f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float YawSensitive = 20.f;
@@ -142,8 +140,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RollSensitive = 20.f;
-
-	float RollOffset = 0;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Speed = 50.f;

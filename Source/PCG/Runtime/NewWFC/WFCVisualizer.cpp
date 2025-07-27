@@ -109,7 +109,7 @@ void AWFCVisualizer::ProcessSpawnTasks()
 				FString ProgressText = FString::Printf(TEXT("WFC Progress: %d/%d (%.1f%%)"), 
 					CurrentTileIndex, TotalTiles, GetProgress() * 100.0f);
 				GEngine->AddOnScreenDebugMessage(1, 0.1f, FColor::Yellow, ProgressText);
-			}	
+			}
 		}
 	}
 }

@@ -32,9 +32,12 @@ void UWFCGeneratorComponent::BeginPlay()
 
 	WFCCore = MakeUnique<FWFCCore>();
 
-	if (bAutoGenerateOnBeginPlay && TileSet)
+	if (TileSet)
 	{
 		InitializeWFCCore(Configuration);
+	}
+	if (bAutoGenerateOnBeginPlay)
+	{
 		StartGenerationWithCustomConfigAt(FVector(0, 0, 0), FRotator(0, 0, 0));
 	}
 }

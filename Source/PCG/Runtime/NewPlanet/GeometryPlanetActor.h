@@ -9,22 +9,10 @@
 #include "GameFramework/Actor.h"
 #include "GeometryPlanetActor.generated.h"
 
-USTRUCT(BlueprintType)
-struct PCG_API FMineSphereSpawnConfiguration
-{
-	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 500, ClampMax = 1000))
-	float RadiusMin;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 1000, ClampMax =3000))
-	float RadiusMax;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int Seed;
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnISMInstanceHit, UInstancedStaticMeshComponent*, ISMComponent, int32, Item, float, Damage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlanetInitialized);
 
 UCLASS()
 class PCG_API AGeometryPlanetActor : public AActor
@@ -44,8 +32,19 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
+	UFUNCTION(BlueprintCallable)
+	void InitializePlanet(FGeometryPlanetData PlanetData);
+
+	UFUNCTION(BlueprintCallable)
+	int GetNextRandomAvaiableVertexID();
+
+	UFUNCTION(blueprintCallable)
+	bool AddPlanetVertexType(EVertexType eType, int VertexID);
+
+	UFUNCTION(BlueprintCallable)
+	bool CheckPlanetVertexType(EVertexType eType, int VertexID);
+
 #pragma region  Terrain
-	virtual void RebuildGeneratedMesh(UDynamicMesh* TargetMesh);
 	UFUNCTION(BlueprintCallable)
 	void MarkPlanetRefresh(bool bImmediate = false, bool bImmediateEventFrozen = false);
 	
@@ -54,6 +53,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ApplyNoiseToPlanet();
+
+	UFUNCTION(BlueprintCallable)
+	void SpawnCraters();
 	
 	UFUNCTION(BlueprintCallable)
 	void ApplyCraterToPlanet();
@@ -83,21 +85,20 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "PlanetRadius(km)")
 	float PlanetRadius = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FIntVector PlanetResolution = FIntVector(100, 100, 100);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* PlanetSphereStaticMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UMaterial* Material;
+	UMaterial* PlanetMaterial;
+		
+	UPROPERTY(BlueprintReadWrite)
+	FRandomStream RandomStream;
 
 #pragma region Mineral
-public:    
-	UPROPERTY(EditDefaultsOnly)
-	int32 TextureWidth = 4;
-
-	UPROPERTY(EditDefaultsOnly)
-	int32 TextureHeight = 1;
-	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FMineSphereSpawnConfiguration MineConfiguration;
@@ -111,13 +112,12 @@ protected:
 	UPROPERTY()
 	TArray<AMineSphere*> MineSpheres;
 	
-	FRandomStream RandomStream;
-
-	
 private:
 	bool bIsTextureInitialized = false;
 	UPROPERTY()
 	UMaterialInstanceDynamic* DynamicMaterialInstance;
+	int32 TextureWidth = 4;
+	int32 TextureHeight = 1;
 	uint8* TextureData;
 	float* TextureDataFloat;
 	uint32 TextureDataSize = 4;
@@ -133,6 +133,8 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TObjectPtr<UDynamicMeshComponent> DynamicMeshComponent;
 
+	FCraterSpawnConfiguration CraterSpawnConfiguration;
+
 	UPROPERTY(Blueprintreadwrite, EditAnywhere)
 	TArray<FCraterData> CratersData;
 	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain")
@@ -142,8 +144,6 @@ protected:
 	TObjectPtr<UShapeGenerator> NoiseShapeGenerator;*/
 #pragma	endregion
 
-
-
 #pragma region Foliage
 public:
 	UFUNCTION(BlueprintCallable)
@@ -151,14 +151,36 @@ public:
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void OnGetHitByLaser(UInstancedStaticMeshComponent* ISMComponent, int32 ItemIndex, float Damage);
-public:
-	UPROPERTY(BlueprintAssignable)
-	FOnISMInstanceHit OnISMInstanceHit;
+	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInstancedStaticMeshComponent> ISMFoliage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<float> ISMFoliageItemsHealth;
-#pragma  endregion 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FoliageAmount = 0.05f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bShouldSpawnFoliage = true;
+#pragma  endregion
+
+#pragma region VertexData
+
+	UPROPERTY(BlueprintReadWrite)
+	TArray<int> VertexTypeData;
+
+	
+#pragma endregion
+
+#pragma  region Delegates
+public:
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FOnISMInstanceHit OnISMInstanceHit;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FOnPlanetInitialized OnPlanetInitialized;
+
+#pragma endregion
 };
