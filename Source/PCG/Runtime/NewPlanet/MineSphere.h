@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "PCG/Runtime/Character/Data/PlayerDataComponent.h"
 #include "MineSphere.generated.h"
 
 class AGeometryPlanet;
@@ -28,8 +29,7 @@ public:
 	virtual void UpdateMineSphere(float Radius);
 	virtual void SetMotherWorldPlanet(AActor* planet);
 
-	UFUNCTION(BlueprintCallable)
-	int TryStartOneMine(int Value);
+	virtual int TryStartOneMine(int Value, std::function<void(UPlayerDataComponent*)>& pfun);
 
 	UFUNCTION(BlueprintPure)
 	float GetRadius() const { return Radius; }
@@ -54,4 +54,6 @@ protected:
 private:
 	UPROPERTY()
 	TObjectPtr<AActor> MotherWorldPlanet;
+
+	
 };

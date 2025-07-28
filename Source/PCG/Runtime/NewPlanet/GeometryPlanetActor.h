@@ -38,6 +38,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	int GetNextRandomAvaiableVertexID();
 
+	UFUNCTION()
+	void ShuffleVertexID();
+
 	UFUNCTION(blueprintCallable)
 	bool AddPlanetVertexType(EVertexType eType, int VertexID);
 
@@ -63,7 +66,10 @@ public:
 #pragma endregion
 
 	UFUNCTION(BlueprintCallable)
-	void SpawnMineSpheres();
+	void SpawnStoneMineSpheres();
+
+	UFUNCTION(BlueprintCallable)
+	void SpawnOreMineSpheres();
 
 	UFUNCTION(BlueprintCallable)
 	void GenerateMineAreas();
@@ -167,11 +173,13 @@ protected:
 #pragma  endregion
 
 #pragma region VertexData
-
-	UPROPERTY(BlueprintReadWrite)
+private:
 	TArray<int> VertexTypeData;
 
-	
+	TArray<int> AvailableRandomVertex;
+
+	int CurTopRandomVertexIndex;
+
 #pragma endregion
 
 #pragma  region Delegates

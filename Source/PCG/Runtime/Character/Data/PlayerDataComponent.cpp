@@ -40,6 +40,7 @@ void UPlayerDataComponent::InitializePlayerData(FPlayerDataContainer InitialPlay
 	SystemStatus = InitialPlayerData.SystemStatus;
 	OnInitialized.Broadcast(UPlayerDataComponent::StaticClass());
 	OnPlayerStatusChanged.Broadcast(PlayerStatus, PlayerStatus);
+	PlayerDataContainer = InitialPlayerData;
 }
 
 void UPlayerDataComponent::ChangePlayerWoodValue(int NewValue)
@@ -49,11 +50,25 @@ void UPlayerDataComponent::ChangePlayerWoodValue(int NewValue)
 	OnWoodChanged.Broadcast(WoodOld, NewValue);
 }
 
-void UPlayerDataComponent::ChangePlayerMineValue(int NewValue)
+void UPlayerDataComponent::ChangePlayerStoneValue(int NewValue)
 {
-	int MineOld = PlayerStatus.Mine.Value;
-	PlayerStatus.Mine.Value = NewValue;
-	OnMineChanged.Broadcast(MineOld, NewValue);
+	int MineOld = PlayerStatus.Stone.Value;
+	PlayerStatus.Stone.Value = NewValue;
+	OnStoneChanged.Broadcast(MineOld, NewValue);
+}
+
+void UPlayerDataComponent::ChangePlayerOreValue(int NewValue)
+{
+	int OreOld = PlayerStatus.Ore.Value;
+	PlayerStatus.Ore.Value = NewValue;
+	OnOreChanged.Broadcast(OreOld, NewValue);
+}
+
+void UPlayerDataComponent::ChangePlayerMetalValue(int NewValue)
+{
+	int MetalOld = PlayerStatus.Metal.Value;
+	PlayerStatus.Metal.Value = NewValue;
+	OnMetalChanged.Broadcast(MetalOld, NewValue);
 }
 
 void UPlayerDataComponent::ChangePlayerRemainDaysValue(int NewValue)

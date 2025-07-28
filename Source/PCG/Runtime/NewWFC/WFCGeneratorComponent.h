@@ -1,4 +1,3 @@
-// WFCGeneratorComponent.h - 修正后的头文件
 #pragma once
 
 #include "CoreMinimal.h"

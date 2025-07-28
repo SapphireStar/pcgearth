@@ -59,7 +59,7 @@ UTexture2D* ATestMineMaterialTexture::GenerateMineMaterialTexture(TArray<FVector
 	// 设置纹理属性
 	DataTexture->SRGB = false;
 	DataTexture->CompressionSettings = TextureCompressionSettings::TC_HDR;
-	DataTexture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
+	//DataTexture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
 	DataTexture->Filter = TextureFilter::TF_Nearest;
     
 	// 获取并锁定纹理数据
@@ -152,7 +152,7 @@ void ATestMineMaterialTexture::InitializeTexture()
 	DynamicTexture = UTexture2D::CreateTransient(TextureWidth, TextureHeight, PF_A32B32G32R32F);
 	DynamicTexture->CompressionSettings = TextureCompressionSettings::TC_VectorDisplacementmap;
 	DynamicTexture->SRGB = 0;
-	DynamicTexture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
+	//DynamicTexture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
 	DynamicTexture->Filter = TextureFilter::TF_Nearest;
 	DynamicTexture->AddToRoot();
 	DynamicTexture->UpdateResource();
@@ -180,7 +180,7 @@ void ATestMineMaterialTexture::InitializeTexture16Bytes()
 	DynamicTexture = UTexture2D::CreateTransient(TextureWidth, TextureHeight, PF_A32B32G32R32F);
 	DynamicTexture->CompressionSettings = TextureCompressionSettings::TC_VectorDisplacementmap;
 	DynamicTexture->SRGB = 0;
-	DynamicTexture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
+	//DynamicTexture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
 	DynamicTexture->Filter = TextureFilter::TF_Nearest;
 	DynamicTexture->AddToRoot();
 	DynamicTexture->UpdateResource();
@@ -203,7 +203,7 @@ void ATestMineMaterialTexture::UpdateTexture(bool bFreeData)
 	struct FUpdateTextureRegionsData
 	{
 		FTexture2DResource* Texture2DResource;
-		FRHITexture2D* TextureRHI;
+		FRHITexture* TextureRHI;
 		int32 MipIndex;
 		uint32 NumRegions;
 		FUpdateTextureRegion2D* Regions;
@@ -263,7 +263,7 @@ void ATestMineMaterialTexture::UpdateTexture16Bytes(bool bFreeData)
 	struct FUpdateTextureRegionsData
 	{
 		FTexture2DResource* Texture2DResource;
-		FRHITexture2D* TextureRHI;
+		FRHITexture* TextureRHI;
 		int32 MipIndex;
 		uint32 NumRegions;
 		FUpdateTextureRegion2D* Regions;

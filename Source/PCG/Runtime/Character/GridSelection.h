@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/TextRenderActor.h"
 #include "GameFramework/Actor.h"
 #include "GridSelection.generated.h"
 
@@ -26,109 +27,121 @@ protected:
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
     int32 GridHeight = 20;
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
+    float SelectedPointRadius = 0.3f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
+    float SelectedGridsThickness = 0.1f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
+    float PreviewLineRadius = 0.1f;
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Settings")
     FVector GridCenter = FVector::ZeroVector;
     
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Settings")
     FRotator GridRotation = FRotator::ZeroRotator;
     
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UStaticMeshComponent* GridPlaneMesh;
     
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     USceneComponent* RootSceneComponent;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
-    UMaterialInterface* GridMaterial;
-    
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
-    UMaterialInterface* SelectedPointMaterial;
-    
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
-    UMaterialInterface* PreviewLineMaterial;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UStaticMesh* SelectedGridMesh;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Selection State")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UStaticMesh* SelectedPointMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UStaticMesh* PreviewLineMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UMaterial* SelectedGridMaterial;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UMaterial* SelectedPointMaterial;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UMaterial* PreviewLineMaterial;
+
+    UPROPERTY(BlueprintReadOnly)
     bool bIsInGridSelectionMode = false;
     
-    UPROPERTY(BlueprintReadOnly, Category = "Selection State")
+    UPROPERTY(BlueprintReadOnly)
     FVector InitialSelectedPoint;
     
-    UPROPERTY(BlueprintReadOnly, Category = "Selection State")
+    UPROPERTY(BlueprintReadOnly)
     TArray<FVector> SelectedGridPoints;
-    
-    UPROPERTY(BlueprintReadOnly, Category = "Selection State")
-    TArray<UStaticMeshComponent*> PointMarkers;
-    
-    UPROPERTY(BlueprintReadOnly, Category = "Selection State")
-    TArray<UStaticMeshComponent*> PreviewLines;
 
+    UPROPERTY(BlueprintReadOnly)
+    UStaticMeshComponent* SelectedGrid;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<UStaticMeshComponent*> SelectedPoints;
+    
+    UPROPERTY(BlueprintReadOnly)
+    TArray<UStaticMeshComponent*> PreviewLines;
+    
+    UPROPERTY(BlueprintReadOnly)
+    FBox GridBounds;
+
+    TArray<FVector> GridPoints;
+    
+    TMap<FVector, bool> GridPointAvailability;
+
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TObjectPtr<ATextRenderActor> TextRenderer;
 public:
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    UFUNCTION(BlueprintCallable)
     void StartGridSelection(const FVector& StartPoint, const FRotator& Rotation = FRotator::ZeroRotator);
     
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    UFUNCTION(BlueprintCallable)
     FBox EndGridSelection();
 
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    UFUNCTION(BlueprintCallable)
     FBox PeekGridSelection();
 
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    UFUNCTION(BlueprintCallable)
+    FIntVector PeekGridSize();
+
+    UFUNCTION(BlueprintCallable)
     void ShutDownGridSelection();
 
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    UFUNCTION(BlueprintCallable)
     FRotator GetGridRotation() const{return GridRotation;}
 
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    UFUNCTION(BlueprintCallable)
     float GetGridSize() const {return  GridSize;}
-    
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
-    bool TrySelectGridPoint(const FVector& WorldPosition);
 
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+    UFUNCTION(BlueprintCallable)
     bool PreviewSelectGrid(const FVector& WorldPosition);
-    
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
-    bool CanSelectPoint(const FVector& GridPoint) const;
-    
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
+
+    UFUNCTION(BlueprintCallable)
     void ClearSelection();
     
-    UFUNCTION(BlueprintCallable, Category = "Grid Selection")
-    TArray<FVector> GetFinalShape() const;
+    UFUNCTION(BlueprintCallable)
+    TArray<FVector> GetFinalGrid() const;
 
+    UFUNCTION(BlueprintCallable)
+    void ShowText(FVector PlayerPos);
+
+    UFUNCTION(BlueprintCallable)
+    void HideText();
 protected:
     void GenerateGrid();
-    void UpdatePreviewLines();
-    void CreatePointMarker(const FVector& Position);
-    void CreatePreviewLine(const FVector& Start, const FVector& End);
-    void ClearVisualElements();
 
-    void DrawDebugGrid();
+    void ShowPreviewMeshes();
+    void HidePreviewMeshes();
+    void DrawSelectedGrid();
     void DrawSelectedPoints();
     void DrawPreviewLines();
-    void DrawFinalShape(const TArray<FVector>& Shape);
-    FVector GetLineIntersection(const FVector& Line1Start, const FVector& Line1End, 
-                               const FVector& Line2Start, const FVector& Line2End) const;
     
     FVector SnapToGrid(const FVector& WorldPosition) const;
     FVector SnapToLocalGrid(const FVector& LocalPosition) const;
     FVector WorldToLocal(const FVector& WorldPosition) const;
     FVector LocalToWorld(const FVector& LocalPosition) const;
-    bool IsValidGridPosition(const FVector& GridPosition) const;
-    bool WouldCreateCrossingEdge(const FVector& NewPoint) const;
-    bool DoLinesIntersect(const FVector& Line1Start, const FVector& Line1End, 
-                         const FVector& Line2Start, const FVector& Line2End) const;
-    
-    TArray<FVector> GridPoints;
-    TMap<FVector, bool> GridPointAvailability;
-    
-    UPROPERTY(BlueprintReadOnly)
-    FBox GridBounds;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
-    UStaticMesh* SphereMesh;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid Settings")
-    UStaticMesh* CylinderMesh;
 };

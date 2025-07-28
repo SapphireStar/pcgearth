@@ -1,7 +1,7 @@
 #include "GridSelection.h"
 
-#include "EngineUtils.h"
-#include "PCG/Runtime/NewWFC/WFCGeneratorComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 AGridSelectionManager::AGridSelectionManager()
 {
@@ -18,11 +18,53 @@ AGridSelectionManager::AGridSelectionManager()
 	GridPlaneMesh->SetupAttachment(RootComponent);
 	GridPlaneMesh->SetVisibility(false);
 	GridPlaneMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+	SelectedGrid = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SelectedGrid"));
+	
+
+	SelectedPoints.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SelectedPoint1")));
+	SelectedPoints.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SelectedPoint2")));
+	SelectedPoints.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SelectedPoint3")));
+	SelectedPoints.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SelectedPoint4")));
+
+
+	PreviewLines.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewLine1")));
+	PreviewLines.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewLine2")));
+	PreviewLines.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewLine3")));
+	PreviewLines.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewLine4")));
+
+
 }
 
 void AGridSelectionManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	SelectedGrid->SetupAttachment(RootComponent);
+	SelectedGrid->SetVisibility(false);
+	SelectedGrid->SetStaticMesh(SelectedGridMesh);
+	SelectedGrid->SetMaterial(0, SelectedGridMaterial);
+	SelectedGrid->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SelectedGrid->SetWorldScale3D(FVector(0,0,SelectedGridsThickness));
+	for (auto MeshComp : SelectedPoints)
+	{
+		MeshComp->SetupAttachment(RootComponent);
+		MeshComp->SetVisibility(false);
+		MeshComp->SetStaticMesh(SelectedPointMesh);
+		MeshComp->SetMaterial(0, SelectedPointMaterial);
+		MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		MeshComp->SetWorldScale3D(FVector(SelectedPointRadius, SelectedPointRadius, SelectedPointRadius));
+	}
+	for (auto MeshComp : PreviewLines)
+	{
+		MeshComp->SetupAttachment(RootComponent);
+		MeshComp->SetVisibility(false);
+		MeshComp->SetStaticMesh(PreviewLineMesh);
+		MeshComp->SetMaterial(0, PreviewLineMaterial);
+		MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		MeshComp->SetWorldScale3D(FVector(0, PreviewLineRadius, PreviewLineRadius));
+	}
+	
 	FBox MeshBox = GridPlaneMesh->Bounds.GetBox();
 	float MeshWidth = MeshBox.Max.X - MeshBox.Min.X;
 	float MeshHeight = MeshBox.Max.Y - MeshBox.Min.Y;
@@ -30,8 +72,11 @@ void AGridSelectionManager::BeginPlay()
 	float GridTotalHeight = GridHeight * GridSize;
 	float ScaleX = GridTotalWidth / MeshWidth;
 	float ScaleY = GridTotalHeight / MeshHeight;
-	GridPlaneMesh->SetWorldScale3D(FVector(ScaleX, ScaleY, 0.1f));
+	GridPlaneMesh->SetWorldScale3D(FVector(ScaleX * 10, ScaleY * 10, 0.1f));
 	GenerateGrid();
+
+	TextRenderer = GetWorld()->SpawnActor<ATextRenderActor>();
+	TextRenderer->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 }
 
 void AGridSelectionManager::Tick(float DeltaTime)
@@ -40,7 +85,7 @@ void AGridSelectionManager::Tick(float DeltaTime)
 
 	if (bIsInGridSelectionMode)
 	{
-		DrawDebugGrid();
+		DrawSelectedGrid();
 		DrawSelectedPoints();
 		DrawPreviewLines();
 	}
@@ -51,9 +96,8 @@ void AGridSelectionManager::StartGridSelection(const FVector& StartPoint, const 
 	ClearSelection();
 
 	GridRotation = Rotation;
-	
-	InitialSelectedPoint = SnapToGrid(StartPoint);
-	
+
+	InitialSelectedPoint = StartPoint;
 	GridCenter = InitialSelectedPoint;
 	GenerateGrid();
 
@@ -61,134 +105,48 @@ void AGridSelectionManager::StartGridSelection(const FVector& StartPoint, const 
 
 	SelectedGridPoints.Add(InitialSelectedPoint);
 
-	UE_LOG(LogTemp, Warning, TEXT("Started grid selection at: %s with rotation: %s"), 
-		*InitialSelectedPoint.ToString(), *GridRotation.ToString());
+	ShowPreviewMeshes();
+
+	UE_LOG(LogTemp, Warning, TEXT("Started grid selection at: %s with rotation: %s"),
+	       *InitialSelectedPoint.ToString(), *GridRotation.ToString());
 }
 
 FBox AGridSelectionManager::EndGridSelection()
 {
 	bIsInGridSelectionMode = false;
 
-	TArray<FVector> FinalShape = GetFinalShape();
+	TArray<FVector> FinalShape = GetFinalGrid();
 
-	DrawFinalShape(FinalShape);
-
-	GridBounds.Min = FVector::OneVector * 10000000;
-	GridBounds.Max = -FVector::OneVector * 10000000;
-	for (int i = 0; i < FinalShape.Num(); i++)
-	{
-		if (FinalShape[i].X < GridBounds.Min.X)
-		{
-			GridBounds.Min.X = FinalShape[i].X;
-		}
-		if (FinalShape[i].X > GridBounds.Max.X)
-		{
-			GridBounds.Max.X = FinalShape[i].X;
-		}
-		if (FinalShape[i].Y < GridBounds.Min.Y)
-		{
-			GridBounds.Min.Y = FinalShape[i].Y;
-		}
-		if (FinalShape[i].Y > GridBounds.Max.Y)
-		{
-			GridBounds.Max.Y = FinalShape[i].Y;
-		}
-		if (FinalShape[i].Z < GridBounds.Min.Z)
-		{
-			GridBounds.Min.Z = FinalShape[i].Z;
-		}
-		if (FinalShape[i].Z > GridBounds.Max.Z)
-		{
-			GridBounds.Max.Z = FinalShape[i].Z;
-		}
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Grid selection completed with %d points"), FinalShape.Num());
-
+	GridBounds = FBox(FinalShape);
+	
+	HidePreviewMeshes();
 	ClearSelection();
 	return GridBounds;
 }
 
 FBox AGridSelectionManager::PeekGridSelection()
 {
-	TArray<FVector> FinalShape = SelectedGridPoints;
+	TArray<FVector> FinalShape = TArray<FVector>(SelectedGridPoints);
 
-	if (FinalShape.Num() > 2 && FinalShape.Last() != InitialSelectedPoint)
-	{
-		FinalShape.Add(InitialSelectedPoint);
-	}
-
-	GridBounds.Min = FVector::OneVector * 10000000;
-	GridBounds.Max = -FVector::OneVector * 10000000;
-	for (int i = 0; i < FinalShape.Num(); i++)
-	{
-		if (FinalShape[i].X < GridBounds.Min.X)
-		{
-			GridBounds.Min.X = FinalShape[i].X;
-		}
-		if (FinalShape[i].X > GridBounds.Max.X)
-		{
-			GridBounds.Max.X = FinalShape[i].X;
-		}
-		if (FinalShape[i].Y < GridBounds.Min.Y)
-		{
-			GridBounds.Min.Y = FinalShape[i].Y;
-		}
-		if (FinalShape[i].Y > GridBounds.Max.Y)
-		{
-			GridBounds.Max.Y = FinalShape[i].Y;
-		}
-		if (FinalShape[i].Z < GridBounds.Min.Z)
-		{
-			GridBounds.Min.Z = FinalShape[i].Z;
-		}
-		if (FinalShape[i].Z > GridBounds.Max.Z)
-		{
-			GridBounds.Max.Z = FinalShape[i].Z;
-		}
-	}
-	
+	GridBounds = FBox(FinalShape);
+    
+	UE_LOG(LogTemp, Log, TEXT("PeekGridSelection: %s"), *GridBounds.ToString());
+    
 	return GridBounds;
+}
+
+FIntVector AGridSelectionManager::PeekGridSize()
+{
+	FVector LocalGridExtent = WorldToLocal(SelectedGridPoints[2]);
+	int SizeX = FMath::Abs(FMath::RoundToInt(LocalGridExtent.X / GridSize));
+	int SizeY = FMath::Abs(FMath::RoundToInt(LocalGridExtent.Y / GridSize));
+	return FIntVector(SizeX, SizeY, 0);
 }
 
 void AGridSelectionManager::ShutDownGridSelection()
 {
 	bIsInGridSelectionMode = false;
 	ClearSelection();
-}
-
-bool AGridSelectionManager::TrySelectGridPoint(const FVector& WorldPosition)
-{
-	if (!bIsInGridSelectionMode)
-	{
-		return false;
-	}
-
-	FVector GridPoint = SnapToGrid(WorldPosition);
-
-	if (!CanSelectPoint(GridPoint))
-	{
-		DrawDebugSphere(GetWorld(), GridPoint + FVector(0, 0, 20), 30.0f, 12, FColor::Red, false, 1.0f);
-		DrawDebugString(GetWorld(), GridPoint + FVector(0, 0, 50), TEXT("Cannot Select!"), nullptr, FColor::Red, 1.0f);
-		return false;
-	}
-
-	if (WouldCreateCrossingEdge(GridPoint))
-	{
-		DrawDebugSphere(GetWorld(), GridPoint + FVector(0, 0, 20), 30.0f, 12, FColor::Orange, false, 1.0f);
-		DrawDebugString(GetWorld(), GridPoint + FVector(0, 0, 50), TEXT("Crossing Edge!"), nullptr, FColor::Orange,
-		                1.0f);
-		UE_LOG(LogTemp, Warning, TEXT("Cannot select point - would create crossing edge"));
-		return false;
-	}
-
-	SelectedGridPoints.Add(GridPoint);
-
-	DrawDebugSphere(GetWorld(), GridPoint + FVector(0, 0, 20), 25.0f, 12, FColor::Green, false, 5.f);
-	DrawDebugString(GetWorld(), GridPoint + FVector(0, 0, 50), TEXT("Selected!"), nullptr, FColor::Green, 5.f);
-
-	UE_LOG(LogTemp, Log, TEXT("Selected grid point: %s"), *GridPoint.ToString());
-	return true;
 }
 
 bool AGridSelectionManager::PreviewSelectGrid(const FVector& WorldPosition)
@@ -200,10 +158,10 @@ bool AGridSelectionManager::PreviewSelectGrid(const FVector& WorldPosition)
 
 	FVector GridPoint = SnapToGrid(WorldPosition);
 
-	if (!CanSelectPoint(GridPoint))
+	/*if (!CanSelectPoint(GridPoint))
 	{
 		return false;
-	}
+	}*/
 
 	while (SelectedGridPoints.Num() > 1)
 	{
@@ -212,35 +170,21 @@ bool AGridSelectionManager::PreviewSelectGrid(const FVector& WorldPosition)
 
 	FVector LocalInitial = WorldToLocal(SelectedGridPoints[0]);
 	FVector LocalTarget = WorldToLocal(GridPoint);
-	
+
 	FVector LocalPointA = FVector(LocalInitial.X, LocalTarget.Y, LocalTarget.Z);
 	FVector LocalPointB = FVector(LocalTarget.X, LocalInitial.Y, LocalTarget.Z);
-	
+
 	FVector GridPointA = LocalToWorld(LocalPointA);
 	FVector GridPointB = LocalToWorld(LocalPointB);
-	
-	SelectedGridPoints.Add(SnapToGrid(GridPointA));
+
+	SelectedGridPoints.Add(GridPointA);
 	SelectedGridPoints.Add(GridPoint);
-	SelectedGridPoints.Add(SnapToGrid(GridPointB));
+	SelectedGridPoints.Add(GridPointB);
+
 
 	return true;
 }
 
-bool AGridSelectionManager::CanSelectPoint(const FVector& GridPoint) const
-{
-	if (!IsValidGridPosition(GridPoint))
-	{
-		return false;
-	}
-
-	if (SelectedGridPoints.Contains(GridPoint))
-	{
-		return false;
-	}
-
-	const bool* bAvailable = GridPointAvailability.Find(GridPoint);
-	return bAvailable && *bAvailable;
-}
 
 void AGridSelectionManager::GenerateGrid()
 {
@@ -253,99 +197,46 @@ void AGridSelectionManager::GenerateGrid()
 		{
 			FVector LocalGridPoint = FVector(X * GridSize, Y * GridSize, 0);
 			FVector WorldGridPoint = LocalToWorld(LocalGridPoint);
-			
+
 			GridPoints.Add(WorldGridPoint);
 			GridPointAvailability.Add(WorldGridPoint, true);
 		}
 	}
-	
+
 	GridPlaneMesh->UpdateCollisionFromStaticMesh();
-	
-	FVector PlaneLocation = GridCenter - LocalToWorld(FVector(GridWidth * GridSize / 2, GridHeight * GridSize / 2, 0)) + GridCenter;
+
+	FVector Extent = (GridPlaneMesh->Bounds.GetBox().Max - GridPlaneMesh->Bounds.GetBox().Min);
+	FVector PlaneLocation = GridCenter -LocalToWorld( FVector(Extent.X / 2, Extent.Y/ 2, 0)) + GridCenter;
 	GridPlaneMesh->SetWorldLocation(PlaneLocation);
 	GridPlaneMesh->SetWorldRotation(GridRotation);
 }
 
-void AGridSelectionManager::DrawDebugGrid()
+void AGridSelectionManager::DrawSelectedGrid()
 {
-	if (!GetWorld())
+	FVector LocalGridExtent = WorldToLocal(SelectedGridPoints[2]);
+	if (FMath::IsNearlyZero(LocalGridExtent.X) || FMath::IsNearlyZero(LocalGridExtent.Y))
 	{
+		SelectedGrid->SetWorldScale3D(FVector(0, 0, SelectedGridsThickness));
 		return;
 	}
-
-	FColor GridColor = FColor::White;
-	float GridAlpha = 0.3f;
-	GridColor.A = (uint8)(255 * GridAlpha);
-
-	for (int32 Y = -GridHeight / 2; Y <= GridHeight / 2; Y++)
-	{
-		FVector LocalStart = FVector(-GridWidth / 2 * GridSize, Y * GridSize, 0);
-		FVector LocalEnd = FVector(GridWidth / 2 * GridSize, Y * GridSize, 0);
-		
-		FVector StartPoint = LocalToWorld(LocalStart);
-		FVector EndPoint = LocalToWorld(LocalEnd);
-		
-		DrawDebugLine(GetWorld(), StartPoint, EndPoint, GridColor, false, 0.0f, 0, 1.0f);
-	}
-
-	for (int32 X = -GridWidth / 2; X <= GridWidth / 2; X++)
-	{
-		FVector LocalStart = FVector(X * GridSize, -GridHeight / 2 * GridSize, 0);
-		FVector LocalEnd = FVector(X * GridSize, GridHeight / 2 * GridSize, 0);
-		
-		FVector StartPoint = LocalToWorld(LocalStart);
-		FVector EndPoint = LocalToWorld(LocalEnd);
-		
-		DrawDebugLine(GetWorld(), StartPoint, EndPoint, GridColor, false, 0.0f, 0, 1.0f);
-	}
-
-	for (const FVector& GridPoint : GridPoints)
-	{
-		if (IsValidGridPosition(GridPoint))
-		{
-			FColor PointColor = FColor::Cyan;
-			if (SelectedGridPoints.Contains(GridPoint))
-			{
-				PointColor = FColor::Yellow;
-			}
-			else if (GridPoint == InitialSelectedPoint)
-			{
-				PointColor = FColor::Green;
-			}
-
-			DrawDebugSphere(GetWorld(), GridPoint + FVector(0, 0, 5), 5.0f, 8, PointColor, false, 0.0f);
-		}
-	}
-
-	FVector LocalMin = FVector(-GridWidth / 2 * GridSize, -GridHeight / 2 * GridSize, -10.0f);
-	FVector LocalMax = FVector(GridWidth / 2 * GridSize, GridHeight / 2 * GridSize, 10.0f);
-	FVector LocalCenter = (LocalMin + LocalMax) * 0.5f;
-	FVector LocalExtent = (LocalMax - LocalMin) * 0.5f;
-	
-	FVector WorldCenter = LocalToWorld(LocalCenter);
-	
-	DrawDebugBox(GetWorld(), WorldCenter, LocalExtent, GridRotation.Quaternion(), FColor::Blue, false, 0.0f, 0, 2.0f);
+	FVector LocalGridMid =  LocalGridExtent * 0.5f;
+	FVector WorldGridMid =  LocalToWorld(LocalGridMid);
+	SelectedGrid->SetWorldLocation(WorldGridMid);
+	FVector GridMeshBounds = SelectedGrid->GetStaticMesh()->GetBounds().BoxExtent;
+	float ScaleX = LocalGridExtent.X / GridMeshBounds.X / 2;
+	float ScaleY = LocalGridExtent.Y / GridMeshBounds.Y / 2;
+	SelectedGrid->SetWorldScale3D(FVector(ScaleX, ScaleY, SelectedGridsThickness));
+	SelectedGrid->SetWorldLocation(GridCenter);
+	SelectedGrid->SetWorldRotation(GridRotation);
 }
 
 void AGridSelectionManager::DrawSelectedPoints()
 {
-	if (!GetWorld())
-	{
-		return;
-	}
-
 	for (int32 i = 0; i < SelectedGridPoints.Num(); i++)
 	{
 		const FVector& Point = SelectedGridPoints[i];
 
-		FColor PointColor = (Point == InitialSelectedPoint) ? FColor::Green : FColor::Red;
-		DrawDebugSphere(GetWorld(), Point + FVector(0, 0, 15), 15.0f, 12, PointColor, false, 0.0f, 0, 2.0f);
-
-		FString IndexText = FString::Printf(TEXT("%d"), i);
-		DrawDebugString(GetWorld(), Point + FVector(0, 0, 35), IndexText, nullptr, FColor::White, 0.0f);
-
-		FString CoordText = FString::Printf(TEXT("(%.0f, %.0f)"), Point.X, Point.Y);
-		DrawDebugString(GetWorld(), Point + FVector(0, 0, 50), CoordText, nullptr, FColor::Cyan, 0.0f);
+		SelectedPoints[i]->SetWorldLocation(Point);
 	}
 }
 
@@ -358,95 +249,75 @@ void AGridSelectionManager::DrawPreviewLines()
 
 	for (int32 i = 0; i < SelectedGridPoints.Num() - 1; i++)
 	{
-		FVector StartPoint = SelectedGridPoints[i] + FVector(0, 0, 10);
-		FVector EndPoint = SelectedGridPoints[i + 1] + FVector(0, 0, 10);
-		DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Yellow, false, 0.0f, 0, 3.0f);
+		FVector StartPoint = SelectedGridPoints[i] ;
+		FVector EndPoint = SelectedGridPoints[i + 1] ;
 
-		FVector MidPoint = (StartPoint + EndPoint) * 0.5f;
-		FVector Direction = (EndPoint - StartPoint).GetSafeNormal();
-		DrawDebugDirectionalArrow(GetWorld(), MidPoint - Direction * 25.0f, MidPoint + Direction * 25.0f,
-		                          20.0f, FColor::Orange, false, 0.0f, 0, 2.0f);
+		FVector Bounds = PreviewLines[i]->GetStaticMesh()->GetBounds().BoxExtent;
+		float Scale = (EndPoint - StartPoint).Length() / Bounds.X / 2;
+		FRotator Rotation = UKismetMathLibrary::MakeRotFromX((EndPoint - StartPoint).GetSafeNormal());
+		PreviewLines[i]->SetWorldScale3D(FVector(Scale, PreviewLineRadius, PreviewLineRadius));
+		PreviewLines[i]->SetWorldLocation(StartPoint);
+		PreviewLines[i]->SetWorldRotation(Rotation);
 	}
 
 	if (SelectedGridPoints.Num() > 2)
 	{
-		FVector LastPoint = SelectedGridPoints.Last() + FVector(0, 0, 10);
-		FVector FirstPoint = InitialSelectedPoint + FVector(0, 0, 10);
+		FVector LastPoint = SelectedGridPoints.Last() ;
+		FVector FirstPoint = InitialSelectedPoint;
 
-		FVector Direction = (FirstPoint - LastPoint).GetSafeNormal();
-		float Distance = FVector::Dist(LastPoint, FirstPoint);
-		float DashLength = 20.0f;
-
-		for (float t = 0; t < Distance; t += DashLength * 2)
-		{
-			FVector DashStart = LastPoint + Direction * t;
-			FVector DashEnd = LastPoint + Direction * FMath::Min(t + DashLength, Distance);
-			DrawDebugLine(GetWorld(), DashStart, DashEnd, FColor::Magenta, false, 0.0f, 0, 2.0f);
-		}
-
-		DrawDebugDirectionalArrow(GetWorld(), LastPoint, FirstPoint, 30.0f, FColor::Purple, false, 0.0f, 0, 2.0f);
+		FVector Bounds = PreviewLines[PreviewLines.Num() - 1]->GetStaticMesh()->GetBounds().BoxExtent;
+		float Scale = (FirstPoint - LastPoint).Length() / Bounds.X / 2;
+		FRotator Rotation = UKismetMathLibrary::MakeRotFromX((FirstPoint - LastPoint).GetSafeNormal());
+		PreviewLines[PreviewLines.Num()-1]->SetWorldScale3D(FVector(Scale, PreviewLineRadius, PreviewLineRadius));
+		PreviewLines[PreviewLines.Num()-1]->SetWorldLocation(LastPoint);
+		PreviewLines[PreviewLines.Num()-1]->SetWorldRotation(Rotation);
 	}
+
 }
 
-void AGridSelectionManager::DrawFinalShape(const TArray<FVector>& Shape)
+void AGridSelectionManager::ShowPreviewMeshes()
 {
-	if (!GetWorld() || Shape.Num() < 3)
+	SelectedGrid->SetVisibility(true);
+	for (auto MeshComp : SelectedPoints)
 	{
-		return;
+		MeshComp->SetVisibility(true);
 	}
-
-	for (int32 i = 0; i < Shape.Num(); i++)
+	for (auto MeshComp : PreviewLines)
 	{
-		FVector StartPoint = Shape[i] + FVector(0, 0, 20);
-		FVector EndPoint = Shape[(i + 1) % Shape.Num()] + FVector(0, 0, 20);
-		DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Emerald, false, 5.0f, 0, 5.0f);
+		MeshComp->SetVisibility(true);
 	}
+}
 
-	FVector Centroid = FVector::ZeroVector;
-	for (const FVector& Point : Shape)
+void AGridSelectionManager::HidePreviewMeshes()
+{
+	SelectedGrid->SetVisibility(false);
+	for (auto MeshComp : SelectedPoints)
 	{
-		Centroid += Point;
+		MeshComp->SetVisibility(false);
 	}
-	Centroid /= Shape.Num();
-
-	DrawDebugSphere(GetWorld(), Centroid + FVector(0, 0, 25), 20.0f, 16, FColor::Yellow, false, 5.0f, 0, 3.0f);
-	DrawDebugString(GetWorld(), Centroid + FVector(0, 0, 50), TEXT("Shape Center"), nullptr, FColor::Yellow, 5.0f);
-
-	FString ShapeInfo = FString::Printf(TEXT("Final Shape: %d vertices"), Shape.Num());
-	DrawDebugString(GetWorld(), Centroid + FVector(0, 0, 70), ShapeInfo, nullptr, FColor::White, 5.0f);
-}
-
-void AGridSelectionManager::UpdatePreviewLines()
-{
-}
-
-void AGridSelectionManager::CreatePointMarker(const FVector& Position)
-{
-}
-
-void AGridSelectionManager::CreatePreviewLine(const FVector& Start, const FVector& End)
-{
-}
-
-void AGridSelectionManager::ClearVisualElements()
-{
-
+	for (auto MeshComp : PreviewLines)
+	{
+		MeshComp->SetVisibility(false);
+	}
 }
 
 FVector AGridSelectionManager::SnapToGrid(const FVector& WorldPosition) const
 {
 	FVector LocalPosition = WorldToLocal(WorldPosition);
-	
+
 	FVector SnappedLocal = SnapToLocalGrid(LocalPosition);
-	
+
 	return LocalToWorld(SnappedLocal);
 }
 
 FVector AGridSelectionManager::SnapToLocalGrid(const FVector& LocalPosition) const
 {
 	int32 GridX = FMath::RoundToInt(LocalPosition.X / GridSize);
-	int32 GridY = FMath::RoundToInt(LocalPosition.Y / GridSize);
+	int32 GridY =FMath::RoundToInt(LocalPosition.Y / GridSize);
 	int32 GridZ = FMath::RoundToInt(LocalPosition.Z / GridSize);
+
+	GridX = FMath::Clamp(GridX, -GridWidth/2, GridWidth/2);
+	GridY = FMath::Clamp(GridY, -GridHeight/2, GridHeight/2);
 
 	return FVector(GridX * GridSize, GridY * GridSize, GridZ * GridSize);
 }
@@ -454,7 +325,7 @@ FVector AGridSelectionManager::SnapToLocalGrid(const FVector& LocalPosition) con
 FVector AGridSelectionManager::WorldToLocal(const FVector& WorldPosition) const
 {
 	FVector RelativePos = WorldPosition - GridCenter;
-	
+
 	FQuat InverseRotation = GridRotation.Quaternion().Inverse();
 	return InverseRotation.RotateVector(RelativePos);
 }
@@ -463,117 +334,18 @@ FVector AGridSelectionManager::LocalToWorld(const FVector& LocalPosition) const
 {
 	FQuat Rotation = GridRotation.Quaternion();
 	FVector RotatedPos = Rotation.RotateVector(LocalPosition);
-	
+
 	return RotatedPos + GridCenter;
-}
-
-bool AGridSelectionManager::IsValidGridPosition(const FVector& GridPosition) const
-{
-	FVector LocalPos = WorldToLocal(GridPosition);
-	int32 GridX = FMath::RoundToInt(LocalPos.X / GridSize);
-	int32 GridY = FMath::RoundToInt(LocalPos.Y / GridSize);
-
-	return FMath::Abs(GridX) <= GridWidth / 2 && FMath::Abs(GridY) <= GridHeight / 2;
-}
-
-bool AGridSelectionManager::WouldCreateCrossingEdge(const FVector& NewPoint) const
-{
-	if (SelectedGridPoints.Num() < 2)
-	{
-		return false;
-	}
-
-	FVector LastPoint = SelectedGridPoints.Last();
-
-	for (int32 i = 0; i < SelectedGridPoints.Num() - 1; i++)
-	{
-		if (DoLinesIntersect(LastPoint, NewPoint, SelectedGridPoints[i], SelectedGridPoints[i + 1]))
-		{
-			FVector IntersectionPoint = GetLineIntersection(LastPoint, NewPoint, SelectedGridPoints[i],
-			                                                SelectedGridPoints[i + 1]);
-			DrawDebugSphere(GetWorld(), IntersectionPoint + FVector(0, 0, 30), 20.0f, 12, FColor::Red, false, 2.0f);
-			DrawDebugString(GetWorld(), IntersectionPoint + FVector(0, 0, 60), TEXT("CROSSING!"), nullptr, FColor::Red,
-			                2.0f);
-			return true;
-		}
-	}
-
-	if (SelectedGridPoints.Num() > 2)
-	{
-		for (int32 i = 1; i < SelectedGridPoints.Num() - 1; i++)
-		{
-			if (DoLinesIntersect(NewPoint, InitialSelectedPoint, SelectedGridPoints[i], SelectedGridPoints[i + 1]))
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-bool AGridSelectionManager::DoLinesIntersect(const FVector& Line1Start, const FVector& Line1End,
-                                             const FVector& Line2Start, const FVector& Line2End) const
-{
-	auto CrossProduct = [](const FVector2D& A, const FVector2D& B) -> float
-	{
-		return A.X * B.Y - A.Y * B.X;
-	};
-
-	FVector2D P1(Line1Start.X, Line1Start.Y);
-	FVector2D P2(Line1End.X, Line1End.Y);
-	FVector2D P3(Line2Start.X, Line2Start.Y);
-	FVector2D P4(Line2End.X, Line2End.Y);
-
-	FVector2D D1 = P2 - P1;
-	FVector2D D2 = P4 - P3;
-
-	float CrossD1D2 = CrossProduct(D1, D2);
-
-	if (FMath::Abs(CrossD1D2) < SMALL_NUMBER)
-	{
-		return false;
-	}
-
-	FVector2D P3P1 = P1 - P3;
-	float t = CrossProduct(P3P1, D2) / CrossD1D2;
-	float u = CrossProduct(P3P1, D1) / CrossD1D2;
-
-	return (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f);
-}
-
-FVector AGridSelectionManager::GetLineIntersection(const FVector& Line1Start, const FVector& Line1End,
-                                                   const FVector& Line2Start, const FVector& Line2End) const
-{
-	FVector2D P1(Line1Start.X, Line1Start.Y);
-	FVector2D P2(Line1End.X, Line1End.Y);
-	FVector2D P3(Line2Start.X, Line2Start.Y);
-	FVector2D P4(Line2End.X, Line2End.Y);
-
-	FVector2D D1 = P2 - P1;
-	FVector2D D2 = P4 - P3;
-
-	float CrossD1D2 = D1.X * D2.Y - D1.Y * D2.X;
-
-	if (FMath::Abs(CrossD1D2) < SMALL_NUMBER)
-	{
-		return Line1Start; 
-	}
-
-	FVector2D P3P1 = P1 - P3;
-	float t = (P3P1.X * D2.Y - P3P1.Y * D2.X) / CrossD1D2;
-
-	FVector2D IntersectionPoint = P1 + D1 * t;
-	return FVector(IntersectionPoint.X, IntersectionPoint.Y, Line1Start.Z);
 }
 
 void AGridSelectionManager::ClearSelection()
 {
+	HidePreviewMeshes();
 	SelectedGridPoints.Empty();
 	InitialSelectedPoint = FVector::ZeroVector;
 }
 
-TArray<FVector> AGridSelectionManager::GetFinalShape() const
+TArray<FVector> AGridSelectionManager::GetFinalGrid() const
 {
 	TArray<FVector> FinalShape = SelectedGridPoints;
 
@@ -583,4 +355,13 @@ TArray<FVector> AGridSelectionManager::GetFinalShape() const
 	}
 
 	return FinalShape;
+}
+
+void AGridSelectionManager::ShowText(FVector PlayerPos)
+{
+	
+}
+
+void AGridSelectionManager::HideText()
+{
 }

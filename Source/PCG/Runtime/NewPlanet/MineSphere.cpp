@@ -4,6 +4,7 @@
 #include "MineSphere.h"
 
 #include "Components/SphereComponent.h"
+#include "PCG/Runtime/Character/Data/PlayerDataComponent.h"
 
 
 // Sets default values
@@ -44,18 +45,9 @@ void AMineSphere::SetMotherWorldPlanet(AActor* planet)
 	
 }
 
-int AMineSphere::TryStartOneMine(int Value)
+int AMineSphere::TryStartOneMine(int Value, std::function<void(UPlayerDataComponent*)>& pfun)
 {
-	if (RemainMinralCount >= Value)
-	{
-		RemainMinralCount -= Value;
-		return Value;
-	}
-	else
-	{
-		int ReturnMineValue = RemainMinralCount;
-		RemainMinralCount = 0;
-		return ReturnMineValue;
-	}
+	pfun = [](UPlayerDataComponent* PlayerData){};
+	return 0;
 }
 

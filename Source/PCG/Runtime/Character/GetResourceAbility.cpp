@@ -5,7 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "PCG/Runtime/NewPlanet/GeometryPlanet.h"
+#include "PCG/Runtime/NewPlanet/GeometryPlanetActor.h"
 
 
 // Sets default values for this component's properties

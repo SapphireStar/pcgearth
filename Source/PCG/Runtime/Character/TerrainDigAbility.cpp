@@ -6,7 +6,7 @@
 #include "GeometryScript/MeshQueryFunctions.h"
 #include "GeometryScript/MeshSelectionFunctions.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "PCG/Runtime/NewPlanet/GeometryPlanet.h"
+#include "PCG/Runtime/NewPlanet/GeometryPlanetActor.h"
 
 UTerrainDigAbility::UTerrainDigAbility()
 {

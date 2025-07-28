@@ -1,4 +1,3 @@
-// WFCTypes.h - 核心类型定义
 #pragma once
 
 #include "CoreMinimal.h"

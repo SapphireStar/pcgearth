@@ -17,7 +17,7 @@ public class PCG : ModuleRules
 			"GeometryCore"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "GeometryFramework", "GeometryScriptingCore", "GeometryScriptingEditor" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "GeometryFramework", "GeometryScriptingCore"});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

@@ -44,7 +44,7 @@ void UItemAbilityComponent::OnActivateAbility()
 		PrimaryComponentTick.bCanEverTick = true;
 		
 		
-		OnAbilityActivated.Broadcast(this);
+		OnAbilityActivated.Broadcast(AbilityType);
 		
 		ReceiveOnActivateAbility();
 	}
@@ -64,7 +64,7 @@ void UItemAbilityComponent::OnDeactivateAbility()
 		PrimaryComponentTick.bCanEverTick = false;
 		
 		
-		OnAbilityDeactivated.Broadcast(this);
+		OnAbilityDeactivated.Broadcast(AbilityType);
 		
 		ReceiveOnDeactivateAbility();
 	}

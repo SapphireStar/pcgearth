@@ -19,7 +19,6 @@
 #include "GeometryScript/MeshSelectionFunctions.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
-#include "PCG/Runtime/NewPlanet/GeometryPlanet.h"
 #include "DynamicMesh/DynamicMesh3.h"
 #include "UDynamicMesh.h"
 #include "GeometryScript/MeshBasicEditFunctions.h"
@@ -142,6 +141,8 @@ ASpaceShipPawn::ASpaceShipPawn()
 	Camera->SetupAttachment(SpringArm);
 
 	ItemPlaceComponent = CreateDefaultSubobject<UItemPlaceComponent>(TEXT("ItemPlaceComponent"));
+
+	SetupPlayerAbilityComponent();
 }
 
 // Called when the game starts or when spawned
@@ -150,7 +151,7 @@ void ASpaceShipPawn::BeginPlay()
 	Super::BeginPlay();
 	MainBody->SetSimulatePhysics(true);
 
-	SetupPlayerAbilityComponent();
+	
 }
 
 // Called every frame
@@ -560,31 +561,26 @@ TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilit
 	case EAbilityType::None:
 		break;
 	case EAbilityType::TerrainBuild:
-		AbilityComponent = NewObject<UTerrainBuildAbility>(this);
+		AbilityComponent = CreateDefaultSubobject<UTerrainBuildAbility>(FName("TerrainBuild"));
 		AbilityComponent->AbilityType =  EAbilityType::TerrainBuild;
 		break;
 	case EAbilityType::TerrainDig:
-		AbilityComponent = NewObject<UTerrainDigAbility>(this);
+		AbilityComponent = CreateDefaultSubobject<UTerrainDigAbility>(FName("TerrainDig"));
 		AbilityComponent->AbilityType = EAbilityType::TerrainDig;
 		break;
 	case EAbilityType::GetResource:
-		AbilityComponent = NewObject<UGetResourceAbility>(this);
+		AbilityComponent = CreateDefaultSubobject<UGetResourceAbility>(FName("GetResource"));
 		AbilityComponent->AbilityType = EAbilityType::GetResource;
 		break;
 	case EAbilityType::TestWFC:
-		AbilityComponent = NewObject<UTestWFCAbility>(this);
+		AbilityComponent = CreateDefaultSubobject<UTestWFCAbility>(FName("TestWFC"));
 		AbilityComponent->AbilityType = EAbilityType::TestWFC;
 		break;
 	default:
 		UE_LOG(LogTemp, Error, TEXT("SpaceShipPawn::CreateAbilityComponent: Haven't define the initialization for EAbilityType: %d"), static_cast<int>(eAbilityType));
 	}
 
-	if (AbilityComponent)
-	{
-		AddOwnedComponent(AbilityComponent);
-		AbilityComponent->RegisterComponent();
-	}
-	else
+	if (!AbilityComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SpaceShipPawn: Created Component is nullptr"));
 	}

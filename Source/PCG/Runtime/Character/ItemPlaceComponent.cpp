@@ -13,7 +13,7 @@
 #include "GeometryScript/MeshSelectionFunctions.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "PCG/Runtime/NewPlanet/GeometryPlanet.h"
+#include "PCG/Runtime/NewPlanet/GeometryPlanetActor.h"
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "PCG/Runtime/NewWFC/WFCGeneratorComponent.h"
 
@@ -87,7 +87,7 @@ void UItemPlaceComponent::SelectPoint(UPrimitiveComponent* TraceStartComp, UCame
 		5.f);
 	if (HitResult.bBlockingHit)
 	{
-		if (AGeometryPlanet* planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
+		if (AGeometryPlanetActor* planet = Cast<AGeometryPlanetActor>(HitResult.GetActor()))
 		{
 			FVector ImpactRelativePoint = HitResult.ImpactPoint - planet->GetActorLocation();
 			FGeometryScriptMeshSelection selection;
@@ -188,7 +188,7 @@ void UItemPlaceComponent::DigTerrain(UPrimitiveComponent* TraceStartComp, UCamer
 		5.f);
 	if (HitResult.bBlockingHit)
 	{
-		if (AGeometryPlanet* planet = Cast<AGeometryPlanet>(HitResult.GetActor()))
+		if (AGeometryPlanetActor* planet = Cast<AGeometryPlanetActor>(HitResult.GetActor()))
 		{
 			FVector ImpactRelativePoint = HitResult.ImpactPoint - planet->GetActorLocation();
 			FGeometryScriptMeshSelection selection;

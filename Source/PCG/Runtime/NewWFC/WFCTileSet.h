@@ -1,4 +1,3 @@
-// WFCTileSet.h - 瓦片集合数据资产
 #pragma once
 
 #include "CoreMinimal.h"

@@ -8,7 +8,9 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerStatusChanged, FPlayerStatusNew, OldValue, const FPlayerStatusNew&, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWoodChanged, int, OldValue, int, NewValue);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMineChanged, int, OldValue, int, NewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStoneChanged, int, OldValue, int, NewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnOreChanged, int, OldValue, int, NewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMetalChanged, int, OldValue, int, NewValue);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemainDaysChanged, int, OldValue, int, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentTimeChanged, int, OldValue, int, NewValue);
@@ -37,18 +39,33 @@ public:
 	void InitializePlayerData(FPlayerDataContainer InitialPlayerData);
 
 	UFUNCTION(BlueprintCallable)
+	FPlayerDataContainer GetPlayerData() { return PlayerDataContainer;}
+
+	UFUNCTION(BlueprintCallable)
 	void ChangePlayerWoodValue(int NewValue);
 
 	UFUNCTION(BlueprintPure)
 	int GetPlayerWoodValue() const {return PlayerStatus.Wood.Value;}
 
 	UFUNCTION(BlueprintCallable)
-	void ChangePlayerMineValue(int NewValue);
+	void ChangePlayerStoneValue(int NewValue);
 
 	UFUNCTION(BlueprintPure)
-	int GetPlayerMineValue() const{return PlayerStatus.Mine.Value;}
+	int GetPlayerStoneValue() const{return PlayerStatus.Stone.Value;}
 
+	UFUNCTION(BlueprintCallable)
+	void ChangePlayerOreValue(int NewValue);
 
+	UFUNCTION(BlueprintPure)
+	int GetPlayerOreValue() const {return PlayerStatus.Ore.Value;}
+
+	UFUNCTION(BlueprintCallable)
+	void ChangePlayerMetalValue(int NewValue);
+
+	UFUNCTION(BlueprintPure)
+	int GetPlayerMetalValue() const {return PlayerStatus.Metal.Value;}
+	
+	
 	UFUNCTION(BlueprintCallable)
 	void ChangePlayerRemainDaysValue(int NewValue);
 	
@@ -73,7 +90,13 @@ public:
 	FOnWoodChanged OnWoodChanged;
 
 	UPROPERTY(BlueprintAssignable)
-	FOnMineChanged OnMineChanged;
+	FOnStoneChanged OnStoneChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnOreChanged OnOreChanged;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnMetalChanged OnMetalChanged;
 
 	
 	UPROPERTY(BlueprintAssignable)
@@ -91,4 +114,5 @@ public:
 private:
 	FPlayerStatusNew PlayerStatus;
 	FSystemStatus SystemStatus;
+	FPlayerDataContainer PlayerDataContainer;
 };

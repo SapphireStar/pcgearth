@@ -184,7 +184,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UItemAbilityComponent> CurrentAbilityComponent;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<TObjectPtr<UItemAbilityComponent>> Abilities;
 
 	UPROPERTY(BlueprintAssignable)

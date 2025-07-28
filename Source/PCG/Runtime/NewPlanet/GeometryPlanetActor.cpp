@@ -4,6 +4,8 @@
 #include "GeometryPlanetActor.h"
 
 #include "MineSphere.h"
+#include "MineSphereOre.h"
+#include "MineSphereStone.h"
 #include "NoiseApplier.h"
 #include "RHICommandList.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -32,9 +34,9 @@ void AGeometryPlanetActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	MineSpheres.Empty();
+	/*MineSpheres.Empty();
 	SpawnMineSpheres();
-	UpdateMineAreas();
+	UpdateMineAreas();*/
 }
 
 // Called every frame
@@ -67,11 +69,20 @@ void AGeometryPlanetActor::InitializePlanet(FGeometryPlanetData PlanetData)
 	FoliageAmount = PlanetData.FoliageAmount;
 	bShouldSpawnFoliage = PlanetData.bShouldSpawnFoliage;
 	MineConfiguration.MaxMineSphereAmount = PlanetData.MineConfiguration.MaxMineSphereAmount;
+	MineSpheres.Empty();
 }
 
 int AGeometryPlanetActor::GetNextRandomAvaiableVertexID()
 {
 	return -1;
+}
+
+void AGeometryPlanetActor::ShuffleVertexID()
+{
+	FGeometryScriptIndexList VerticesList;
+	bool bHasGaps = false;
+	UGeometryScriptLibrary_MeshQueryFunctions::GetAllVertexIDs(DynamicMeshComponent->GetDynamicMesh(), VerticesList, bHasGaps);
+	TArray<int> VertexIDs = *VerticesList.List;
 }
 
 bool AGeometryPlanetActor::AddPlanetVertexType(EVertexType eType, int VertexID)
@@ -113,9 +124,7 @@ void AGeometryPlanetActor::MarkPlanetRefresh(bool bImmediate, bool bImmediateEve
 	{
 		return;
 	}
-
-	// Automatically defer collision updates during generated mesh rebuild. If we do not do this, then
-	// each mesh change will result in collision being rebuilt, which is very expensive !!
+	
 	bool bEnabledDeferredCollision = false;
 	if (Component->bDeferCollisionUpdates == false)
 	{
@@ -127,8 +136,6 @@ void AGeometryPlanetActor::MarkPlanetRefresh(bool bImmediate, bool bImmediateEve
 	{
 		Component->GetDynamicMesh()->Reset();
 	}
-
-	FEditorScriptExecutionGuard Guard;
 	
 	GeneratePlanet((Component->GetDynamicMesh()));
 
@@ -177,7 +184,7 @@ void AGeometryPlanetActor::ApplyCraterToPlanet()
 	}
 }
 
-void AGeometryPlanetActor::SpawnMineSpheres()
+void AGeometryPlanetActor::SpawnStoneMineSpheres()
 {
 	UDynamicMesh* DynamicMesh = DynamicMeshComponent->GetDynamicMesh();
 	int VertexCount  = DynamicMeshComponent->GetMesh()->VertexCount();
@@ -202,11 +209,47 @@ void AGeometryPlanetActor::SpawnMineSpheres()
 		{
 			FVector Normal = VertexPosition.GetSafeNormal();
 			FVector Position = VertexPosition + GetActorLocation();
-			AMineSphere* MineSphere = GetWorld()->SpawnActor<AMineSphere>();
+			AMineSphereStone* MineSphere = GetWorld()->SpawnActor<AMineSphereStone>();
 			MineSphere->UpdateMineSphere(RandomStream.FRandRange(MineConfiguration.RadiusMin, MineConfiguration.RadiusMax));
 			MineSphere->SetMotherWorldPlanet(this);
 			MineSphere->SetActorLocation(Position - Normal *  RandomStream.FRandRange(0, MineSphere->GetRadius() - 300));
 			SpawnedMineSpheres++;
+			MineSpheres.Add(MineSphere);
+		}
+	}
+}
+
+void AGeometryPlanetActor::SpawnOreMineSpheres()
+{
+	UDynamicMesh* DynamicMesh = DynamicMeshComponent->GetDynamicMesh();
+	int VertexCount  = DynamicMeshComponent->GetMesh()->VertexCount();
+	int SpawnedMineSpheres = 0;
+	for (int i = 0; i < VertexCount; i++)
+	{
+		if (SpawnedMineSpheres >= MineConfiguration.MaxMineSphereAmount)
+		{
+			break;
+		}
+		float shouldSpawnMineSphere = RandomStream.FRand();
+		if (!(shouldSpawnMineSphere < 0.001))
+		{
+			continue;
+		}
+		bool isValidVertex = false;
+		FVector VertexPosition = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
+			DynamicMesh,
+			i,
+			isValidVertex);
+		if (isValidVertex)
+		{
+			FVector Normal = VertexPosition.GetSafeNormal();
+			FVector Position = VertexPosition + GetActorLocation();
+			AMineSphereOre* MineSphere = GetWorld()->SpawnActor<AMineSphereOre>();
+			MineSphere->UpdateMineSphere(RandomStream.FRandRange(MineConfiguration.RadiusMin, MineConfiguration.RadiusMax));
+			MineSphere->SetMotherWorldPlanet(this);
+			MineSphere->SetActorLocation(Position - Normal *  RandomStream.FRandRange(0, MineSphere->GetRadius() - 300));
+			SpawnedMineSpheres++;
+			MineSpheres.Add(MineSphere);
 		}
 	}
 }
@@ -296,7 +339,7 @@ void AGeometryPlanetActor::InitializeTexture16Bytes()
 	DynamicTexture = UTexture2D::CreateTransient(TextureWidth, TextureHeight, PF_A32B32G32R32F);
 	DynamicTexture->CompressionSettings = TextureCompressionSettings::TC_VectorDisplacementmap;
 	DynamicTexture->SRGB = 0;
-	DynamicTexture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
+	//DynamicTexture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
 	DynamicTexture->Filter = TextureFilter::TF_Nearest;
 	DynamicTexture->AddToRoot();
 	DynamicTexture->UpdateResource();
@@ -317,7 +360,7 @@ void AGeometryPlanetActor::UpdateTexture16Bytes(bool bFreeData)
 	struct FUpdateTextureRegionsData
 	{
 		FTexture2DResource* Texture2DResource;
-		FRHITexture2D* TextureRHI;
+		FRHITexture* TextureRHI;
 		int32 MipIndex;
 		uint32 NumRegions;
 		FUpdateTextureRegion2D* Regions;

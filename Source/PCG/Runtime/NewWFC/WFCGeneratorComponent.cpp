@@ -527,9 +527,6 @@ AActor* UWFCGeneratorComponent::SpawnTileActor(const FWFCCoordinate& Position, i
 		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Failed to spawn actor for tile %d"), TileIndex);
 		return nullptr;
 	}
-
-	TileActor->SetActorLabel(FString::Printf(TEXT("WFC_Tile_%s_%s"),
-	                                         *Position.ToString(), *TileDef.TileName));
 	
 
 	UStaticMeshComponent* MeshComponent = NewObject<UStaticMeshComponent>(this);

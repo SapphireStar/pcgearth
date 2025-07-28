@@ -135,8 +135,8 @@ AActor* AWFCVisualizer::SpawnTileActor(const FWFCVisualizationTile& Tile)
 		MeshComponent->SetMaterial(0, Tile.Material);
 	}
 
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	MeshComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 
 	TileActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	TileActor->SetActorRelativeLocation(Tile.Location);

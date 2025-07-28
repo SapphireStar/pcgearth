@@ -1,5 +1,7 @@
 #include "TerrainBuildAbility.h"
 #include "EngineUtils.h"
+#include "FactoryCrafter.h"
+#include "ViewportInteractionTypes.h"
 #include "Camera/CameraComponent.h"
 #include "GeometryScript/GeometryScriptSelectionTypes.h"
 #include "GeometryScript/MeshBasicEditFunctions.h"
@@ -8,13 +10,15 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "PCG/Runtime/PCGGameMode.h"
-#include "PCG/Runtime/NewPlanet/GeometryPlanet.h"
+#include "PCG/Runtime/NewPlanet/GeometryPlanetActor.h"
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "PCG/Runtime/NewWFC/WFCGeneratorComponent.h"
 
 UTerrainBuildAbility::UTerrainBuildAbility()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	FactorySphereMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FactorySphereMesh"));
+
 }
 
 void UTerrainBuildAbility::BeginPlay()
@@ -41,6 +45,22 @@ void UTerrainBuildAbility::BeginPlay()
 			break;
 		}
 	}
+
+	//FactorySphereMeshComponent->SetupAttachment(GetOwner()->GetRootComponent());
+	if (FactorySphereMesh)
+	{
+		FactorySphereMeshComponent->SetStaticMesh(FactorySphereMesh);
+	}
+	if (FactorySphereMaterial)
+	{
+		FactorySphereDynamicMaterial = UMaterialInstanceDynamic::Create(FactorySphereMaterial, this);
+		FactorySphereMeshComponent->SetMaterial(0,  FactorySphereDynamicMaterial);
+	}
+	float MeshRadius = FactorySphereMeshComponent->GetStaticMesh()->GetBoundingBox().GetExtent().X;
+	float MeshScale =PlayerData->GetPlayerData().FactoryInfo.FactoryRadius / MeshRadius;
+	FactorySphereMeshComponent->SetWorldScale3D(FVector(MeshScale, MeshScale, MeshScale));
+	FactorySphereMeshComponent->SetVisibility(false);
+	FactorySphereMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void UTerrainBuildAbility::OnInitializeAbility()
@@ -60,6 +80,21 @@ void UTerrainBuildAbility::OnActivateAbility()
 void UTerrainBuildAbility::OnTickAbility()
 {
 	Super::OnTickAbility();
+	if (bIsGridSlectionStarted)
+	{
+		FBox GridBounds = GridSelection->PeekGridSelection();
+		FVector TargetPos = GridBounds.GetCenter();
+		if (CheckCanBuildFactory(TargetPos, 0, GridBounds)&&CheckIsOnMineSphere(GridBounds))
+		{
+			ChangeFactorySphereColor(AvailableColor);
+		}
+		else
+		{
+			ChangeFactorySphereColor(UnavailableColor);
+		}
+		FactorySphereMeshComponent->SetWorldLocation(TargetPos);
+	}
+	
 }
 
 void UTerrainBuildAbility::OnDeactivateAbility()
@@ -68,6 +103,7 @@ void UTerrainBuildAbility::OnDeactivateAbility()
 	GridSelection->ShutDownGridSelection();
 	bIsGridSlectionStarted = false;
 	DeselectPlanet();
+	FactorySphereMeshComponent->SetVisibility(false);
 	UE_LOG(LogTemp, Log, TEXT("TerrainBuildAbility deactivated"));
 }
 
@@ -125,6 +161,7 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 				                                  FindNormalOnPlanet(HitResult.ImpactPoint,
 				                                                     planet->GetActorLocation()));
 				bIsGridSlectionStarted = true;
+				FactorySphereMeshComponent->SetVisibility(true);
 			}
 			else
 			{
@@ -142,17 +179,18 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 		AMineSphere* MineSphere = CheckIsOnMineSphere(GridBounds);
 		if (ValidateGridBounds(GridBounds) && MineSphere)
 		{
-			if (ProcessBuilding(Planet, LastHitResult, GridBounds, MineSphere))
+			FIntVector GridSize = GridSelection->PeekGridSize();
+			if (ProcessBuilding(Planet, LastHitResult, GridBounds, GridSize, MineSphere))
 			{
 				bIsGridSlectionStarted = false;
 				GridSelection->EndGridSelection();
 				DeselectPlanet();
+				FactorySphereMeshComponent->SetVisibility(false);
 			}
 			else
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Process Terrain Build failed"));
 			}
-			
 		}
 		else
 		{
@@ -167,21 +205,16 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 	}
 }
 
-bool UTerrainBuildAbility::ProcessBuilding(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere)
+bool UTerrainBuildAbility::CheckCanBuildFactory(FVector Position, int Volume, FBox GridBounds)
 {
-	if (!Planet)
-	{
-		return false;
-	}
-
-	FVector ImpactRelativePoint = HitResult.ImpactPoint - Planet->GetActorLocation();
+	
 	FGeometryScriptMeshSelection selection;
 
 	UGeometryScriptLibrary_MeshSelectionFunctions::SelectMeshElementsInSphere(
 		Planet->GetDynamicMeshComponent()->GetDynamicMesh(),
 		selection,
-		GridBounds.GetCenter() - Planet->GetActorLocation(),
-		FVector::DistXY(GridBounds.Max, GridBounds.Min)/2.f + 200.f,
+		Position - Planet->GetActorLocation(),
+		FVector::DistXY(GridBounds.Max, GridBounds.Min) / 2.f + 200.f,
 		EGeometryScriptMeshSelectionType::Vertices,
 		false,
 		1
@@ -200,7 +233,114 @@ bool UTerrainBuildAbility::ProcessBuilding(AGeometryPlanetActor* Planet, const F
 
 		auto lowestPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
 			Mesh, LowestVertexID, bIsValidVertex);
-		if (SpawnBuilding(Planet, HitResult, GridBounds,MineSphere, lowestPos))
+		
+		FVector BuildingPos = GridBounds.GetCenter();
+		FVector BuildingPosNormal = (BuildingPos - Planet->GetActorLocation()).GetSafeNormal();
+		float LowestLength = lowestPos.Length();
+		BuildingPos = Planet->GetActorLocation() + BuildingPosNormal * LowestLength - 50.f;
+
+		float Radius = CalculateFactoryRadius(Volume);
+		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
+
+		TArray<AActor*> ActorsToIgnore;
+		TArray<AActor*> OverlappingActors;
+		bool hit = UKismetSystemLibrary::SphereOverlapActors(
+			GetWorld(),
+			BuildingPos,
+			Radius,
+			ObjectTypes,
+			nullptr,
+			ActorsToIgnore,
+			OverlappingActors);
+		if (hit)
+		{
+			for (auto Actor : OverlappingActors)
+			{
+				if (Actor->IsA<AMiningBuilding>() || Actor->IsA<ACraftingBuilding>())
+				{
+					return false;
+				}
+			}
+		}
+	}
+	else
+	{
+		float Radius = CalculateFactoryRadius(Volume);
+		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
+
+		TArray<AActor*> ActorsToIgnore;
+		TArray<AActor*> OverlappingActors;
+		bool hit = UKismetSystemLibrary::SphereOverlapActors(
+			GetWorld(),
+			Position,
+			Radius,
+			ObjectTypes,
+			nullptr,
+			ActorsToIgnore,
+			OverlappingActors);
+		if (hit)
+		{
+			for (auto Actor : OverlappingActors)
+			{
+				if (Actor->IsA<AMiningBuilding>() || Actor->IsA<ACraftingBuilding>())
+				{
+					return false;
+				}
+			}
+		}
+	}
+	
+
+	return true;
+}
+
+float UTerrainBuildAbility::CalculateFactoryRadius(int Volume)
+{
+	return PlayerData->GetPlayerData().FactoryInfo.FactoryRadius;
+}
+
+void UTerrainBuildAbility::ChangeFactorySphereColor(FLinearColor NewColor)
+{
+	FactorySphereDynamicMaterial->SetVectorParameterValue(FName("Color"), NewColor);
+}
+
+bool UTerrainBuildAbility::ProcessBuilding(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds,
+                                           FIntVector GridSize, AMineSphere* MineSphere)
+{
+	if (!Planet)
+	{
+		return false;
+	}
+
+	FVector ImpactRelativePoint = HitResult.ImpactPoint - Planet->GetActorLocation();
+	FGeometryScriptMeshSelection selection;
+
+	UGeometryScriptLibrary_MeshSelectionFunctions::SelectMeshElementsInSphere(
+		Planet->GetDynamicMeshComponent()->GetDynamicMesh(),
+		selection,
+		GridBounds.GetCenter() - Planet->GetActorLocation(),
+		FVector::DistXY(GridBounds.Max, GridBounds.Min) / 2.f + 200.f,
+		EGeometryScriptMeshSelectionType::Vertices,
+		false,
+		1
+	);
+
+	TArray<int32> indicesout;
+	selection.ConvertToMeshIndexArray(
+		Planet->GetDynamicMeshComponent()->GetDynamicMesh()->GetMeshRef(),
+		indicesout);
+
+	if (indicesout.Num() > 0)
+	{
+		int LowestVertexID = FindLowestVertex(Planet->GetDynamicMeshComponent(), indicesout);
+		bool bIsValidVertex;
+		auto Mesh = Planet->GetDynamicMeshComponent()->GetDynamicMesh();
+
+		auto lowestPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
+			Mesh, LowestVertexID, bIsValidVertex);
+		if (SpawnBuilding(Planet, HitResult, GridBounds, GridSize, MineSphere, lowestPos))
 		{
 			FlattenTerrain(Planet, indicesout, GridBounds);
 		}
@@ -220,7 +360,8 @@ bool UTerrainBuildAbility::ProcessBuilding(AGeometryPlanetActor* Planet, const F
 	return true;
 }
 
-void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices, FBox GridBounds)
+void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices,
+                                          FBox GridBounds)
 {
 	if (!Planet || VertexIndices.Num() == 0)
 	{
@@ -233,17 +374,19 @@ void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanetActor* Planet, const TA
 
 	auto lowestPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
 		Mesh, LowestVertexID, bIsValidVertex);
-	FVector PlaneNormal = (GridBounds.Min - Planet->GetActorLocation()).GetSafeNormal();
-	
-	for (int32 VertexID : VertexIndices) {
+	FVector PlaneNormal = (GridBounds.GetCenter() - Planet->GetActorLocation()).GetSafeNormal();
+
+	for (int32 VertexID : VertexIndices)
+	{
 		bool bIsValid;
 		FVector CurrentPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(Mesh, VertexID, bIsValid);
-    
-		if (bIsValid) {
+
+		if (bIsValid)
+		{
 			FVector ToVertex = CurrentPos - lowestPos;
 			float DistanceToPlane = FVector::DotProduct(ToVertex, PlaneNormal);
 			FVector ProjectedPos = CurrentPos - (DistanceToPlane * PlaneNormal);
-        
+
 			UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(Mesh, VertexID, ProjectedPos, bIsValid);
 		}
 	}
@@ -253,23 +396,37 @@ void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanetActor* Planet, const TA
 }
 
 //这里LowestVertexPos是相对顶点坐标，不是世界坐标
-bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, AMineSphere* MineSphere, FVector LowestVertexPos)
+bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds,
+                                         FIntVector GridSize, AMineSphere* MineSphere, FVector LowestVertexPos)
 {
 	FVector BuildingPos = GridBounds.GetCenter();
 	FVector BuildingPosNormal = (BuildingPos - Planet->GetActorLocation()).GetSafeNormal();
 	float LowestLength = LowestVertexPos.Length();
 	BuildingPos = Planet->GetActorLocation() + BuildingPosNormal * LowestLength - 50.f;
-	
+
 	if (WFCGeneratorComponent)
 	{
+		//TODO:根据GridSize查找应有的Z高度
 		int volume = 0;
+		FIntVector FactorySize = GridSize;
+		WFCGeneratorComponent->Configuration.GridSize = FIntVector(FactorySize.Y, FactorySize.X,
+		                                                           WFCGeneratorComponent->Configuration.GridSize.Z);
+		
+		volume = WFCGeneratorComponent->Configuration.GridSize.X * WFCGeneratorComponent->Configuration.GridSize.Y *
+	WFCGeneratorComponent->Configuration.GridSize.Z;
+
+		//检查工厂附近是否有其他工厂，如果有，则不允许建造
+		if (!CheckCanBuildFactory(BuildingPos, volume, GridBounds))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Too close to other factory!"));
+			return false;
+		}
+		
 		if (TryConsumeWood(volume))
 		{
-			CalculateWFCGridSize(GridBounds);
 			WFCGeneratorComponent->StartGenerationWithCustomConfigAt(BuildingPos,
 			                                                         GridSelection->GetGridRotation());
-			
-			SpawnFactoryActor(BuildingPos, volume, MineSphere);
+			SpawnFactoryActor(BuildingPos, volume, MineSphere, CalculateFactoryRadius(volume));
 			return true;
 		}
 		else
@@ -285,10 +442,10 @@ bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHi
 	}
 }
 
-void UTerrainBuildAbility::SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere)
+void UTerrainBuildAbility::SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere, float Radius)
 {
-	AFactoryBuilding* Factory = GetWorld()->SpawnActor<AFactoryBuilding>();
-	Factory->BuildFactoryAt(Position, Volume, MineSphere);
+	AMiningBuilding* Factory = GetWorld()->SpawnActor<AMiningBuilding>();
+	Factory->BuildFactoryAt(Position, Volume, MineSphere, Radius, OnAbilityActivated, OnAbilityDeactivated);
 }
 
 bool UTerrainBuildAbility::TryConsumeWood(int& outVolume)
@@ -338,14 +495,13 @@ int UTerrainBuildAbility::FindLowestVertex(UDynamicMeshComponent* DynamicMeshCom
 {
 	auto DynamicMesh = DynamicMeshComp->GetDynamicMesh();
 	bool bHasIdGroup;
-	FVector planetPos = DynamicMeshComp->GetOwner()->GetActorLocation();
 
 	float min = FLT_MAX;
 	int minID = 0;
 	for (auto id : VertexID)
 	{
 		FVector pos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(DynamicMesh, id, bHasIdGroup);
-		float dist = FVector::Dist(pos, planetPos);
+		float dist = pos.Length();
 		if (dist < min)
 		{
 			min = dist;
@@ -361,11 +517,15 @@ FRotator UTerrainBuildAbility::FindNormalOnPlanet(FVector ImpactPosition, FVecto
 	return UKismetMathLibrary::MakeRotFromZ(normal);
 }
 
-void UTerrainBuildAbility::CalculateWFCGridSize(FBox GridBounds)
+FIntVector UTerrainBuildAbility::CalculateWFCGridSize(FBox GridBounds)
 {
-	int SizeX = static_cast<int>((GridBounds.Max.X - GridBounds.Min.X)/GridSelection->GetGridSize());
-	int SizeY = static_cast<int>((GridBounds.Max.Y - GridBounds.Min.Y)/GridSelection->GetGridSize());
-	WFCGeneratorComponent->Configuration.GridSize = FIntVector(SizeY, SizeX, WFCGeneratorComponent->Configuration.GridSize.Z);
+	int SizeX = UKismetMathLibrary::Round((GridBounds.Max.X - GridBounds.Min.X) / GridSelection->GetGridSize());
+	int SizeY = UKismetMathLibrary::Round((GridBounds.Max.Y - GridBounds.Min.Y) / GridSelection->GetGridSize());
+	int SizeZ = UKismetMathLibrary::Round((GridBounds.Max.Z - GridBounds.Min.Z) / GridSelection->GetGridSize());
+	UE_LOG(LogTemp, Warning, TEXT("SizeX: %f, SizeY: %f"),
+	       (GridBounds.Max.X - GridBounds.Min.X)/(float)GridSelection->GetGridSize(),
+	       (GridBounds.Max.Y - GridBounds.Min.Y)/(float)GridSelection->GetGridSize());
+	return FIntVector(SizeX, SizeY, SizeZ);
 }
 
 bool UTerrainBuildAbility::ValidateGridBounds(FBox GridBounds)
@@ -377,8 +537,8 @@ bool UTerrainBuildAbility::ValidateGridBounds(FBox GridBounds)
 		return false;
 	}
 
-	if (GridBounds.Max.X - GridBounds.Min.X < GridSelection->GetGridSize()/2 ||
-		GridBounds.Max.Y - GridBounds.Min.Y < GridSelection->GetGridSize()/2)
+	if (GridBounds.Max.X - GridBounds.Min.X < GridSelection->GetGridSize() / 2 ||
+		GridBounds.Max.Y - GridBounds.Min.Y < GridSelection->GetGridSize() / 2)
 	{
 		UE_LOG(LogTemp, Error, TEXT("TerrainBuildAbility: Grid size too small"));
 		return false;
@@ -392,12 +552,12 @@ AMineSphere* UTerrainBuildAbility::CheckIsOnMineSphere(FBox GridBounds)
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
-    
+
 	UClass* ActorClassFilter = AMineSphere::StaticClass();
-	
+
 	TArray<AActor*> ActorsToIgnore;
 	TArray<AActor*> FoundActors;
-	
+
 	UKismetSystemLibrary::BoxOverlapActors(
 		GetWorld(),
 		GridBounds.GetCenter(),

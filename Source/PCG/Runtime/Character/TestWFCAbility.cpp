@@ -8,10 +8,10 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "PCG/Runtime/PCGGameMode.h"
-#include "PCG/Runtime/NewPlanet/GeometryPlanet.h"
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "PCG/Runtime/NewWFC/WFCGeneratorComponent.h"
 #include "TerrainBuildAbility.h"
+#include "PCG/Runtime/NewPlanet/GeometryPlanetActor.h"
 
 UTestWFCAbility::UTestWFCAbility()
 {
@@ -237,8 +237,8 @@ bool UTestWFCAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHitResu
 
 void UTestWFCAbility::SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere)
 {
-	AFactoryBuilding* Factory = GetWorld()->SpawnActor<AFactoryBuilding>();
-	Factory->BuildFactoryAt(Position, Volume, MineSphere);
+	AMiningBuilding* Factory = GetWorld()->SpawnActor<AMiningBuilding>();
+	//Factory->BuildFactoryAt(Position, Volume, MineSphere, 100);
 }
 
 bool UTestWFCAbility::TryConsumeWood(int& outVolume)

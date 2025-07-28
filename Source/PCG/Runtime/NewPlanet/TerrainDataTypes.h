@@ -36,7 +36,7 @@ struct PCG_API FMineSphereSpawnConfiguration
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 500, ClampMax = 1000))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 500, ClampMax = 3000))
 	float RadiusMin;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 1000, ClampMax =3000))

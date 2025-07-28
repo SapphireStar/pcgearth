@@ -2,18 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Data/DataTypes.h"
 #include "ItemAbilityComponent.generated.h"
 
 
-UENUM(BlueprintType)
-enum class EAbilityType : uint8
-{
-	None,
-	TerrainBuild,
-	TerrainDig,
-	GetResource,
-	TestWFC,
-};
+
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityChanged, EAbilityType, OldAbility, EAbilityType, NewAbility);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityActivated, EAbilityType, AbilityType);
@@ -82,10 +75,10 @@ public:
 
 public:
 	UPROPERTY(BlueprintAssignable)
-	FOnAbilityStatusChanged OnAbilityActivated;
+	FOnAbilityActivated OnAbilityActivated;
 
 	UPROPERTY(BlueprintAssignable)
-	FOnAbilityStatusChanged OnAbilityDeactivated;
+	FOnAbilityDeactivated OnAbilityDeactivated;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsActivated = false;

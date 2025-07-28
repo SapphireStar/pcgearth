@@ -75,7 +75,7 @@ private:
 	TObjectPtr<AGeometryPlanetActor> Planet;
 
 	UPROPERTY()
-	TArray<TObjectPtr<AFactoryBuilding>> SpawnedFactories;
+	TArray<TObjectPtr<AMiningBuilding>> SpawnedFactories;
 
 	FHitResult LastHitResult;
 
