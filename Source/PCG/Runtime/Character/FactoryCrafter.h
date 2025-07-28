@@ -41,6 +41,7 @@ protected:
 	void OnDestroyFactory();
 
 	bool StartOneCraft();
+	bool CheckHasResource();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

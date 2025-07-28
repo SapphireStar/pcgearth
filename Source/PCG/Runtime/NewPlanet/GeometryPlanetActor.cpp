@@ -323,14 +323,15 @@ void AGeometryPlanetActor::GenerateMineMaterialTexture()
 
 void AGeometryPlanetActor::UpdateMineAreas()
 {
-	GenerateMineAreas();
+	//GenerateMineAreas();
+	TextureDataSize = 4;
 	GenerateMineMaterialTexture();
 }
 
 void AGeometryPlanetActor::InitializeTexture16Bytes()
 {
 	TextureTotalPixels = TextureWidth * TextureHeight;
-
+	
 	TextureDataSize = TextureTotalPixels * 16;
 	TextureDataSqrtSize = TextureWidth * 4;
 

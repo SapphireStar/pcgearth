@@ -80,7 +80,12 @@ void ACraftingBuilding::OnDestroyFactory()
 
 bool ACraftingBuilding::StartOneCraft()
 {
-return true;
+	return true;
+}
+
+bool ACraftingBuilding::CheckHasResource()
+{
+	return true;
 }
 
 
