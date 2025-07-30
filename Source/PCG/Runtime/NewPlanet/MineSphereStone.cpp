@@ -40,7 +40,7 @@ int AMineSphereStone::TryStartOneMine(int Value, std::function<void(UPlayerDataC
 	}
 	pfun = [ReturnStoneValue](UPlayerDataComponent* PlayerData)
 	{
-		PlayerData->ChangePlayerStoneValue(PlayerData->GetPlayerStoneValue() + ReturnStoneValue);
+		PlayerData->ChangePlayerResourceValue(EFactoryResource::EFR_Stone, PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Stone) + ReturnStoneValue);
 	};
 	return ReturnStoneValue;
 }

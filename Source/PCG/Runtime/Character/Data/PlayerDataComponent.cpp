@@ -21,7 +21,6 @@ void UPlayerDataComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
 }
 
 
@@ -41,34 +40,23 @@ void UPlayerDataComponent::InitializePlayerData(FPlayerDataContainer InitialPlay
 	OnInitialized.Broadcast(UPlayerDataComponent::StaticClass());
 	OnPlayerStatusChanged.Broadcast(PlayerStatus, PlayerStatus);
 	PlayerDataContainer = InitialPlayerData;
+	SystemStatus.CurrentRecipeInfo = InitialPlayerData.RecipeInfos[0];
 }
 
-void UPlayerDataComponent::ChangePlayerWoodValue(int NewValue)
-{
-	int WoodOld = PlayerStatus.Wood.Value;
-	PlayerStatus.Wood.Value = NewValue;
-	OnWoodChanged.Broadcast(WoodOld, NewValue);
-}
 
-void UPlayerDataComponent::ChangePlayerStoneValue(int NewValue)
+void UPlayerDataComponent::ChangePlayerResourceValue(EFactoryResource eResourceType, int NewValue)
 {
-	int MineOld = PlayerStatus.Stone.Value;
-	PlayerStatus.Stone.Value = NewValue;
-	OnStoneChanged.Broadcast(MineOld, NewValue);
-}
-
-void UPlayerDataComponent::ChangePlayerOreValue(int NewValue)
-{
-	int OreOld = PlayerStatus.Ore.Value;
-	PlayerStatus.Ore.Value = NewValue;
-	OnOreChanged.Broadcast(OreOld, NewValue);
-}
-
-void UPlayerDataComponent::ChangePlayerMetalValue(int NewValue)
-{
-	int MetalOld = PlayerStatus.Metal.Value;
-	PlayerStatus.Metal.Value = NewValue;
-	OnMetalChanged.Broadcast(MetalOld, NewValue);
+	for (auto& Element : PlayerStatus.Resources)
+	{
+		if (Element.ResourceType == eResourceType)
+		{
+			int ResourceOld = Element.Value;
+			Element.Value = NewValue;
+			OnPlayerResourceChanged.Broadcast(eResourceType, ResourceOld, NewValue);
+			return;
+		}
+	}
+	UE_LOG(LogTemp, Error, TEXT("UPlayerDataComponent::ChangePlayerResourceValue: Player has no such resource type: %s"), *UEnum::GetValueAsString(eResourceType));
 }
 
 void UPlayerDataComponent::ChangePlayerRemainDaysValue(int NewValue)
@@ -85,8 +73,38 @@ void UPlayerDataComponent::ChangePlayerCurrentTimeValue(int NewValue)
 	OnCurrentTimeChanged.Broadcast(CurrentTimeOld, NewValue);
 }
 
+void UPlayerDataComponent::ChangePlayerCurrentTempleStageValue(int NewValue)
+{
+	int CurrentTempleStageOld = SystemStatus.CurrentTempleStage;
+	SystemStatus.CurrentTempleStage = NewValue;
+	OnCurrentTempleStageChanged.Broadcast(CurrentTempleStageOld, NewValue);
+}
+
+void UPlayerDataComponent::ChangePlayerCurrentProduceType(EFactoryResource NewResourceType)
+{
+	SystemStatus.CurrentProduceType = NewResourceType;
+	OnProduceTypeChanged.Broadcast(SystemStatus.CurrentProduceType);
+}
+
+void UPlayerDataComponent::ChangePlayerCurrentRecipe(FFactoryRecipeInfo NewRecipe)
+{
+	SystemStatus.CurrentRecipeInfo = NewRecipe;
+	OnRecipeInfoChanged.Broadcast(SystemStatus.CurrentRecipeInfo);
+}
+
+FFactoryRecipeInfo UPlayerDataComponent::GetRecipeInfo(ERecipeType eType)
+{
+	for (auto Recipe : PlayerDataContainer.RecipeInfos)
+	{
+		if (Recipe.RecipeType == eType)
+		{
+			return Recipe;
+		}
+	}
+	return FFactoryRecipeInfo();
+}
+
 void UPlayerDataComponent::BroadcastTimeZeroGameover()
 {
 	OnTimeZeroGameOver.Broadcast(UPlayerDataComponent::StaticClass());
 }
-

@@ -1,6 +1,7 @@
 
 #include "ItemAbilityComponent.h"
 #include "Engine/World.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UItemAbilityComponent::UItemAbilityComponent()
 {
@@ -33,6 +34,9 @@ void UItemAbilityComponent::OnInitializeAbility()
 		
 		ReceiveOnInitializeAbility();
 	}
+	FName AbilityName = UEnum::GetValueAsName(AbilityType);
+	if (GetWorld())
+		UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Initialized"), *AbilityName.ToString()), true);
 }
 
 void UItemAbilityComponent::OnActivateAbility()
@@ -43,11 +47,11 @@ void UItemAbilityComponent::OnActivateAbility()
 		
 		PrimaryComponentTick.bCanEverTick = true;
 		
-		
-		OnAbilityActivated.Broadcast(AbilityType);
-		
 		ReceiveOnActivateAbility();
 	}
+	FName AbilityName = UEnum::GetValueAsName(AbilityType);
+	if (GetWorld())
+			UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Activated"), *AbilityName.ToString()), true);
 }
 
 void UItemAbilityComponent::OnTickAbility()
@@ -62,12 +66,12 @@ void UItemAbilityComponent::OnDeactivateAbility()
 		bIsActivated = false;
 		
 		PrimaryComponentTick.bCanEverTick = false;
-		
-		
-		OnAbilityDeactivated.Broadcast(AbilityType);
-		
+
 		ReceiveOnDeactivateAbility();
 	}
+	FName AbilityName = UEnum::GetValueAsName(AbilityType);
+	if (GetWorld())
+		UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Deactivated"), *AbilityName.ToString()), true);
 }
 
 void UItemAbilityComponent::OnStartUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera)

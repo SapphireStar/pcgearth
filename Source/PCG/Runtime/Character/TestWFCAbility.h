@@ -3,11 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "FactoryBuilding.h"
 #include "GridSelection.h"
 #include "ItemAbilityComponent.h"
 #include "Components/DynamicMeshComponent.h"
 #include "Data/PlayerDataComponent.h"
+#include "PCG/Runtime/Factory/FactoryBuilding.h"
 #include "PCG/Runtime/NewPlanet/MineSphere.h"
 #include "TestWFCAbility.generated.h"
 

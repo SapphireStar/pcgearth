@@ -21,30 +21,22 @@ void UTerrainDigAbility::BeginPlay()
 void UTerrainDigAbility::OnInitializeAbility()
 {
 	Super::OnInitializeAbility();
-	UE_LOG(LogTemp, Log, TEXT("TerrainDigAbility initialized"));
 }
 
 void UTerrainDigAbility::OnActivateAbility()
 {
 	Super::OnActivateAbility();
-	UE_LOG(LogTemp, Log, TEXT("TerrainDigAbility activated - Ready to dig!"));
-	
-	// 激活时可以显示挖掘预览等
 }
 
 void UTerrainDigAbility::OnTickAbility()
 {
 	Super::OnTickAbility();
-	// 如果需要持续更新的逻辑，可以在这里实现
-	// 例如：显示挖掘预览、更新UI等
+
 }
 
 void UTerrainDigAbility::OnDeactivateAbility()
 {
 	Super::OnDeactivateAbility();
-	UE_LOG(LogTemp, Log, TEXT("TerrainDigAbility deactivated"));
-	
-	// 停用时清理预览等
 }
 
 void UTerrainDigAbility::OnStartUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera)
@@ -146,24 +138,19 @@ void UTerrainDigAbility::DigTerrain(AGeometryPlanetActor* Planet, const TArray<i
 
 	auto Mesh = Planet->GetDynamicMeshComponent();
     
-	// Analyze terrain variation
 	FTerrainAnalysis Analysis = AnalyzeTerrainVariation(Mesh, VertexIndices);
     
-	// Get lowest vertex position
 	bool bIsValid;
 	FVector LowestPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
 		Mesh->GetDynamicMesh(), Analysis.LowestVertexID, bIsValid);
 	float LowestLength = LowestPos.Length();
     
-	// Determine operation mode
 	bool bShouldFlatten = bForceAdaptive ? false : Analysis.bShouldFlatten;
 	float DigDepthToUse = bShouldFlatten ? 0.0f : CalculateAdaptiveDigDepth(Analysis);
     
-	// Log decision for debugging
 	UE_LOG(LogTemp, Log, TEXT("Terrain Analysis - Accumulated Diff: %.2f, Should Flatten: %s, Dig Depth: %.2f"), 
 		Analysis.AccumulatedDifference, bShouldFlatten ? TEXT("Yes") : TEXT("No"), DigDepthToUse);
     
-	// Apply terrain modification
 	for (int32 VertexID : VertexIndices)
 	{
 		FVector CurrentPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
@@ -176,12 +163,10 @@ void UTerrainDigAbility::DigTerrain(AGeometryPlanetActor* Planet, const TArray<i
         
 		if (bShouldFlatten)
 		{
-			// Flatten all vertices to lowest vertex level
 			NewLength = LowestLength;
 		}
 		else
 		{
-			// Apply adaptive dig depth
 			float CurrentLength = CurrentPos.Length();
 			NewLength = FMath::Max(CurrentLength - DigDepthToUse, LowestLength * 0.1f);
 		}
@@ -190,7 +175,6 @@ void UTerrainDigAbility::DigTerrain(AGeometryPlanetActor* Planet, const TArray<i
 			Mesh->GetDynamicMesh(), VertexID, Normal * NewLength, bIsValid);
 	}
 
-	//Planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
 	Planet->GetDynamicMeshComponent()->UpdateCollision();
 }
 

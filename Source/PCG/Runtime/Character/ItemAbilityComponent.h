@@ -5,14 +5,6 @@
 #include "Data/DataTypes.h"
 #include "ItemAbilityComponent.generated.h"
 
-
-
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityChanged, EAbilityType, OldAbility, EAbilityType, NewAbility);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityActivated, EAbilityType, AbilityType);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityDeactivated, EAbilityType, AbilityType);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityStatusChanged, class UItemAbilityComponent*, AbilityComponent);
-
 UCLASS(Blueprintable)
 class PCG_API UItemAbilityComponent : public UActorComponent
 {
@@ -74,22 +66,15 @@ public:
 	virtual void OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera);
 
 public:
-	UPROPERTY(BlueprintAssignable)
-	FOnAbilityActivated OnAbilityActivated;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnAbilityDeactivated OnAbilityDeactivated;
-
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsActivated = false;
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsInitialized = false;
 
-	UPROPERTY(BlueprintReadOnly)
-	EAbilityType AbilityType = EAbilityType::None;
-
-protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EAbilityType AbilityType;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability Info")
 	FString AbilityName = TEXT("Base Ability");
 

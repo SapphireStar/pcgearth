@@ -482,7 +482,8 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAtByFrame(const FWFC
 		Tile.Category = TileDef.Category;
 		VisualizationData.Tiles.Add(Tile);
 	}
-	GetWorld()->SpawnActor<AWFCVisualizer>()->StartVisualization(GenerationActorPerFrame, VisualizationData);
+	if (GetWorld())
+		GetWorld()->SpawnActor<AWFCVisualizer>()->StartVisualization(GenerationActorPerFrame, VisualizationData);
 	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Created %d tile actors"), CreatedCount);
 	return nullptr;
 }

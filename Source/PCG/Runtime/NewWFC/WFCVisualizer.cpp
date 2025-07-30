@@ -4,6 +4,7 @@
 #include "WFCVisualizer.h"
 
 #include "WFCTileSet.h"
+#include "PCG/Runtime/PCGGameMode.h"
 
 
 // Sets default values
@@ -23,7 +24,8 @@ AWFCVisualizer::AWFCVisualizer()
 void AWFCVisualizer::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	auto PlayerData = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData;
+	PlayerData->OnTimeZeroGameOver.AddDynamic(this, &AWFCVisualizer::OnTimeZeroGameover);
 }
 
 // Called every frame
@@ -49,6 +51,7 @@ void AWFCVisualizer::StartVisualization(int ActorsPerFrame, const FWFCVisualizat
 
 void AWFCVisualizer::StopVisualization()
 {
+	ClearVisualization();
 }
 
 void AWFCVisualizer::ClearVisualization()
@@ -57,6 +60,7 @@ void AWFCVisualizer::ClearVisualization()
 	{
 		Actor->Destroy();
 	}
+	SpawnedActors.Empty();
 }
 
 void AWFCVisualizer::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -70,6 +74,11 @@ void AWFCVisualizer::Destroyed()
 {
 	Super::Destroyed();
 	
+}
+
+void AWFCVisualizer::OnTimeZeroGameover(UClass* ClassType)
+{
+	ClearVisualization();
 }
 
 void AWFCVisualizer::ProcessSpawnTasks()
@@ -141,6 +150,7 @@ AActor* AWFCVisualizer::SpawnTileActor(const FWFCVisualizationTile& Tile)
 	TileActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	TileActor->SetActorRelativeLocation(Tile.Location);
 	TileActor->SetActorRelativeRotation(Tile.Rotation);
+	SpawnedActors.Add(TileActor);
 	return TileActor;
 }
 

@@ -69,6 +69,10 @@ void AGeometryPlanetActor::InitializePlanet(FGeometryPlanetData PlanetData)
 	FoliageAmount = PlanetData.FoliageAmount;
 	bShouldSpawnFoliage = PlanetData.bShouldSpawnFoliage;
 	MineConfiguration.MaxMineSphereAmount = PlanetData.MineConfiguration.MaxMineSphereAmount;
+	for (AMineSphere* Mine: MineSpheres)
+	{
+		Mine->Destroy();
+	}
 	MineSpheres.Empty();
 }
 

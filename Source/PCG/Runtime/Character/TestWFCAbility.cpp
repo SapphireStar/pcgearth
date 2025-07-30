@@ -11,6 +11,7 @@
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "PCG/Runtime/NewWFC/WFCGeneratorComponent.h"
 #include "TerrainBuildAbility.h"
+#include "PCG/Runtime/Factory/FactoryBuilding.h"
 #include "PCG/Runtime/NewPlanet/GeometryPlanetActor.h"
 
 UTestWFCAbility::UTestWFCAbility()
@@ -248,10 +249,10 @@ bool UTestWFCAbility::TryConsumeWood(int& outVolume)
 		UE_LOG(LogTemp, Warning, TEXT("Try consume wood"));
 		int volume = WFCGeneratorComponent->Configuration.GridSize.X * WFCGeneratorComponent->Configuration.GridSize.Y *
 			WFCGeneratorComponent->Configuration.GridSize.Z;
-		if (PlayerData->GetPlayerWoodValue() >= volume)
+		if (PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Wood) >= volume)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%d Wood consumed"), volume);
-			PlayerData->ChangePlayerWoodValue(PlayerData->GetPlayerWoodValue() - volume);
+			PlayerData->ChangePlayerResourceValue(EFactoryResource::EFR_Wood, PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Wood) - volume);
 			outVolume = volume;
 			return true;
 		}

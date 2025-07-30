@@ -6,17 +6,37 @@
 #include "DataTypes.h"
 #include "PlayerDataComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerStatusChanged, FPlayerStatusNew, OldValue, const FPlayerStatusNew&, NewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerStatusChanged, FPlayerStatusNew, OldValue,
+                                             const FPlayerStatusNew&, NewValue);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWoodChanged, int, OldValue, int, NewValue);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStoneChanged, int, OldValue, int, NewValue);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnOreChanged, int, OldValue, int, NewValue);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMetalChanged, int, OldValue, int, NewValue);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGemChanged, int, OldValue, int, NewValue);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPlayerResourceChanged, EFactoryResource, ResourceType, int, OldValue, int, NewValue);
+
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemainDaysChanged, int, OldValue, int, NewValue);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentTimeChanged, int, OldValue, int, NewValue);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentTempleStageChanged, int, OldValue, int, NewValue);
+
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDataComponentInitialized, UClass*, DataClassType);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimeZeroGameOver, UClass*, DataClassType);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProduceTypeChanged, EFactoryResource, ResourceType);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRecipeInfoChanged, FFactoryRecipeInfo, RecipeInfo);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PCG_API UPlayerDataComponent : public UActorComponent
 {
@@ -39,78 +59,92 @@ public:
 	void InitializePlayerData(FPlayerDataContainer InitialPlayerData);
 
 	UFUNCTION(BlueprintCallable)
-	FPlayerDataContainer GetPlayerData() { return PlayerDataContainer;}
+	FPlayerDataContainer GetPlayerData() { return PlayerDataContainer; }
 
 	UFUNCTION(BlueprintCallable)
-	void ChangePlayerWoodValue(int NewValue);
+	void ChangePlayerResourceValue(EFactoryResource eResourceType, int NewValue);
 
 	UFUNCTION(BlueprintPure)
-	int GetPlayerWoodValue() const {return PlayerStatus.Wood.Value;}
+	int GetPlayerResourceValue(EFactoryResource eResourceType) const
+	{
+		for (auto Element : PlayerStatus.Resources)
+		{
+			if (Element.ResourceType == eResourceType)
+			{
+				return Element.Value;
+			}
+		}
+		return -1;
+	}
 
-	UFUNCTION(BlueprintCallable)
-	void ChangePlayerStoneValue(int NewValue);
 
-	UFUNCTION(BlueprintPure)
-	int GetPlayerStoneValue() const{return PlayerStatus.Stone.Value;}
-
-	UFUNCTION(BlueprintCallable)
-	void ChangePlayerOreValue(int NewValue);
-
-	UFUNCTION(BlueprintPure)
-	int GetPlayerOreValue() const {return PlayerStatus.Ore.Value;}
-
-	UFUNCTION(BlueprintCallable)
-	void ChangePlayerMetalValue(int NewValue);
-
-	UFUNCTION(BlueprintPure)
-	int GetPlayerMetalValue() const {return PlayerStatus.Metal.Value;}
-	
-	
 	UFUNCTION(BlueprintCallable)
 	void ChangePlayerRemainDaysValue(int NewValue);
-	
+
 	UFUNCTION(BlueprintPure)
-	int GetPlayerRemainDaysValue() const {return SystemStatus.RemainDays; }
+	int GetPlayerRemainDaysValue() const { return SystemStatus.RemainDays; }
 
 	UFUNCTION(BlueprintCallable)
 	void ChangePlayerCurrentTimeValue(int NewValue);
 
 	UFUNCTION(BlueprintPure)
-	int GetPlayerCurrentTimeValue() const {return SystemStatus.CurrentTime; }
+	int GetPlayerCurrentTimeValue() const { return SystemStatus.CurrentTime; }
+
+	UFUNCTION(BlueprintCallable)
+	void ChangePlayerCurrentTempleStageValue(int NewValue);
+
+	UFUNCTION(BlueprintPure)
+	int GetPlayerCurrentTempleStageValue() const { return SystemStatus.CurrentTempleStage; }
+
+	UFUNCTION(BlueprintCallable)
+	void ChangePlayerCurrentProduceType(EFactoryResource NewResourceType);
+
+	UFUNCTION(BlueprintPure)
+	EFactoryResource GetPlayerCurrentProduceType() const { return SystemStatus.CurrentProduceType; }
+
+	UFUNCTION(BlueprintCallable)
+	void ChangePlayerCurrentRecipe(FFactoryRecipeInfo NewRecipe);
+
+	UFUNCTION(BlueprintPure)
+	FFactoryRecipeInfo GetPlayerCurrentRecipe() const { return SystemStatus.CurrentRecipeInfo; }
+
+	UFUNCTION(BlueprintPure)
+	FFactoryRecipeInfo GetRecipeInfo(ERecipeType eType);
 
 
 	UFUNCTION(BlueprintCallable)
 	void BroadcastTimeZeroGameover();
-	
+
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerStatusChanged OnPlayerStatusChanged;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnWoodChanged OnWoodChanged;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnStoneChanged OnStoneChanged;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnOreChanged OnOreChanged;
 	
 	UPROPERTY(BlueprintAssignable)
-	FOnMetalChanged OnMetalChanged;
+	FOnPlayerResourceChanged OnPlayerResourceChanged;
 
-	
+
 	UPROPERTY(BlueprintAssignable)
 	FOnRemainDaysChanged OnRemainDaysChanged;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnCurrentTimeChanged OnCurrentTimeChanged;
 
-	
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FOnCurrentTempleStageChanged OnCurrentTempleStageChanged;
+
+
 	UPROPERTY(BlueprintAssignable)
 	FOnDataComponentInitialized OnInitialized;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnTimeZeroGameOver OnTimeZeroGameOver;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FOnProduceTypeChanged OnProduceTypeChanged;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FOnRecipeInfoChanged OnRecipeInfoChanged;
+
 private:
 	FPlayerStatusNew PlayerStatus;
 	FSystemStatus SystemStatus;

@@ -16,3 +16,19 @@ void APCGGameMode::BeginPlay()
 	PlayerData->RegisterComponent();*/
 	Super::BeginPlay();
 }
+
+void APCGGameMode::ShowPopup(EPopupType PopupType)
+{
+	if (bIsShowingPopup)
+	{
+		return;
+	}
+	bIsShowingPopup = true;
+	OnShowPopup.Broadcast(PopupType);
+}
+
+void APCGGameMode::HidePopup()
+{
+	bIsShowingPopup = false;
+	OnHidePopup.Broadcast();
+}

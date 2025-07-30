@@ -20,20 +20,36 @@ enum class EFactoryResource : uint8
 	EFR_Stone 			UMETA(DisplayName = "Stone"),
 	EFR_Ore 			UMETA(DisplayName = "Ore"),
 	EFR_Metal 			UMETA(DisplayName = "Metal"),
+	EFR_Gem				UMETA(DisplayName = "Gem"),	
 };
 
 UENUM(BlueprintType)
 enum class EAbilityType : uint8
 {
-	None,
-	TerrainBuild,
-	TerrainDig,
-	GetResource,
-	TestWFC,
+	None				UMETA(DisplayName = "None"),
+	TerrainBuild		UMETA(DisplayName = "TerrainBuild"),
+	TerrainDig			UMETA(DisplayName = "TerrainDig"),
+	GetResource			UMETA(DisplayName = "GetResource"),
+	TestWFC				UMETA(DisplayName = "TestWFC"),
+	TerrainBuildCrafter	UMETA(DisplayName = "TerrainBuildCrafter"),
+};
+
+UENUM(BlueprintType)
+enum class ERecipeType : uint8
+{
+	Metal		UMETA(DisplayName = "Metal"),
+	Gem			UMETA(DisplayName = "Gem"),
+};
+
+UENUM(BlueprintType)
+enum class EPopupType : uint8
+{
+	SubmitPopup		UMETA(DisplayName = "SubmitPopup"),
+	GameWindowPopup	UMETA(DisplayName = "GameWindowPopup"),
 };
 
 USTRUCT(BlueprintType, Blueprintable)
-struct PCG_API FResourceStatusNew
+struct PCG_API FResourceInfo
 {
 	GENERATED_BODY()
 	
@@ -45,7 +61,16 @@ struct PCG_API FResourceStatusNew
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Title;
+};
 
+USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FResourceStatus
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EFactoryResource ResourceType;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int Value;
 };
@@ -56,6 +81,10 @@ struct PCG_API FPlayerStatusNew
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FResourceStatus> Resources;
+
+	/*
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FResourceStatusNew Wood;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -65,31 +94,30 @@ struct PCG_API FPlayerStatusNew
 	FResourceStatusNew Ore;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FResourceStatusNew Metal;
+	FResourceStatusNew Metal;*/
 };
 
-USTRUCT(BlueprintType)
-struct FResourceCost
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EFactoryResource ResourceType;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Amount = 0;
-};
-
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, Blueprintable)
 struct FFactoryRecipeInfo
 {
 	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	ERecipeType RecipeType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FResourceCost> Input;
+	TArray<FResourceStatus> Input;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FResourceCost Output;
+	FResourceStatus Output;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FRequiredResourceInfo : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FResourceStatus> RequiredResource;
 };
 
 USTRUCT(BlueprintType)
@@ -98,7 +126,7 @@ struct FFactoryInfo
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MiningCD = 5;
+	float ProduceCD = 5;
 
 	// 用于调整工厂大小对工厂效率的影响
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -112,6 +140,9 @@ struct FFactoryInfo
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float FactoryRadius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bEnableFactorySphereCollision;
 };
 
 USTRUCT(BlueprintType, Blueprintable)
@@ -127,6 +158,15 @@ struct PCG_API FSystemStatus
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int TargetMineCount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int CurrentTempleStage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EFactoryResource CurrentProduceType;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FFactoryRecipeInfo CurrentRecipeInfo;
 };
 
 USTRUCT(BlueprintType, Blueprintable)
@@ -140,8 +180,15 @@ struct PCG_API FPlayerDataContainer
 	FSystemStatus SystemStatus;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FFactoryInfo FactoryInfo;
+	FFactoryInfo MiningFactoryInfo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FFactoryInfo CraftingFactoryInfo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FFactoryRecipeInfo> RecipeInfos;
 };
+
 
 
 

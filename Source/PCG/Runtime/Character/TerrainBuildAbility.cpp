@@ -1,6 +1,6 @@
 #include "TerrainBuildAbility.h"
 #include "EngineUtils.h"
-#include "FactoryCrafter.h"
+#include "PCG/Runtime/Factory/FactoryBuilding.h"
 #include "ViewportInteractionTypes.h"
 #include "Camera/CameraComponent.h"
 #include "GeometryScript/GeometryScriptSelectionTypes.h"
@@ -10,6 +10,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "PCG/Runtime/PCGGameMode.h"
+#include "PCG/Runtime/Factory/FactoryCrafter.h"
 #include "PCG/Runtime/NewPlanet/GeometryPlanetActor.h"
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "PCG/Runtime/NewWFC/WFCGeneratorComponent.h"
@@ -18,7 +19,6 @@ UTerrainBuildAbility::UTerrainBuildAbility()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	FactorySphereMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FactorySphereMesh"));
-
 }
 
 void UTerrainBuildAbility::BeginPlay()
@@ -46,35 +46,29 @@ void UTerrainBuildAbility::BeginPlay()
 		}
 	}
 
+	if (!FactoryManager && GetWorld())
+	{
+		for (TActorIterator<AFactoryManager>  ActorItr(GetWorld()); ActorItr; ++ActorItr)
+		{
+			FactoryManager = *ActorItr;
+			break;
+		}
+	}
+
 	//FactorySphereMeshComponent->SetupAttachment(GetOwner()->GetRootComponent());
-	if (FactorySphereMesh)
-	{
-		FactorySphereMeshComponent->SetStaticMesh(FactorySphereMesh);
-	}
-	if (FactorySphereMaterial)
-	{
-		FactorySphereDynamicMaterial = UMaterialInstanceDynamic::Create(FactorySphereMaterial, this);
-		FactorySphereMeshComponent->SetMaterial(0,  FactorySphereDynamicMaterial);
-	}
-	float MeshRadius = FactorySphereMeshComponent->GetStaticMesh()->GetBoundingBox().GetExtent().X;
-	float MeshScale =PlayerData->GetPlayerData().FactoryInfo.FactoryRadius / MeshRadius;
-	FactorySphereMeshComponent->SetWorldScale3D(FVector(MeshScale, MeshScale, MeshScale));
-	FactorySphereMeshComponent->SetVisibility(false);
-	FactorySphereMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	InitializeMineSphere();
 }
 
 void UTerrainBuildAbility::OnInitializeAbility()
 {
 	Super::OnInitializeAbility();
 	PlayerData = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData;
-	UE_LOG(LogTemp, Log, TEXT("TerrainBuildAbility initialized"));
 }
 
 void UTerrainBuildAbility::OnActivateAbility()
 {
 	Super::OnActivateAbility();
 	bIsGridSlectionStarted = false;
-	UE_LOG(LogTemp, Log, TEXT("TerrainBuildAbility activated - Ready to build!"));
 }
 
 void UTerrainBuildAbility::OnTickAbility()
@@ -84,7 +78,7 @@ void UTerrainBuildAbility::OnTickAbility()
 	{
 		FBox GridBounds = GridSelection->PeekGridSelection();
 		FVector TargetPos = GridBounds.GetCenter();
-		if (CheckCanBuildFactory(TargetPos, 0, GridBounds)&&CheckIsOnMineSphere(GridBounds))
+		if (CheckCanBuildFactory(TargetPos, 0, GridBounds) && CheckIsOnMineSphere(GridBounds))
 		{
 			ChangeFactorySphereColor(AvailableColor);
 		}
@@ -100,11 +94,11 @@ void UTerrainBuildAbility::OnTickAbility()
 void UTerrainBuildAbility::OnDeactivateAbility()
 {
 	Super::OnDeactivateAbility();
-	GridSelection->ShutDownGridSelection();
+	if (GridSelection)
+		GridSelection->ShutDownGridSelection();
 	bIsGridSlectionStarted = false;
 	DeselectPlanet();
 	FactorySphereMeshComponent->SetVisibility(false);
-	UE_LOG(LogTemp, Log, TEXT("TerrainBuildAbility deactivated"));
 }
 
 void UTerrainBuildAbility::OnStartUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera)
@@ -161,7 +155,11 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 				                                  FindNormalOnPlanet(HitResult.ImpactPoint,
 				                                                     planet->GetActorLocation()));
 				bIsGridSlectionStarted = true;
-				FactorySphereMeshComponent->SetVisibility(true);
+
+				if (bShouldCheckNearFactory)
+				{
+					FactorySphereMeshComponent->SetVisibility(true);
+				}
 			}
 			else
 			{
@@ -205,6 +203,21 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 	}
 }
 
+void UTerrainBuildAbility::InitializeMineSphere()
+{
+	if (FactorySphereMesh && FactorySphereMaterial)
+	{
+		FactorySphereMeshComponent->SetStaticMesh(FactorySphereMesh);
+		FactorySphereDynamicMaterial = UMaterialInstanceDynamic::Create(FactorySphereMaterial, this);
+		FactorySphereMeshComponent->SetMaterial(0,  FactorySphereDynamicMaterial);
+		float MeshRadius = FactorySphereMeshComponent->GetStaticMesh()->GetBoundingBox().GetExtent().X;
+		float MeshScale =PlayerData->GetPlayerData().MiningFactoryInfo.FactoryRadius / MeshRadius;
+		FactorySphereMeshComponent->SetWorldScale3D(FVector(MeshScale, MeshScale, MeshScale));
+		FactorySphereMeshComponent->SetVisibility(false);
+		FactorySphereMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
+
 bool UTerrainBuildAbility::CheckCanBuildFactory(FVector Position, int Volume, FBox GridBounds)
 {
 	
@@ -239,7 +252,7 @@ bool UTerrainBuildAbility::CheckCanBuildFactory(FVector Position, int Volume, FB
 		float LowestLength = lowestPos.Length();
 		BuildingPos = Planet->GetActorLocation() + BuildingPosNormal * LowestLength - 50.f;
 
-		float Radius = CalculateFactoryRadius(Volume);
+		float Radius = CalculateCollisionCheckRadius(GridBounds);
 		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
 
@@ -266,7 +279,7 @@ bool UTerrainBuildAbility::CheckCanBuildFactory(FVector Position, int Volume, FB
 	}
 	else
 	{
-		float Radius = CalculateFactoryRadius(Volume);
+		float Radius = CalculateCollisionCheckRadius(GridBounds);
 		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
 
@@ -298,12 +311,18 @@ bool UTerrainBuildAbility::CheckCanBuildFactory(FVector Position, int Volume, FB
 
 float UTerrainBuildAbility::CalculateFactoryRadius(int Volume)
 {
-	return PlayerData->GetPlayerData().FactoryInfo.FactoryRadius;
+	return PlayerData->GetPlayerData().MiningFactoryInfo.FactoryRadius;
+}
+
+float UTerrainBuildAbility::CalculateCollisionCheckRadius(FBox GridBounds)
+{
+	return GridBounds.GetExtent().Length()/2.0f;
 }
 
 void UTerrainBuildAbility::ChangeFactorySphereColor(FLinearColor NewColor)
 {
-	FactorySphereDynamicMaterial->SetVectorParameterValue(FName("Color"), NewColor);
+	if (bShouldCheckNearFactory)
+		FactorySphereDynamicMaterial->SetVectorParameterValue(FName("Color"), NewColor);
 }
 
 bool UTerrainBuildAbility::ProcessBuilding(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds,
@@ -444,8 +463,7 @@ bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHi
 
 void UTerrainBuildAbility::SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere, float Radius)
 {
-	AMiningBuilding* Factory = GetWorld()->SpawnActor<AMiningBuilding>();
-	Factory->BuildFactoryAt(Position, Volume, MineSphere, Radius, OnAbilityActivated, OnAbilityDeactivated);
+	FactoryManager->BuildMiningFactoryAt(Position, Volume, MineSphere, PlayerData->GetPlayerData().MiningFactoryInfo);
 }
 
 bool UTerrainBuildAbility::TryConsumeWood(int& outVolume)
@@ -455,10 +473,10 @@ bool UTerrainBuildAbility::TryConsumeWood(int& outVolume)
 		UE_LOG(LogTemp, Warning, TEXT("Try consume wood"));
 		int volume = WFCGeneratorComponent->Configuration.GridSize.X * WFCGeneratorComponent->Configuration.GridSize.Y *
 			WFCGeneratorComponent->Configuration.GridSize.Z;
-		if (PlayerData->GetPlayerWoodValue() >= volume)
+		if (PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Wood) >= volume)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%d Wood consumed"), volume);
-			PlayerData->ChangePlayerWoodValue(PlayerData->GetPlayerWoodValue() - volume);
+			PlayerData->ChangePlayerResourceValue(EFactoryResource::EFR_Wood, PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Wood) - volume);
 			outVolume = volume;
 			return true;
 		}
@@ -522,9 +540,6 @@ FIntVector UTerrainBuildAbility::CalculateWFCGridSize(FBox GridBounds)
 	int SizeX = UKismetMathLibrary::Round((GridBounds.Max.X - GridBounds.Min.X) / GridSelection->GetGridSize());
 	int SizeY = UKismetMathLibrary::Round((GridBounds.Max.Y - GridBounds.Min.Y) / GridSelection->GetGridSize());
 	int SizeZ = UKismetMathLibrary::Round((GridBounds.Max.Z - GridBounds.Min.Z) / GridSelection->GetGridSize());
-	UE_LOG(LogTemp, Warning, TEXT("SizeX: %f, SizeY: %f"),
-	       (GridBounds.Max.X - GridBounds.Min.X)/(float)GridSelection->GetGridSize(),
-	       (GridBounds.Max.Y - GridBounds.Min.Y)/(float)GridSelection->GetGridSize());
 	return FIntVector(SizeX, SizeY, SizeZ);
 }
 

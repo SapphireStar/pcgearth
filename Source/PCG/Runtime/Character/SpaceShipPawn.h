@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "InputAction.h"
 #include "ItemAbilityComponent.h"
+#include "Data/PlayerDataComponent.h"
 #include "GameFramework/DefaultPawn.h"
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "SpaceShipPawn.generated.h"
@@ -17,6 +18,9 @@ class UInputAction;
 class UCameraComponent;
 class USpringArmComponent;
 class UCapsuleComponent;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityChanged, EAbilityType, OldAbility, EAbilityType, NewAbility);
+
 UCLASS()
 class PCG_API ASpaceShipPawn : public APawn
 {
@@ -42,9 +46,7 @@ public:
 	void StopMove(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Roll(const FInputActionValue& Value);
-	void SelectPoint(const FInputActionValue& Value);
 	void Rise(const FInputActionValue& Value);
-	void DigTerrain(const FInputActionValue& Value);
 	void ProcessInput(float Deltatime);
 	void CycleAbility(const FInputActionValue& Value);
 	void StartUseAbility(const FInputActionValue& Value);
@@ -53,12 +55,21 @@ public:
 
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
-	TObjectPtr<UItemAbilityComponent> CreateAbilityComponent(EAbilityType eAbilityType);
-
+	TObjectPtr<UItemAbilityComponent> CreateAbilityComponent(EAbilityType eAbilityType, FName AbilityName);
+	
 	void DrawDebugInfo();
 	void DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, const FVector& Acceleration);
 
 	float GetLaserRange() const { return LaserRange; }
+	
+	UFUNCTION(BlueprintCallable)
+	int GetCurrentAbilityIndex(){return  CurrentAbilityIndex;}
+	
+	UFUNCTION(BlueprintCallable)
+	void ChangeCraftRecipe(FFactoryRecipeInfo RecipeInfo);
+
+	UPROPERTY(BlueprintAssignable)
+	FOnAbilityChanged OnAbilityChanged;
 protected:
 	//Components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -75,9 +86,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UCameraComponent> Camera;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UItemPlaceComponent> ItemPlaceComponent;
 
 	//Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -187,8 +195,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<TObjectPtr<UItemAbilityComponent>> Abilities;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnAbilityChanged OnAbilityChanged;
+private:
+
+	UPROPERTY()
+	TObjectPtr<UPlayerDataComponent> PlayerData;
 
 	int CurrentAbilityIndex = 0;
 };

@@ -3,17 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "FactoryBuilding.h"
-#include "FactoryCrafter.generated.h"
+#include "Components/SphereComponent.h"
+#include "GameFramework/Actor.h"
+#include "PCG/Runtime/PCGGameMode.h"
+#include "PCG/Runtime/Character/Data/DataTypes.h"
+#include "BaseBuilding.generated.h"
 
 UCLASS()
-class PCG_API ACraftingBuilding : public AActor
+class PCG_API ABaseBuilding : public AActor
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this actor's properties
-	ACraftingBuilding();
+	ABaseBuilding();
 
 protected:
 	// Called when the game starts or when spawned
@@ -23,37 +26,39 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintCallable)
-	virtual bool CheckCanBuildFactory(FVector Position, int Volume);
-
-	UFUNCTION(BlueprintCallable)
-	void BuildFactoryAt(FVector Position, int Volume);
-
-	UFUNCTION(BlueprintCallable)
+	void BuildFactoryAt(FVector Position, int Volume, FFactoryInfo Info);
 	void ActivateFactory();
-	
-	UFUNCTION(BlueprintCallable)
 	void DeactivateFactory();
 
 protected:
 	void OnBuildFactory(int Volume);
 	void OnTickFactory(float Deltatime);
 	void OnDestroyFactory();
-
-	bool StartOneCraft();
-	bool CheckHasResource();
+	virtual bool StartOneProduce();
+	
+	UFUNCTION()
+	virtual void OnPlayerSwitchAbility(EAbilityType OldAbility, EAbilityType NewAbility);
+	UFUNCTION()
+	void OnTerrainBuildAbilityActivated(EAbilityType eType);
+	UFUNCTION()
+	void OnTerrainBuildAbilityDeactivated(EAbilityType eType);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FFactoryInfo FactoryInfo;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FFactoryRecipeInfo RecipeInfo;
-
 protected:
 	TObjectPtr<APCGGameMode> PCGGameMode;
 	
 	TObjectPtr<UPlayerDataComponent> PlayerData;
+
+	TObjectPtr<USphereComponent> SphereCollision;
+
+	TObjectPtr<UStaticMeshComponent> SphereStaticMeshComponent;
+
+	TObjectPtr<UStaticMeshComponent> SphereStaticMesh;
+
+	TObjectPtr<UMaterial> SphereMaterial;
 
 	bool bIsFactoryActivated = false;
 

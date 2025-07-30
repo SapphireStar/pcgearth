@@ -34,7 +34,10 @@ public:
 	void ClearVisualization();
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Destroyed() override;
-
+	
+	UFUNCTION()
+	void OnTimeZeroGameover(UClass* ClassType);
+	
 	FOnVisualizationComplete OnVisualizationComplete;
 	FOnVisualizationProgress OnVisualizationProgress;
 

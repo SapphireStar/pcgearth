@@ -1,10 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "FactoryBuilding.h"
 #include "GridSelection.h"
 #include "ItemAbilityComponent.h"
 #include "Data/PlayerDataComponent.h"
+#include "PCG/Runtime/Factory/FactoryBuilding.h"
+#include "PCG/Runtime/Factory/FactoryManager.h"
 #include "PCG/Runtime/NewPlanet/MineSphere.h"
 #include "TerrainBuildAbility.generated.h"
 
@@ -49,14 +50,16 @@ public:
 	virtual void OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera) override;
 
 
-private:
+protected:
+	virtual void InitializeMineSphere();
 	virtual bool CheckCanBuildFactory(FVector Position, int Volume, FBox GridBounds);
-	float CalculateFactoryRadius(int Volume);
+	virtual float CalculateFactoryRadius(int Volume);
+	virtual float CalculateCollisionCheckRadius(FBox GridBounds);
 	void ChangeFactorySphereColor(FLinearColor NewColor);
 	bool ProcessBuilding(class AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, FIntVector GridSize, AMineSphere* MineSphere);
 	void FlattenTerrain(class AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices, FBox GridBounds);
 	bool SpawnBuilding(class AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, FIntVector GridSize, AMineSphere* MineSphere, FVector LowestVertexPos);
-	void SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere, float Radius);
+	virtual void SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere, float Radius);
 	bool TryConsumeWood(int& outVolume);
 	
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
@@ -72,6 +75,9 @@ private:
 protected:
 	UPROPERTY()
 	TObjectPtr<UWFCGeneratorComponent> WFCGeneratorComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bShouldCheckNearFactory = true;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UStaticMeshComponent> FactorySphereMeshComponent;
@@ -91,15 +97,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 	float SelectRange = 10000.f;
 
+	UPROPERTY()
+	TObjectPtr<UPlayerDataComponent> PlayerData;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FLinearColor AvailableColor =  FLinearColor::Green;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FLinearColor UnavailableColor =  FLinearColor::Red;
-
-private:
-	UPROPERTY()
-	TObjectPtr<UPlayerDataComponent> PlayerData;
 
 	UPROPERTY()
 	TObjectPtr<AGridSelectionManager> GridSelection;
@@ -108,11 +113,9 @@ private:
 	TObjectPtr<AGeometryPlanetActor> Planet;
 
 	UPROPERTY()
-	TArray<TObjectPtr<AMiningBuilding>> SpawnedFactories;
+	TObjectPtr<AFactoryManager> FactoryManager;
 	
 	FHitResult LastHitResult;
-
-	bool bIsGridSlectionStarted = false;
-
 	
+	bool bIsGridSlectionStarted = false;
 };

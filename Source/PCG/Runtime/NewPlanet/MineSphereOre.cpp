@@ -40,7 +40,7 @@ int AMineSphereOre::TryStartOneMine(int Value, std::function<void(UPlayerDataCom
 	}
 	pfun = [ReturnOreValue](UPlayerDataComponent* PlayerData)
 	{
-		PlayerData->ChangePlayerOreValue(PlayerData->GetPlayerOreValue() + ReturnOreValue);
+		PlayerData->ChangePlayerResourceValue(EFactoryResource::EFR_Ore, PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Ore) + ReturnOreValue);
 	};
 	return ReturnOreValue;
 }

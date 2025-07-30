@@ -129,9 +129,7 @@ FBox AGridSelectionManager::PeekGridSelection()
 	TArray<FVector> FinalShape = TArray<FVector>(SelectedGridPoints);
 
 	GridBounds = FBox(FinalShape);
-    
-	UE_LOG(LogTemp, Log, TEXT("PeekGridSelection: %s"), *GridBounds.ToString());
-    
+	
 	return GridBounds;
 }
 

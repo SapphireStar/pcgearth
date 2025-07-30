@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "SpaceShipPawn.h"
 
 #include "EngineUtils.h"
@@ -14,6 +11,7 @@
 #include "ItemPlaceComponent.h"
 #include "MaterialHLSLTree.h"
 #include "TerrainBuildAbility.h"
+#include "TerrainBuildCrafterAbility.h"
 #include "TerrainDigAbility.h"
 #include "TestWFCAbility.h"
 #include "GeometryScript/MeshSelectionFunctions.h"
@@ -139,9 +137,7 @@ ASpaceShipPawn::ASpaceShipPawn()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
-
-	ItemPlaceComponent = CreateDefaultSubobject<UItemPlaceComponent>(TEXT("ItemPlaceComponent"));
-
+	
 	SetupPlayerAbilityComponent();
 }
 
@@ -150,8 +146,6 @@ void ASpaceShipPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	MainBody->SetSimulatePhysics(true);
-
-	
 }
 
 // Called every frame
@@ -184,18 +178,19 @@ void ASpaceShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 void ASpaceShipPawn::SetupPlayerAbilityComponent()
 {
-	TObjectPtr<UItemAbilityComponent> TerrainBuild = CreateAbilityComponent(EAbilityType::TerrainBuild);
-	TObjectPtr<UItemAbilityComponent> TerrainDig =  CreateAbilityComponent(EAbilityType::TerrainDig);
-	TObjectPtr<UItemAbilityComponent> GetResource = CreateAbilityComponent(EAbilityType::GetResource);
-	TObjectPtr<UItemAbilityComponent> TestWFC = CreateAbilityComponent(EAbilityType::TestWFC);
+	TObjectPtr<UItemAbilityComponent> TerrainBuild = CreateAbilityComponent(EAbilityType::TerrainBuild, FName("TerrainBuild"));
+	TObjectPtr<UTerrainBuildCrafterAbility> TerrainBuildCrafter =  Cast<UTerrainBuildCrafterAbility>(CreateAbilityComponent(EAbilityType::TerrainBuildCrafter, FName("TerrainBuildCrafter")));
+	TObjectPtr<UItemAbilityComponent> TerrainDig =  CreateAbilityComponent(EAbilityType::TerrainDig, FName("TerrainDig"));
+	TObjectPtr<UItemAbilityComponent> GetResource = CreateAbilityComponent(EAbilityType::GetResource, FName("GetResource"));
 	if (TerrainBuild != nullptr)
 		Abilities.Add(TerrainBuild);
 	if (TerrainDig != nullptr)
 		Abilities.Add(TerrainDig);
 	if (GetResource != nullptr)
 		Abilities.Add(GetResource);
-	if (TestWFC != nullptr)
-		Abilities.Add(TestWFC);
+	if (TerrainBuildCrafter != nullptr)
+		Abilities.Add(TerrainBuildCrafter);
+
 
 	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
 	CurrentAbilityComponent->OnActivateAbility();
@@ -405,19 +400,9 @@ void ASpaceShipPawn::Roll(const FInputActionValue& Value)
 	SetActorRotation(NewQuat);
 }
 
-void ASpaceShipPawn::SelectPoint(const FInputActionValue& Value)
-{
-	ItemPlaceComponent->SelectPoint(Front, Camera);
-}
-
 void ASpaceShipPawn::Rise(const FInputActionValue& Value)
 {
 	AddActorLocalOffset(FVector::UpVector * RiseSpeed * GetWorld()->DeltaTimeSeconds);
-}
-
-void ASpaceShipPawn::DigTerrain(const FInputActionValue& Value)
-{
-	ItemPlaceComponent->DigTerrain(Front, Camera);
 }
 
 void ASpaceShipPawn::ProcessInput(float Deltatime)
@@ -553,7 +538,7 @@ int ASpaceShipPawn::FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp,
 	return minID;
 }
 
-TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilityType eAbilityType)
+TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilityType eAbilityType, FName AbilityName)
 {
 	UItemAbilityComponent* AbilityComponent = nullptr;
 	switch (eAbilityType)
@@ -561,19 +546,23 @@ TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilit
 	case EAbilityType::None:
 		break;
 	case EAbilityType::TerrainBuild:
-		AbilityComponent = CreateDefaultSubobject<UTerrainBuildAbility>(FName("TerrainBuild"));
+		AbilityComponent = CreateDefaultSubobject<UTerrainBuildAbility>(AbilityName);
 		AbilityComponent->AbilityType =  EAbilityType::TerrainBuild;
 		break;
+	case EAbilityType::TerrainBuildCrafter:
+		AbilityComponent = CreateDefaultSubobject<UTerrainBuildCrafterAbility>(AbilityName);
+		AbilityComponent->AbilityType =  EAbilityType::TerrainBuildCrafter;
+		break;
 	case EAbilityType::TerrainDig:
-		AbilityComponent = CreateDefaultSubobject<UTerrainDigAbility>(FName("TerrainDig"));
+		AbilityComponent = CreateDefaultSubobject<UTerrainDigAbility>(AbilityName);
 		AbilityComponent->AbilityType = EAbilityType::TerrainDig;
 		break;
 	case EAbilityType::GetResource:
-		AbilityComponent = CreateDefaultSubobject<UGetResourceAbility>(FName("GetResource"));
+		AbilityComponent = CreateDefaultSubobject<UGetResourceAbility>(AbilityName);
 		AbilityComponent->AbilityType = EAbilityType::GetResource;
 		break;
 	case EAbilityType::TestWFC:
-		AbilityComponent = CreateDefaultSubobject<UTestWFCAbility>(FName("TestWFC"));
+		AbilityComponent = CreateDefaultSubobject<UTestWFCAbility>(AbilityName);
 		AbilityComponent->AbilityType = EAbilityType::TestWFC;
 		break;
 	default:
@@ -585,6 +574,14 @@ TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilit
 		UE_LOG(LogTemp, Warning, TEXT("SpaceShipPawn: Created Component is nullptr"));
 	}
 	return AbilityComponent;
+}
+
+void ASpaceShipPawn::ChangeCraftRecipe(FFactoryRecipeInfo RecipeInfo)
+{
+	if (Abilities[CurrentAbilityIndex]->AbilityType == EAbilityType::TerrainBuildCrafter)
+	{
+		Cast<UTerrainBuildCrafterAbility>(Abilities[CurrentAbilityIndex])->SetFactoryRecipeInfo(RecipeInfo);
+	}
 }
 
 void ASpaceShipPawn::DrawDebugInfo()
