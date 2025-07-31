@@ -44,3 +44,8 @@ int AMineSphereStone::TryStartOneMine(int Value, std::function<void(UPlayerDataC
 	};
 	return ReturnStoneValue;
 }
+
+EFactoryResource AMineSphereStone::GetCollectableResourceType_Implementation() const
+{
+	return EFactoryResource::EFR_Stone;
+}

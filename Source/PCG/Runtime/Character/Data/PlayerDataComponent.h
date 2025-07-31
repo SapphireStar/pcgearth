@@ -21,6 +21,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGemChanged, int, OldValue, int, 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPlayerResourceChanged, EFactoryResource, ResourceType, int, OldValue, int, NewValue);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerRecipeIndexChanged, int, OldValue, int, NewValue);
+
+
+
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRemainDaysChanged, int, OldValue, int, NewValue);
 
@@ -77,6 +81,12 @@ public:
 		return -1;
 	}
 
+	UFUNCTION(BlueprintCallable)
+	void ChangePlayerRecipeIndex(int NewIndex);
+
+	UFUNCTION(BlueprintPure)
+	int GetPlayerCurrentRecipeIndex() const {return PlayerStatus.PlayerCurrentRecipeIndex;}
+
 
 	UFUNCTION(BlueprintCallable)
 	void ChangePlayerRemainDaysValue(int NewValue);
@@ -121,6 +131,9 @@ public:
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerResourceChanged OnPlayerResourceChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnPlayerRecipeIndexChanged OnPlayerRecipeIndexChanged;
 
 
 	UPROPERTY(BlueprintAssignable)

@@ -35,8 +35,12 @@ void UItemAbilityComponent::OnInitializeAbility()
 		ReceiveOnInitializeAbility();
 	}
 	FName AbilityName = UEnum::GetValueAsName(AbilityType);
+	
 	if (GetWorld())
+	{
 		UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Initialized"), *AbilityName.ToString()), true);
+	}
+		
 }
 
 void UItemAbilityComponent::OnActivateAbility()

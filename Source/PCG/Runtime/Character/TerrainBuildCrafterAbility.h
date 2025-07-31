@@ -15,6 +15,7 @@ class PCG_API UTerrainBuildCrafterAbility : public UTerrainBuildAbility
 public:
 	// Sets default values for this component's properties
 	UTerrainBuildCrafterAbility();
+	virtual void OnInitializeAbility() override;
 	virtual void OnTickAbility() override;
 	virtual  void InitializeMineSphere() override;
 	virtual void OnActivateAbility() override;

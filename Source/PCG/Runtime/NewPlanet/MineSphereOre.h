@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "MineSphere.h"
+#include "PCG/Runtime/Character/CollectableItemInterface.h"
 #include "MineSphereOre.generated.h"
 
 UCLASS()
-class PCG_API AMineSphereOre : public AMineSphere
+class PCG_API AMineSphereOre : public AMineSphere, public ICollectableItemInterface
 {
 	GENERATED_BODY()
 
@@ -24,4 +25,5 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	virtual int TryStartOneMine(int Value, std::function<void(UPlayerDataComponent*)>& pfun) override;
+	virtual EFactoryResource GetCollectableResourceType_Implementation() const override;
 };

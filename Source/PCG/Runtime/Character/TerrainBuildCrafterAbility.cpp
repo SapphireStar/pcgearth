@@ -13,6 +13,11 @@ UTerrainBuildCrafterAbility::UTerrainBuildCrafterAbility()
 	
 }
 
+void UTerrainBuildCrafterAbility::OnInitializeAbility()
+{
+	Super::OnInitializeAbility();
+}
+
 void UTerrainBuildCrafterAbility::OnTickAbility()
 {
 	UItemAbilityComponent::OnTickAbility();
@@ -50,7 +55,7 @@ void UTerrainBuildCrafterAbility::InitializeMineSphere()
 void UTerrainBuildCrafterAbility::OnActivateAbility()
 {
 	Super::OnActivateAbility();
-	SetFactoryRecipeInfo(PlayerData->GetPlayerData().RecipeInfos[0]);
+	SetFactoryRecipeInfo(PlayerData->GetPlayerCurrentRecipe());
 }
 
 void UTerrainBuildCrafterAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera)

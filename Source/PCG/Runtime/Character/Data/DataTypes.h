@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilityControlGroup.h"
 #include "DataTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -20,7 +21,8 @@ enum class EFactoryResource : uint8
 	EFR_Stone 			UMETA(DisplayName = "Stone"),
 	EFR_Ore 			UMETA(DisplayName = "Ore"),
 	EFR_Metal 			UMETA(DisplayName = "Metal"),
-	EFR_Gem				UMETA(DisplayName = "Gem"),	
+	EFR_Gem				UMETA(DisplayName = "Gem"),
+	EFR_None 			UMETA(DisplayName = "None"),
 };
 
 UENUM(BlueprintType)
@@ -64,6 +66,24 @@ struct PCG_API FResourceInfo
 };
 
 USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FAbilityInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UTexture2D> Icon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EAbilityType AbilityType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<EFactoryResource> CanProduceResourceType;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText AbilityName;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
 struct PCG_API FResourceStatus
 {
 	GENERATED_BODY()
@@ -83,18 +103,8 @@ struct PCG_API FPlayerStatusNew
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FResourceStatus> Resources;
 
-	/*
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FResourceStatusNew Wood;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FResourceStatusNew Stone;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FResourceStatusNew Ore;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FResourceStatusNew Metal;*/
+	int PlayerCurrentRecipeIndex;
 };
 
 USTRUCT(BlueprintType, Blueprintable)
@@ -189,6 +199,13 @@ struct PCG_API FPlayerDataContainer
 	TArray<FFactoryRecipeInfo> RecipeInfos;
 };
 
+USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FAbilityControlGroup
+{
+	GENERATED_BODY()
 
-
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EAbilityType AbilityType;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<UAbilityControl>> AbilityControls;
+};

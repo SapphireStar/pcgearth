@@ -59,6 +59,13 @@ void UPlayerDataComponent::ChangePlayerResourceValue(EFactoryResource eResourceT
 	UE_LOG(LogTemp, Error, TEXT("UPlayerDataComponent::ChangePlayerResourceValue: Player has no such resource type: %s"), *UEnum::GetValueAsString(eResourceType));
 }
 
+void UPlayerDataComponent::ChangePlayerRecipeIndex(int NewIndex)
+{
+	int OldIndex = PlayerStatus.PlayerCurrentRecipeIndex;
+	PlayerStatus.PlayerCurrentRecipeIndex = NewIndex % PlayerDataContainer.RecipeInfos.Num();
+	OnPlayerRecipeIndexChanged.Broadcast(OldIndex,  NewIndex);
+}
+
 void UPlayerDataComponent::ChangePlayerRemainDaysValue(int NewValue)
 {
 	int RemainDaysOld = SystemStatus.RemainDays;

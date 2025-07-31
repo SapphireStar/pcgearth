@@ -20,6 +20,7 @@ class USpringArmComponent;
 class UCapsuleComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityChanged, EAbilityType, OldAbility, EAbilityType, NewAbility);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerAimingResourceChanged, EFactoryResource, ResourceType);
 
 UCLASS()
 class PCG_API ASpaceShipPawn : public APawn
@@ -49,9 +50,11 @@ public:
 	void Rise(const FInputActionValue& Value);
 	void ProcessInput(float Deltatime);
 	void CycleAbility(const FInputActionValue& Value);
+	void SwitchAbility(const FInputActionValue& Value);
 	void StartUseAbility(const FInputActionValue& Value);
 	void KeepUsingAbility(const FInputActionValue& Value);
 	void CompleteUseAbility(const FInputActionValue& Value);
+	void CycleRecipe(const FInputActionValue& Value);
 
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
@@ -70,6 +73,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnAbilityChanged OnAbilityChanged;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FOnPlayerAimingResourceChanged OnPlayerAimingResourceChanged;
 protected:
 	//Components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -108,6 +114,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> CycleAbilityAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> SwitchAbilityAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> CycleRecipeAction;
 
 	//Control
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -201,4 +213,6 @@ private:
 	TObjectPtr<UPlayerDataComponent> PlayerData;
 
 	int CurrentAbilityIndex = 0;
+
+	//int CurrentRecipeIndex = 0;
 };

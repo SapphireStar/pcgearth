@@ -137,7 +137,7 @@ ASpaceShipPawn::ASpaceShipPawn()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
-	
+
 	SetupPlayerAbilityComponent();
 }
 
@@ -146,6 +146,7 @@ void ASpaceShipPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	MainBody->SetSimulatePhysics(true);
+	PlayerData = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData;
 }
 
 // Called every frame
@@ -169,19 +170,30 @@ void ASpaceShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Look);
 		EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Roll);
 		EnhancedInputComponent->BindAction(RiseAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Rise);
-		EnhancedInputComponent->BindAction(UseAbilityAction, ETriggerEvent::Started, this, &ASpaceShipPawn::StartUseAbility);
-		EnhancedInputComponent->BindAction(UseAbilityAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::KeepUsingAbility);
-		EnhancedInputComponent->BindAction(UseAbilityAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::CompleteUseAbility);
-		EnhancedInputComponent->BindAction(CycleAbilityAction, ETriggerEvent::Triggered, this , &ASpaceShipPawn::CycleAbility);
+		EnhancedInputComponent->BindAction(UseAbilityAction, ETriggerEvent::Started, this,
+		                                   &ASpaceShipPawn::StartUseAbility);
+		EnhancedInputComponent->BindAction(UseAbilityAction, ETriggerEvent::Triggered, this,
+		                                   &ASpaceShipPawn::KeepUsingAbility);
+		EnhancedInputComponent->BindAction(UseAbilityAction, ETriggerEvent::Completed, this,
+		                                   &ASpaceShipPawn::CompleteUseAbility);
+		EnhancedInputComponent->BindAction(CycleAbilityAction, ETriggerEvent::Triggered, this,
+		                                   &ASpaceShipPawn::CycleAbility);
+		EnhancedInputComponent->BindAction(SwitchAbilityAction, ETriggerEvent::Triggered, this,
+		                                   &ASpaceShipPawn::SwitchAbility);
+		EnhancedInputComponent->BindAction(CycleRecipeAction, ETriggerEvent::Completed, this,&ASpaceShipPawn::CycleRecipe);
 	}
 }
 
 void ASpaceShipPawn::SetupPlayerAbilityComponent()
 {
-	TObjectPtr<UItemAbilityComponent> TerrainBuild = CreateAbilityComponent(EAbilityType::TerrainBuild, FName("TerrainBuild"));
-	TObjectPtr<UTerrainBuildCrafterAbility> TerrainBuildCrafter =  Cast<UTerrainBuildCrafterAbility>(CreateAbilityComponent(EAbilityType::TerrainBuildCrafter, FName("TerrainBuildCrafter")));
-	TObjectPtr<UItemAbilityComponent> TerrainDig =  CreateAbilityComponent(EAbilityType::TerrainDig, FName("TerrainDig"));
-	TObjectPtr<UItemAbilityComponent> GetResource = CreateAbilityComponent(EAbilityType::GetResource, FName("GetResource"));
+	TObjectPtr<UItemAbilityComponent> TerrainBuild = CreateAbilityComponent(
+		EAbilityType::TerrainBuild, FName("TerrainBuild"));
+	TObjectPtr<UTerrainBuildCrafterAbility> TerrainBuildCrafter = Cast<UTerrainBuildCrafterAbility>(
+		CreateAbilityComponent(EAbilityType::TerrainBuildCrafter, FName("TerrainBuildCrafter")));
+	TObjectPtr<UItemAbilityComponent> TerrainDig =
+		CreateAbilityComponent(EAbilityType::TerrainDig, FName("TerrainDig"));
+	TObjectPtr<UItemAbilityComponent> GetResource = CreateAbilityComponent(
+		EAbilityType::GetResource, FName("GetResource"));
 	if (TerrainBuild != nullptr)
 		Abilities.Add(TerrainBuild);
 	if (TerrainDig != nullptr)
@@ -199,120 +211,121 @@ void ASpaceShipPawn::SetupPlayerAbilityComponent()
 
 void ASpaceShipPawn::Move(const FInputActionValue& Value)
 {
-    // 获取输入值
-    FVector2D InputVector = Value.Get<FVector2D>();
-    float X = InputVector.X;
-    float Y = InputVector.Y;
-    
-    // 计算移动方向
-    FVector CameraForward = Camera->GetForwardVector() * Y;
-    FVector CameraRight = Camera->GetRightVector() * X;
-    FVector DesiredMoveDirection = (CameraForward + CameraRight).GetSafeNormal();
-    
-    // 获取当前速度信息
-    FVector CurrentVelocity = MainBody->GetPhysicsLinearVelocity();
-    float CurrentSpeed = CurrentVelocity.Size();
-    FVector CurrentDirection = CurrentVelocity.GetSafeNormal();
-    
-    bool bHasInput = !DesiredMoveDirection.IsNearlyZero();
-    
-    if (bHasInput)
-    {
-        // 有输入时的处理
-        bIsAccelerating = true;
-        CurrentAcceleration = DesiredMoveDirection;
-        
-        // 计算当前速度方向与期望方向的夹角
-        float DotProduct = FVector::DotProduct(CurrentDirection, DesiredMoveDirection);
-        float Angle = FMath::Acos(FMath::Clamp(DotProduct, -1.0f, 1.0f)) * 180.0f / PI;
-        
-        // 根据速度和角度调整行为
-        if (CurrentSpeed < LowSpeedThreshold)
-        {
-            // 低速时：直接响应，高灵敏度
-            MainBody->SetLinearDamping(0.1f);
-            MainBody->AddForce(DesiredMoveDirection * Acceleration * HighResponsivenessFactor);
-        }
-        else
-        {
-            // 高速时：根据角度调整策略
-            if (Angle < 15.0f)
-            {
-                // 方向基本一致，继续加速或保持
-                MainBody->SetLinearDamping(0.2f);
-                MainBody->AddForce(DesiredMoveDirection * Acceleration);
-                
-                // 微调速度方向，使其更精确地朝向期望方向
-                FVector AdjustedVelocity = CurrentSpeed * DesiredMoveDirection;
-                MainBody->SetPhysicsLinearVelocity(AdjustedVelocity);
-            }
-            else if (Angle < 45.0f)
-            {
-                // 中等角度转向，适度减速
-                MainBody->SetLinearDamping(1.0f);
-                MainBody->AddForce(DesiredMoveDirection * Acceleration * 0.8f);
-            }
-            else if (Angle < 90.0f)
-            {
-                // 大角度转向，显著减速
-                MainBody->SetLinearDamping(3.0f);
-                MainBody->AddForce(DesiredMoveDirection * Acceleration * 0.6f);
-            }
-            else
-            {
-                // 反向操作，快速刹车
-                MainBody->SetLinearDamping(FastBrakeDamping);
-                // 施加反向力进行快速制动
-                MainBody->AddForce(-CurrentDirection * Acceleration * EmergencyBrakeFactor);
-                // 然后朝新方向加速
-                MainBody->AddForce(DesiredMoveDirection * Acceleration * 0.4f);
-            }
-        }
-        
-        DrawVectorDebugArrows(MainBody, DesiredMoveDirection);
-    }
-    else
-    {
-        // 无输入时的刹车处理
-        bIsAccelerating = false;
-        CurrentAcceleration = FVector::ZeroVector;
-        
-        if (CurrentSpeed > StopThreshold)
-        {
-            // 根据当前速度调整刹车力度
-            if (CurrentSpeed > HighSpeedThreshold)
-            {
-                // 高速刹车：强力制动
-                MainBody->SetLinearDamping(FastBrakeDamping);
-                MainBody->AddForce(-CurrentDirection * Deceleration * EmergencyBrakeFactor);
-            }
-            else if (CurrentSpeed > MediumSpeedThreshold)
-            {
-                // 中速刹车：适度制动
-                MainBody->SetLinearDamping(MediumBrakeDamping);
-                MainBody->AddForce(-CurrentDirection * Deceleration * 2.0f);
-            }
-            else
-            {
-                // 低速刹车：轻柔制动
-                MainBody->SetLinearDamping(SmoothBrakeDamping);
-            }
-        }
-        else
-        {
-            // 接近停止时，完全停止
-            MainBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
-            MainBody->SetLinearDamping(0.1f);
-        }
-    }
-    
-    // 限制最大速度
-    if (CurrentSpeed > MaxSpeed)
-    {
-        FVector LimitedVelocity = CurrentDirection * MaxSpeed;
-        MainBody->SetPhysicsLinearVelocity(LimitedVelocity);
-    }
+	// 获取输入值
+	FVector2D InputVector = Value.Get<FVector2D>();
+	float X = InputVector.X;
+	float Y = InputVector.Y;
+
+	// 计算移动方向
+	FVector CameraForward = Camera->GetForwardVector() * Y;
+	FVector CameraRight = Camera->GetRightVector() * X;
+	FVector DesiredMoveDirection = (CameraForward + CameraRight).GetSafeNormal();
+
+	// 获取当前速度信息
+	FVector CurrentVelocity = MainBody->GetPhysicsLinearVelocity();
+	float CurrentSpeed = CurrentVelocity.Size();
+	FVector CurrentDirection = CurrentVelocity.GetSafeNormal();
+
+	bool bHasInput = !DesiredMoveDirection.IsNearlyZero();
+
+	if (bHasInput)
+	{
+		// 有输入时的处理
+		bIsAccelerating = true;
+		CurrentAcceleration = DesiredMoveDirection;
+
+		// 计算当前速度方向与期望方向的夹角
+		float DotProduct = FVector::DotProduct(CurrentDirection, DesiredMoveDirection);
+		float Angle = FMath::Acos(FMath::Clamp(DotProduct, -1.0f, 1.0f)) * 180.0f / PI;
+
+		// 根据速度和角度调整行为
+		if (CurrentSpeed < LowSpeedThreshold)
+		{
+			// 低速时：直接响应，高灵敏度
+			MainBody->SetLinearDamping(0.1f);
+			MainBody->AddForce(DesiredMoveDirection * Acceleration * HighResponsivenessFactor);
+		}
+		else
+		{
+			// 高速时：根据角度调整策略
+			if (Angle < 15.0f)
+			{
+				// 方向基本一致，继续加速或保持
+				MainBody->SetLinearDamping(0.2f);
+				MainBody->AddForce(DesiredMoveDirection * Acceleration);
+
+				// 微调速度方向，使其更精确地朝向期望方向
+				FVector AdjustedVelocity = CurrentSpeed * DesiredMoveDirection;
+				MainBody->SetPhysicsLinearVelocity(AdjustedVelocity);
+			}
+			else if (Angle < 45.0f)
+			{
+				// 中等角度转向，适度减速
+				MainBody->SetLinearDamping(1.0f);
+				MainBody->AddForce(DesiredMoveDirection * Acceleration * 0.8f);
+			}
+			else if (Angle < 90.0f)
+			{
+				// 大角度转向，显著减速
+				MainBody->SetLinearDamping(3.0f);
+				MainBody->AddForce(DesiredMoveDirection * Acceleration * 0.6f);
+			}
+			else
+			{
+				// 反向操作，快速刹车
+				MainBody->SetLinearDamping(FastBrakeDamping);
+				// 施加反向力进行快速制动
+				MainBody->AddForce(-CurrentDirection * Acceleration * EmergencyBrakeFactor);
+				// 然后朝新方向加速
+				MainBody->AddForce(DesiredMoveDirection * Acceleration * 0.4f);
+			}
+		}
+
+		DrawVectorDebugArrows(MainBody, DesiredMoveDirection);
+	}
+	else
+	{
+		// 无输入时的刹车处理
+		bIsAccelerating = false;
+		CurrentAcceleration = FVector::ZeroVector;
+
+		if (CurrentSpeed > StopThreshold)
+		{
+			// 根据当前速度调整刹车力度
+			if (CurrentSpeed > HighSpeedThreshold)
+			{
+				// 高速刹车：强力制动
+				MainBody->SetLinearDamping(FastBrakeDamping);
+				MainBody->AddForce(-CurrentDirection * Deceleration * EmergencyBrakeFactor);
+			}
+			else if (CurrentSpeed > MediumSpeedThreshold)
+			{
+				// 中速刹车：适度制动
+				MainBody->SetLinearDamping(MediumBrakeDamping);
+				MainBody->AddForce(-CurrentDirection * Deceleration * 2.0f);
+			}
+			else
+			{
+				// 低速刹车：轻柔制动
+				MainBody->SetLinearDamping(SmoothBrakeDamping);
+			}
+		}
+		else
+		{
+			// 接近停止时，完全停止
+			MainBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
+			MainBody->SetLinearDamping(0.1f);
+		}
+	}
+
+	// 限制最大速度
+	if (CurrentSpeed > MaxSpeed)
+	{
+		FVector LimitedVelocity = CurrentDirection * MaxSpeed;
+		MainBody->SetPhysicsLinearVelocity(LimitedVelocity);
+	}
 }
+
 /*void ASpaceShipPawn::Move(const FInputActionValue& Value)
 {
 	int X = Value.Get<FVector2D>().X;
@@ -474,7 +487,28 @@ void ASpaceShipPawn::CycleAbility(const FInputActionValue& Value)
 	OldAbility->OnDeactivateAbility();
 	NewAbility->OnActivateAbility();
 	OnAbilityChanged.Broadcast(OldAbility->AbilityType, NewAbility->AbilityType);
-	
+
+	if (GEngine)
+	{
+		FString name = UEnum::GetValueAsString(Abilities[CurrentAbilityIndex]->AbilityType);
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("Axis: %s"), *name));
+	}
+}
+
+void ASpaceShipPawn::SwitchAbility(const FInputActionValue& Value)
+{
+	UItemAbilityComponent* OldAbility = CurrentAbilityComponent;
+	UE_LOG(LogTemp, Warning, TEXT("Switch Ability: %f"), Value.Get<float>());
+	int Index = FMath::RoundToInt(Value.Get<float>()) - 1;
+	CurrentAbilityIndex = (Index) % Abilities.Num();
+
+	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
+	UItemAbilityComponent* NewAbility = CurrentAbilityComponent;
+
+	OldAbility->OnDeactivateAbility();
+	NewAbility->OnActivateAbility();
+	OnAbilityChanged.Broadcast(OldAbility->AbilityType, NewAbility->AbilityType);
+
 	if (GEngine)
 	{
 		FString name = UEnum::GetValueAsString(Abilities[CurrentAbilityIndex]->AbilityType);
@@ -495,6 +529,17 @@ void ASpaceShipPawn::KeepUsingAbility(const FInputActionValue& Value)
 void ASpaceShipPawn::CompleteUseAbility(const FInputActionValue& Value)
 {
 	CurrentAbilityComponent->OnCompleteUseAbility(Front, Camera);
+}
+
+void ASpaceShipPawn::CycleRecipe(const FInputActionValue& Value)
+{
+	if (CurrentAbilityComponent->AbilityType == EAbilityType::TerrainBuildCrafter)
+	{
+		int total = PlayerData->GetPlayerData().RecipeInfos.Num();
+		PlayerData->ChangePlayerRecipeIndex(PlayerData->GetPlayerCurrentRecipeIndex() + 1);
+		int index = (PlayerData->GetPlayerCurrentRecipeIndex()) % total;
+		ChangeCraftRecipe(PlayerData->GetPlayerData().RecipeInfos[index]);
+	}
 }
 
 int ASpaceShipPawn::FindVertex(const FVector& target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID)
@@ -547,11 +592,11 @@ TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilit
 		break;
 	case EAbilityType::TerrainBuild:
 		AbilityComponent = CreateDefaultSubobject<UTerrainBuildAbility>(AbilityName);
-		AbilityComponent->AbilityType =  EAbilityType::TerrainBuild;
+		AbilityComponent->AbilityType = EAbilityType::TerrainBuild;
 		break;
 	case EAbilityType::TerrainBuildCrafter:
 		AbilityComponent = CreateDefaultSubobject<UTerrainBuildCrafterAbility>(AbilityName);
-		AbilityComponent->AbilityType =  EAbilityType::TerrainBuildCrafter;
+		AbilityComponent->AbilityType = EAbilityType::TerrainBuildCrafter;
 		break;
 	case EAbilityType::TerrainDig:
 		AbilityComponent = CreateDefaultSubobject<UTerrainDigAbility>(AbilityName);
@@ -566,7 +611,9 @@ TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilit
 		AbilityComponent->AbilityType = EAbilityType::TestWFC;
 		break;
 	default:
-		UE_LOG(LogTemp, Error, TEXT("SpaceShipPawn::CreateAbilityComponent: Haven't define the initialization for EAbilityType: %d"), static_cast<int>(eAbilityType));
+		UE_LOG(LogTemp, Error,
+		       TEXT("SpaceShipPawn::CreateAbilityComponent: Haven't define the initialization for EAbilityType: %d"),
+		       static_cast<int>(eAbilityType));
 	}
 
 	if (!AbilityComponent)
@@ -578,10 +625,8 @@ TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilit
 
 void ASpaceShipPawn::ChangeCraftRecipe(FFactoryRecipeInfo RecipeInfo)
 {
-	if (Abilities[CurrentAbilityIndex]->AbilityType == EAbilityType::TerrainBuildCrafter)
-	{
-		Cast<UTerrainBuildCrafterAbility>(Abilities[CurrentAbilityIndex])->SetFactoryRecipeInfo(RecipeInfo);
-	}
+	Cast<UTerrainBuildCrafterAbility>(Abilities[CurrentAbilityIndex])->SetFactoryRecipeInfo(RecipeInfo);
+	PlayerData->ChangePlayerCurrentRecipe(RecipeInfo);
 }
 
 void ASpaceShipPawn::DrawDebugInfo()

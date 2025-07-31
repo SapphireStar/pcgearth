@@ -45,3 +45,8 @@ int AMineSphereOre::TryStartOneMine(int Value, std::function<void(UPlayerDataCom
 	return ReturnOreValue;
 }
 
+EFactoryResource AMineSphereOre::GetCollectableResourceType_Implementation() const
+{
+	return EFactoryResource::EFR_Ore;
+}
+
