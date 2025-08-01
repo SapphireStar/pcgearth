@@ -29,6 +29,8 @@ public:
 	virtual void OnKeepUsingAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera) override;
 	virtual void OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera) override;
 
+	void SetLaserRange(float range);
+
 private:
 	float Range = 5000.f;
 };

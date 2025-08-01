@@ -3,7 +3,7 @@
 
 #include "AbilityControlMap.h"
 
-FAbilityControlGroup UAbilityControlMap::GetControlGroup(EAbilityType eAbilityType)
+FAbilityControlInfo UAbilityControlMap::GetControlGroup(EAbilityType eAbilityType)
 {
 	for (int i = 0; i < ControlMaps.Num(); i++)
 	{

@@ -91,3 +91,8 @@ void UGetResourceAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartCo
 {
 	Super::OnCompleteUseAbility(TraceStartComp, Camera);
 }
+
+void UGetResourceAbility::SetLaserRange(float range)
+{
+	Range = range;
+}

@@ -200,12 +200,18 @@ struct PCG_API FPlayerDataContainer
 };
 
 USTRUCT(BlueprintType, Blueprintable)
-struct PCG_API FAbilityControlGroup
+struct PCG_API FAbilityControlInfo
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EAbilityType AbilityType;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<TObjectPtr<UAbilityControl>> AbilityControls;
+	TArray<TObjectPtr<UAbilityControlGroup>> AbilityControls;
 };
+
+/*USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FGridDisplayInfo
+{
+	GENERATED_BODY()
+};*/

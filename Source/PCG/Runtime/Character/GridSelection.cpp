@@ -1,5 +1,6 @@
 #include "GridSelection.h"
 
+#include "Components/TextRenderComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -10,6 +11,8 @@ AGridSelectionManager::AGridSelectionManager()
 	RootSceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	RootComponent = RootSceneComponent;
 
+
+
 	//创建网格平面（设置为不可见，仅用于碰撞检测）
 	ECollisionChannel CollisionChannel;
 	FCollisionResponseParams ResponseParams;
@@ -18,9 +21,8 @@ AGridSelectionManager::AGridSelectionManager()
 	GridPlaneMesh->SetupAttachment(RootComponent);
 	GridPlaneMesh->SetVisibility(false);
 	GridPlaneMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-
-	SelectedGrid = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SelectedGrid"));
 	
+	SelectedGrid = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SelectedGrid"));
 
 	SelectedPoints.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SelectedPoint1")));
 	SelectedPoints.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SelectedPoint2")));
@@ -34,6 +36,8 @@ AGridSelectionManager::AGridSelectionManager()
 	PreviewLines.Add(CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewLine4")));
 
 
+	TextRenderer = CreateDefaultSubobject<UTextRenderComponent>(TEXT("TextRenderer"));
+	
 }
 
 void AGridSelectionManager::BeginPlay()
@@ -64,6 +68,7 @@ void AGridSelectionManager::BeginPlay()
 		MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		MeshComp->SetWorldScale3D(FVector(0, PreviewLineRadius, PreviewLineRadius));
 	}
+	TextRenderer->SetupAttachment(SelectedGrid);
 	
 	FBox MeshBox = GridPlaneMesh->Bounds.GetBox();
 	float MeshWidth = MeshBox.Max.X - MeshBox.Min.X;
@@ -74,9 +79,6 @@ void AGridSelectionManager::BeginPlay()
 	float ScaleY = GridTotalHeight / MeshHeight;
 	GridPlaneMesh->SetWorldScale3D(FVector(ScaleX * 10, ScaleY * 10, 0.1f));
 	GenerateGrid();
-
-	TextRenderer = GetWorld()->SpawnActor<ATextRenderActor>();
-	TextRenderer->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 }
 
 void AGridSelectionManager::Tick(float DeltaTime)
@@ -91,12 +93,12 @@ void AGridSelectionManager::Tick(float DeltaTime)
 	}
 }
 
-void AGridSelectionManager::StartGridSelection(const FVector& StartPoint, const FRotator& Rotation)
+void AGridSelectionManager::StartGridSelection(const FVector& StartPoint, const FVector& Normal, const FRotator& Rotation)
 {
 	ClearSelection();
-
-	GridRotation = Rotation;
-
+	
+	GridRotation = CalculatePlaneNormalRotation(StartPoint, Normal, Rotation);
+	
 	InitialSelectedPoint = StartPoint;
 	GridCenter = InitialSelectedPoint;
 	GenerateGrid();
@@ -334,6 +336,31 @@ FVector AGridSelectionManager::LocalToWorld(const FVector& LocalPosition) const
 	FVector RotatedPos = Rotation.RotateVector(LocalPosition);
 
 	return RotatedPos + GridCenter;
+}
+
+FRotator AGridSelectionManager::CalculatePlaneNormalRotation(FVector Center, FVector Normal, FRotator Rotation)
+{
+	FQuat BaseRotation = Rotation.Quaternion();
+	
+	FVector PlayerLocation = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
+	FVector ToPlayer = (PlayerLocation - Center).GetSafeNormal();
+
+	FVector ProjectedDirection = ToPlayer - FVector::DotProduct(ToPlayer, Normal) * Normal;
+	ProjectedDirection.Normalize();
+	
+	FVector ReferenceDirection = UKismetMathLibrary::GetForwardVector(Rotation);
+
+	float RotationAngle = FMath::Acos(FVector::DotProduct(ReferenceDirection, ProjectedDirection));
+	FVector CrossProduct = FVector::CrossProduct(ReferenceDirection, ProjectedDirection);
+	if (FVector::DotProduct(CrossProduct, Normal) < 0)
+	{
+		RotationAngle = -RotationAngle;
+	}
+
+	FQuat PlaneRotation = FQuat(Normal, RotationAngle);
+
+	FQuat FinalRotation = PlaneRotation * BaseRotation;
+	return FinalRotation.Rotator();
 }
 
 void AGridSelectionManager::ClearSelection()

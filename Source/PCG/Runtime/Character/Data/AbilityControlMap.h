@@ -16,11 +16,11 @@ class PCG_API UAbilityControlMap : public UDataAsset
 
 public:
 	UFUNCTION(BlueprintCallable)
-	FAbilityControlGroup GetControlGroup(EAbilityType eAbilityType);
+	FAbilityControlInfo GetControlGroup(EAbilityType eAbilityType);
 		
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FAbilityControlGroup> ControlMaps;
+	TArray<FAbilityControlInfo> ControlMaps;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FAbilityControlGroup DefaultControlGroup;
+	FAbilityControlInfo DefaultControlGroup;
 };

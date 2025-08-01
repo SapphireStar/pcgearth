@@ -475,6 +475,7 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAtByFrame(const FWFC
 		FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
 		FVector WorldPosition = CoordinateToWorldPosition(Coord);
 		FRotator WorldRotation = TileDef.BaseRotation;
+		Tile.TileName = TileDef.TileName;
 		Tile.Location =  WorldPosition;
 		Tile.Rotation = WorldRotation;
 		Tile.StaticMesh = TileDef.Mesh;

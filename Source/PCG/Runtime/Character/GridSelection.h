@@ -94,10 +94,10 @@ protected:
 
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TObjectPtr<ATextRenderActor> TextRenderer;
+    TObjectPtr<UTextRenderComponent> TextRenderer;
 public:
     UFUNCTION(BlueprintCallable)
-    void StartGridSelection(const FVector& StartPoint, const FRotator& Rotation = FRotator::ZeroRotator);
+    void StartGridSelection(const FVector& StartPoint,const FVector& Normal, const FRotator& Rotation = FRotator::ZeroRotator);
     
     UFUNCTION(BlueprintCallable)
     FBox EndGridSelection();
@@ -144,4 +144,5 @@ protected:
     FVector SnapToLocalGrid(const FVector& LocalPosition) const;
     FVector WorldToLocal(const FVector& WorldPosition) const;
     FVector LocalToWorld(const FVector& LocalPosition) const;
+    FRotator CalculatePlaneNormalRotation(FVector Center, FVector Normal,  FRotator Rotation);
 };

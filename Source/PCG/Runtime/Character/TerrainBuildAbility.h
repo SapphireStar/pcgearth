@@ -64,7 +64,8 @@ protected:
 	
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
-	FRotator FindNormalOnPlanet(FVector ImpactPosition, FVector PlanetPosition);
+	FRotator FindNormalRotationOnPlanet(FVector ImpactPosition, FVector PlanetPosition);
+	FVector FindNormalOnPlanet(FVector ImpactPosition, FVector PlanetPosition);
 	FIntVector CalculateWFCGridSize(FBox GridBounds);
 	bool ValidateGridBounds(FBox GridBounds);
 	AMineSphere* CheckIsOnMineSphere(FBox GridBounds);

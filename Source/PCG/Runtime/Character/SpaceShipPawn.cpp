@@ -188,12 +188,17 @@ void ASpaceShipPawn::SetupPlayerAbilityComponent()
 {
 	TObjectPtr<UItemAbilityComponent> TerrainBuild = CreateAbilityComponent(
 		EAbilityType::TerrainBuild, FName("TerrainBuild"));
+	
 	TObjectPtr<UTerrainBuildCrafterAbility> TerrainBuildCrafter = Cast<UTerrainBuildCrafterAbility>(
 		CreateAbilityComponent(EAbilityType::TerrainBuildCrafter, FName("TerrainBuildCrafter")));
+	
 	TObjectPtr<UItemAbilityComponent> TerrainDig =
 		CreateAbilityComponent(EAbilityType::TerrainDig, FName("TerrainDig"));
-	TObjectPtr<UItemAbilityComponent> GetResource = CreateAbilityComponent(
-		EAbilityType::GetResource, FName("GetResource"));
+	
+	TObjectPtr<UGetResourceAbility> GetResource = Cast<UGetResourceAbility>(CreateAbilityComponent(
+		EAbilityType::GetResource, FName("GetResource")));
+	GetResource->SetLaserRange(LaserRange);
+	
 	if (TerrainBuild != nullptr)
 		Abilities.Add(TerrainBuild);
 	if (TerrainDig != nullptr)

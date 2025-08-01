@@ -184,6 +184,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RollDeceleration = 200.f;
+	
 
 	FVector ActorPrevLocation;
 	FVector ActorCurrentLocation;

@@ -126,7 +126,8 @@ void AWFCVisualizer::ProcessSpawnTasks()
 AActor* AWFCVisualizer::SpawnTileActor(const FWFCVisualizationTile& Tile)
 {
 	UWorld* World = GetWorld();
-	AActor* TileActor = World->SpawnActor<AActor>(AActor::StaticClass(), Tile.Location, Tile.Rotation);
+	AActor* TileActor = World->SpawnActor<AActor>();
+
 
 	if (!TileActor)
 	{

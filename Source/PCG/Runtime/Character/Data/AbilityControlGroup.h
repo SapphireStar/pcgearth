@@ -7,7 +7,7 @@
 #include "AbilityControlGroup.generated.h"
 
 UCLASS(BlueprintType)
-class PCG_API UAbilityControl : public UDataAsset
+class PCG_API UAbilityControlGroup : public UDataAsset
 {
 	GENERATED_BODY()
 	

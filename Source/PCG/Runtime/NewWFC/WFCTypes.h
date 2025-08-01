@@ -277,6 +277,9 @@ struct FWFCVisualizationTile
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString TileName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FVector Location;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)

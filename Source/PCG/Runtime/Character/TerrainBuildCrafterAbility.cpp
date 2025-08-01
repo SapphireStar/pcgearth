@@ -8,9 +8,7 @@
 
 UTerrainBuildCrafterAbility::UTerrainBuildCrafterAbility()
 {
-
 	PrimaryComponentTick.bCanEverTick = true;
-	
 }
 
 void UTerrainBuildCrafterAbility::OnInitializeAbility()
@@ -43,9 +41,9 @@ void UTerrainBuildCrafterAbility::InitializeMineSphere()
 	{
 		FactorySphereMeshComponent->SetStaticMesh(FactorySphereMesh);
 		FactorySphereDynamicMaterial = UMaterialInstanceDynamic::Create(FactorySphereMaterial, this);
-		FactorySphereMeshComponent->SetMaterial(0,  FactorySphereDynamicMaterial);
+		FactorySphereMeshComponent->SetMaterial(0, FactorySphereDynamicMaterial);
 		float MeshRadius = FactorySphereMeshComponent->GetStaticMesh()->GetBoundingBox().GetExtent().X;
-		float MeshScale =PlayerData->GetPlayerData().CraftingFactoryInfo.FactoryRadius / MeshRadius;
+		float MeshScale = PlayerData->GetPlayerData().CraftingFactoryInfo.FactoryRadius / MeshRadius;
 		FactorySphereMeshComponent->SetWorldScale3D(FVector(MeshScale, MeshScale, MeshScale));
 		FactorySphereMeshComponent->SetVisibility(false);
 		FactorySphereMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -98,8 +96,9 @@ void UTerrainBuildCrafterAbility::OnCompleteUseAbility(UPrimitiveComponent* Trac
 			{
 				SelectPlanet(planet, HitResult);
 				GridSelection->StartGridSelection(HitResult.ImpactPoint,
-				                                  FindNormalOnPlanet(HitResult.ImpactPoint,
-				                                                     planet->GetActorLocation()));
+				                                  FindNormalOnPlanet(HitResult.ImpactPoint, planet->GetActorLocation()),
+				                                  FindNormalRotationOnPlanet(HitResult.ImpactPoint,
+				                                                             planet->GetActorLocation()));
 				bIsGridSlectionStarted = true;
 
 				if (bShouldCheckNearFactory)
@@ -150,7 +149,8 @@ void UTerrainBuildCrafterAbility::OnCompleteUseAbility(UPrimitiveComponent* Trac
 
 void UTerrainBuildCrafterAbility::SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere, float Radius)
 {
-	FactoryManager->BuildCraftFactoryAt(Position, Volume, PlayerData->GetPlayerData().CraftingFactoryInfo, FactoryRecipeInfo);
+	FactoryManager->BuildCraftFactoryAt(Position, Volume, PlayerData->GetPlayerData().CraftingFactoryInfo,
+	                                    FactoryRecipeInfo);
 }
 
 float UTerrainBuildCrafterAbility::CalculateFactoryRadius(int Volume)
@@ -160,6 +160,8 @@ float UTerrainBuildCrafterAbility::CalculateFactoryRadius(int Volume)
 
 void UTerrainBuildCrafterAbility::SetFactoryRecipeInfo(FFactoryRecipeInfo RecipeInfo)
 {
-	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("SetFactoryRecipeInfo: Output %s"), *UEnum::GetValueAsString(RecipeInfo.Output.ResourceType)));
+	UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(
+		                                  TEXT("SetFactoryRecipeInfo: Output %s"),
+		                                  *UEnum::GetValueAsString(RecipeInfo.Output.ResourceType)));
 	this->FactoryRecipeInfo = RecipeInfo;
 }
