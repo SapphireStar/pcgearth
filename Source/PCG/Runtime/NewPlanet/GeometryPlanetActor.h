@@ -7,6 +7,7 @@
 #include "TerrainDataTypes.h"
 #include "Components/DynamicMeshComponent.h"
 #include "GameFramework/Actor.h"
+#include "PCG/Runtime/Planet/ShapeGenerator.h"
 #include "GeometryPlanetActor.generated.h"
 
 
@@ -143,11 +144,11 @@ protected:
 
 	UPROPERTY(Blueprintreadwrite, EditAnywhere)
 	TArray<FCraterData> CratersData;
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain")
 	FShapeSettings NoiseShapeSettings;
 
 	UPROPERTY()
-	TObjectPtr<UShapeGenerator> NoiseShapeGenerator;*/
+	TObjectPtr<UShapeGenerator> NoiseShapeGenerator;
 #pragma	endregion
 
 #pragma region Foliage

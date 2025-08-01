@@ -279,26 +279,9 @@ void FWFCCore::ApplyConstraints()
 
 void FWFCCore::CellPreProcess()
 {
-	/*for (const auto& [Coord, Cell] : Grid)
-	{
-		if (Coord.X == 0 && Coord.Y == 0 &&  Coord.Z == 0)
-		{
-			CollapseCellTo(Coord, 1);
-		}
-		if (Coord.X == 2 && Coord.Y == 0 &&  Coord.Z == 0)
-		{
-			CollapseCellTo(Coord, 5);
-		}
-		if (Coord.X == 2 && Coord.Y == 2 &&  Coord.Z == 0)
-		{
-			CollapseCellTo(Coord, 6);
-		}
-		if (Coord.X == 0 && Coord.Y == 2 &&  Coord.Z == 0)
-		{
-			CollapseCellTo(Coord, 7);
-		}
-		PropagateConstraints();
-	}*/
+	FRandomStream Stream;
+	int rand = Stream.FRandRange(0,10);
+	
 	for (const auto& [Coord, Cell] : Grid)
 	{
 		if (IsBoundaryCoordinate(Coord))
@@ -306,6 +289,7 @@ void FWFCCore::CellPreProcess()
 			CollapseCellTo(Coord, 0);
 			PropagateConstraints();
 		}
+
 	}
 }
 

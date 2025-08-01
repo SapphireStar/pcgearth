@@ -42,23 +42,9 @@ bool UWFCTileSet::AreSocketsCompatible(const FString& Socket1, const FString& So
 	{
 		return Socket1.IsEmpty() && Socket2.IsEmpty();
 	}
-	if (Socket1.Equals("-1"))
+	if (Socket1.Equals("-1") && Socket2.Equals("-1"))
 	{
-		if (!Socket2.Equals("0"))
-			return false;
-		else
-		{
-			return true;
-		}
-	}
-	if (Socket2.Equals("-1"))
-	{
-		if (!Socket1.Equals("0"))
-			return false;
-		else
-		{
-			return true;
-		}
+		return true;
 	}
 
 	if (Socket1.Contains("_") && Socket2.Contains("_"))

@@ -127,8 +127,7 @@ AActor* AWFCVisualizer::SpawnTileActor(const FWFCVisualizationTile& Tile)
 {
 	UWorld* World = GetWorld();
 	AActor* TileActor = World->SpawnActor<AActor>();
-
-
+	
 	if (!TileActor)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WFCVisualizer: Failed to spawn actor for tile"));
