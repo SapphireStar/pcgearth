@@ -116,7 +116,7 @@ void FWFCCore::BuildPropagationRules()
 		EWFCDirection OppositeDirection = static_cast<EWFCDirection>(Dir ^ 1);
 
 		const TCHAR* DirectionNames[] = {
-			TEXT("Up"), TEXT("Down"), TEXT("North"), TEXT("South"), TEXT("East"), TEXT("West")
+			TEXT("Up"), TEXT("Down"), TEXT("Right"), TEXT("Left"), TEXT("Front"), TEXT("Back")
 		};
 
 		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Processing direction %s (opposite: %s)"),

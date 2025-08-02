@@ -307,3 +307,54 @@ struct FWFCVisualizationData
     FVector ParentLocation;
     FRotator ParentRotation;
 };
+
+USTRUCT(BlueprintType)
+struct PCG_API FWFCTileDataTableRow : public FTableRowBase
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString TileName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EWFCTileCategory Category = EWFCTileCategory::Unknown;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TObjectPtr<UStaticMesh> Mesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TObjectPtr<UMaterial> Material;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString SocketUp;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString SocketDown;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString SocketRight;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString SocketLeft;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString SocketFront;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString SocketBack;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ClampMin = 0.0, ClampMax = 10.0))
+    float Weight = 1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool bCanRotate = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FRotator BaseRotation = FRotator::ZeroRotator;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 MaxInstancesPerGeneration = -1;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool bRequiresSupport = false; 
+};

@@ -1,5 +1,42 @@
 #include "WFCTileSet.h"
 
+void UWFCTileSet::ReadDatatable()
+{
+	if (TileSetTable)
+	{
+		TileRuleSets.Empty();
+		TileRuleSets.Add(FWFCTileRuleSet());
+		TArray<FName> TileSetNames = TileSetTable->GetRowNames();
+		for (FName TileSetName : TileSetNames)
+		{
+			FWFCTileDataTableRow* TileDefData = TileSetTable->FindRow<FWFCTileDataTableRow>(TileSetName, TEXT(""));
+			FWFCTileDefinition TileDefinition;
+			TileDefinition.Sockets.SetNum(6);
+			TileDefinition.TileName = TileDefData->TileName;
+			TileDefinition.Category =  TileDefData->Category;
+			TileDefinition.Mesh = TileDefData->Mesh;
+			TileDefinition.Material = TileDefData->Material;
+			TileDefinition.Sockets[0] = (TileDefData->SocketUp);
+			TileDefinition.Sockets[1] = (TileDefData->SocketDown);
+			TileDefinition.Sockets[2] = (TileDefData->SocketRight);
+			TileDefinition.Sockets[3] = (TileDefData->SocketLeft);
+			TileDefinition.Sockets[4] = (TileDefData->SocketFront);
+			TileDefinition.Sockets[5] = (TileDefData->SocketBack);
+			TileDefinition.Weight = TileDefData->Weight;
+			TileDefinition.bCanRotate =  TileDefData->bCanRotate;
+			TileDefinition.BaseRotation =  TileDefData->BaseRotation;
+			TileDefinition.bRequiresSupport = TileDefData->bRequiresSupport;
+			TileDefinition.MaxInstancesPerGeneration = TileDefData->MaxInstancesPerGeneration;
+			TileRuleSets[0].Tiles.Add(TileDefinition);
+		}
+		GenerateRotationVariants();
+#if WITH_EDITOR
+			MarkPackageDirty();
+#endif
+		
+	}
+}
+
 FWFCTileDefinition UWFCTileSet::GetTile(int32 Index) const
 {
 	if (Index >= 0 && Index < Tiles.Num())

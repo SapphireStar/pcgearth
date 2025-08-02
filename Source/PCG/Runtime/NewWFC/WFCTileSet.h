@@ -56,8 +56,11 @@ class PCG_API UWFCTileSet : public UDataAsset
     GENERATED_BODY()
 
 public:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tile Set")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString TileSetName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TObjectPtr<UDataTable> TileSetTable;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FWFCTileRuleSet> TileRuleSets;
@@ -65,53 +68,46 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FWFCSocketRuleSet> SocketRuleSets;
     
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tile Set")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FWFCTileDefinition> Tiles;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Socket Rules")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FWFCSocket> SocketDefinitions;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Generation")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FWFCConfiguration DefaultConfiguration;
 
 public:
-    // 获取瓦片数量
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
+    UFUNCTION(BlueprintCallable, BlueprintPure)
     int32 GetTileCount() const { return Tiles.Num(); }
 
-    // 根据索引获取瓦片
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
+    UFUNCTION(BlueprintCallable, BlueprintPure)
     FWFCTileDefinition GetTile(int32 Index) const;
 
-    // 根据名称获取瓦片索引
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
+    UFUNCTION(BlueprintCallable, BlueprintPure)
     int32 FindTileByName(const FString& TileName) const;
 
-    // 获取特定类别的瓦片
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
+    UFUNCTION(BlueprintCallable, BlueprintPure)
     TArray<int32> GetTilesByCategory(EWFCTileCategory Category) const;
 
-    // Socket兼容性检查
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
+    UFUNCTION(BlueprintCallable, BlueprintPure)
     bool AreSocketsCompatible(const FString& Socket1, const FString& Socket2) const;
 
-    // 获取Socket定义
-    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
+    UFUNCTION(BlueprintCallable, BlueprintPure)
     FWFCSocket GetSocketDefinition(const FString& SocketName) const;
 
-    // 验证瓦片集合的完整性
-    UFUNCTION(BlueprintCallable, Category = "WFC")
+    UFUNCTION(BlueprintCallable)
     bool ValidateTileSet(FString& OutErrorMessage) const;
 
-    // 自动生成旋转变体
-    UFUNCTION(BlueprintCallable, CallInEditor, Category = "WFC")
+    UFUNCTION(BlueprintCallable, CallInEditor)
+    void ReadDatatable();
+    
+    UFUNCTION(BlueprintCallable, CallInEditor)
     void GenerateRotationVariants();
 
 protected:
-    // 旋转Socket名称（Z轴90度）
     FString RotateSocketName(const FString& SocketName, int32 RotationSteps) const;
     
-    // 旋转Socket数组
     TArray<FString> RotateSockets(const TArray<FString>& OriginalSockets, int32 RotationSteps) const;
 
     bool HasSocket(const FString& SocketName, int32& outIndex) const;
