@@ -10,6 +10,25 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWFCGenerationComplete, const FWFCGenerationResult&, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWFCTileGenerated, const FWFCCoordinate&, Position, int32, TileIndex);
 
+USTRUCT(BlueprintType)
+struct FGenerationRequest
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly)
+    FVector Location = FVector::ZeroVector;
+
+    UPROPERTY(BlueprintReadOnly)
+    FRotator Rotation = FRotator::ZeroRotator;
+
+    UPROPERTY(BlueprintReadOnly)
+    int RequestId = 0;
+
+    FGenerationRequest() = default;
+    FGenerationRequest(FVector InLocation, FRotator InRotation, uint32 InRequestId)
+        : Location(InLocation), Rotation(InRotation), RequestId(InRequestId) {}
+};
+
 UCLASS(ClassGroup=(WFC), meta=(BlueprintSpawnableComponent))
 class PCG_API UWFCGeneratorComponent : public UActorComponent
 {
@@ -20,6 +39,7 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+    virtual void BeginDestroy() override;
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WFC Configuration")
@@ -46,6 +66,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WFC Configuration")
     int GenerationActorPerFrame = 5;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WFC Configuration")
+    int MaxQueueSize = 10;
+
     UPROPERTY(BlueprintAssignable, Category = "WFC Events")
     FOnWFCGenerationComplete OnGenerationComplete;
 
@@ -66,13 +89,28 @@ public:
     void StartGenerationWithCustomConfigAt(FVector Location, FRotator Rotation);
 
     UFUNCTION(BlueprintCallable, Category = "WFC")
+    int ExecuteGenerationAsyncAt(FVector Location, FRotator Rotation);
+
+    UFUNCTION(BlueprintCallable, Category = "WFC")
     void StopGeneration();
 
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void ClearGeneration();
 
+    UFUNCTION(BlueprintCallable, Category = "WFC")
+    void ClearQueue();
+
+    UFUNCTION(BlueprintCallable, Category = "WFC")
+    int QueueGeneration(FVector Location, FRotator Rotation);
+
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
-    bool IsGenerating() const { return bIsGenerating; }
+    bool IsGenerating() const { return bIsProcessingQueue; }
+
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
+    int32 GetQueueSize() const;
+
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
+    TArray<FGenerationRequest> GetQueuedRequests() const;
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "WFC")
     FWFCGenerationResult GetLastResult() const { return LastResult; }
@@ -100,7 +138,12 @@ public:
 
 protected:
     UPROPERTY()
-    bool bIsGenerating = false;
+    bool bIsProcessingQueue = false;
+
+    TArray<FGenerationRequest> PendingRequests;
+    mutable FCriticalSection QueueLock;
+    std::atomic<uint32> NextRequestId{1};
+    std::atomic<bool> bShouldStopProcessing{false};
 
     TUniquePtr<FWFCCore> WFCCore;
     
@@ -126,8 +169,8 @@ protected:
 private:
     void ExecuteGeneration();
     void ExecuteGenerationAsync();
-    void ExecuteGenerationAsyncAt(FVector Location, FRotator Rotation);
     void ExecuteGenerationAt(FVector Location, FRotator Rotation);
+    void ProcessNextRequest();
     void OnGenerationFinished(const FWFCGenerationResult& Result);
     void OnGenerationFinished(const FWFCGenerationResult& Result, FVector Location, FRotator Rotation);
 

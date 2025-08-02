@@ -25,5 +25,9 @@ class PCG_API ICollectableItemInterface
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	EFactoryResource GetCollectableResourceType() const;
+	
 	virtual EFactoryResource GetCollectableResourceType_Implementation() const { return EFactoryResource::EFR_Wood;}
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void OnResourceBeCollected(FVector CollectedInstanceScale);
 };

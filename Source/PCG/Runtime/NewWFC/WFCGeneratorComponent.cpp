@@ -42,11 +42,18 @@ void UWFCGeneratorComponent::BeginPlay()
 	}
 }
 
+void UWFCGeneratorComponent::BeginDestroy()
+{
+	bShouldStopProcessing.store(true);
+	ClearQueue();
+	Super::BeginDestroy();
+}
+
 void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomConfig)
 {
-	if (bIsGenerating)
+	if (bIsProcessingQueue)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Generation already in progress"));
+		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Queue is being processed"));
 		return;
 	}
 
@@ -58,36 +65,14 @@ void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomCo
 
 	CompleteTileSet = NewObject<UWFCTileSet>();
 
-	/*for (int i = 0; i < TileSet->TileRuleSets.Num(); i++)
-	{
-	    for (int j = 0; j < TileSet->TileRuleSets[i].Tiles.Num(); j++)
-	    {
-	        CompleteTileSet->Tiles.Add(TileSet->TileRuleSets[i].Tiles[j]);
-	    }
-	}
-
-	for (int i = 0; i < TileSet->SocketRuleSets.Num(); i++)
-	{
-	    for (int j = 0; j < TileSet->SocketRuleSets[i].Sockets.Num(); j++)
-	    {
-	        CompleteTileSet->SocketDefinitions.Add(TileSet->SocketRuleSets[i].Sockets[j]);
-	    }
-	}*/
-
-
-	//CompleteTileSet->DefaultConfiguration = TileSet->DefaultConfiguration;
-
 	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Starting generation with grid size %s"),
 	       *CustomConfig.GridSize.ToString());
 
-	bIsGenerating = true;
 	Configuration = CustomConfig;
 
-	// 初始化WFC核心
 	if (!WFCCore->Initialize(TileSet, Configuration))
 	{
 		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
-		bIsGenerating = false;
 		return;
 	}
 }
@@ -99,9 +84,9 @@ void UWFCGeneratorComponent::StartGeneration()
 
 void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfiguration& CustomConfig)
 {
-	if (bIsGenerating)
+	if (bIsProcessingQueue)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Generation already in progress"));
+		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Queue is being processed"));
 		return;
 	}
 
@@ -126,7 +111,6 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
 	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Starting generation with grid size %s"),
 	       *CustomConfig.GridSize.ToString());
 
-	bIsGenerating = true;
 	Configuration = CustomConfig;
 
 	ClearVisualization();
@@ -134,7 +118,6 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
 	if (!WFCCore->Initialize(TileSet, Configuration))
 	{
 		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
-		bIsGenerating = false;
 		return;
 	}
 
@@ -148,29 +131,134 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
 	}
 }
 
-void UWFCGeneratorComponent::StartGenerationWithCustomConfigAt(FVector Location,
-                                                               FRotator Rotation)
+void UWFCGeneratorComponent::StartGenerationWithCustomConfigAt(FVector Location, FRotator Rotation)
 {
+	ExecuteGenerationAsyncAt(Location, Rotation);
+}
+
+int UWFCGeneratorComponent::ExecuteGenerationAsyncAt(FVector Location, FRotator Rotation)
+{
+	if (bShouldStopProcessing.load())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Component is being destroyed, ignoring request"));
+		return 0;
+	}
+
+	if (GetQueueSize() >= MaxQueueSize)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Queue is full (%d), ignoring new request"), MaxQueueSize);
+		return 0;
+	}
+
+	uint32 RequestId = NextRequestId.fetch_add(1);
+	FGenerationRequest Request(Location, Rotation, RequestId);
+	
+	PendingRequests.Add(Request);
+	
+	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Queued generation request %d at location %s (Queue size: %d)"), 
+	       RequestId, *Location.ToString(), GetQueueSize());
+
+	if (!bIsProcessingQueue)
+	{
+		ProcessNextRequest();
+	}
+	
+	return RequestId;
+}
+
+int UWFCGeneratorComponent::QueueGeneration(FVector Location, FRotator Rotation)
+{
+	if (bShouldStopProcessing.load())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Component is being destroyed, ignoring request"));
+		return 0;
+	}
+
+	if (GetQueueSize() >= MaxQueueSize)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Queue is full (%d), ignoring new request"), MaxQueueSize);
+		return 0;
+	}
+
+	uint32 RequestId = NextRequestId.fetch_add(1);
+	FGenerationRequest Request(Location, Rotation, RequestId);
+	
+	PendingRequests.Add(Request);
+	
+	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Queued generation request %d at location %s (Queue size: %d)"), 
+	       RequestId, *Location.ToString(), GetQueueSize());
+
+	if (!bIsProcessingQueue)
+	{
+		ProcessNextRequest();
+	}
+	
+	return RequestId;
+}
+
+void UWFCGeneratorComponent::ProcessNextRequest()
+{
+	FGenerationRequest Request;
+	if (PendingRequests.Num() == 0)
+	{
+		bIsProcessingQueue = false;
+		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCGenerator: Queue is empty, stopping processing"));
+		return;
+	}
+	Request = PendingRequests.Pop();
+
+	if (bShouldStopProcessing.load())
+	{
+		bIsProcessingQueue = false;
+		return;
+	}
+
+	bIsProcessingQueue = true;
+	
+	if (!WFCCore)
+	{
+		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: WFC Core not initialized for request %d"), Request.RequestId);
+		bIsProcessingQueue = false;
+		ProcessNextRequest();
+		return;
+	}
+
 	WFCCore->UpdateGrid(Configuration);
+
+	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Processing queued request %d"), Request.RequestId);
 
 	if (bUseAsyncGeneration)
 	{
-		ExecuteGenerationAsyncAt(Location, Rotation);
+		Async(EAsyncExecution::TaskGraph, [this, Request]()
+		{
+			FWFCGenerationResult Result;
+			if (!bShouldStopProcessing.load())
+			{
+				Result = WFCCore->Generate();
+			}
+
+			AsyncTask(ENamedThreads::GameThread, [this, Request, Result]()
+			{
+				if (!bShouldStopProcessing.load())
+				{
+					OnGenerationFinished(Result, Request.Location, Request.Rotation);
+				}
+				ProcessNextRequest();
+			});
+		});
 	}
 	else
 	{
-		ExecuteGenerationAt(Location, Rotation);
+		FWFCGenerationResult Result = WFCCore->Generate();
+		OnGenerationFinished(Result, Request.Location, Request.Rotation);
+		ProcessNextRequest();
 	}
 }
 
 void UWFCGeneratorComponent::StopGeneration()
 {
-	if (!bIsGenerating)
-	{
-		return;
-	}
-
-	bIsGenerating = false;
+	bShouldStopProcessing.store(true);
+	bIsProcessingQueue = false;
 	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation stopped"));
 
 	if (GenerationFuture.IsValid())
@@ -182,6 +270,7 @@ void UWFCGeneratorComponent::StopGeneration()
 void UWFCGeneratorComponent::ClearGeneration()
 {
 	StopGeneration();
+	ClearQueue();
 	ClearVisualization();
 
 	if (WFCCore)
@@ -193,11 +282,37 @@ void UWFCGeneratorComponent::ClearGeneration()
 	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation cleared"));
 }
 
+void UWFCGeneratorComponent::ClearQueue()
+{
+	FScopeLock Lock(&QueueLock);
+	int32 ClearedCount = PendingRequests.Num();
+	PendingRequests.Empty();
+	
+	if (ClearedCount > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Cleared %d requests from queue"), ClearedCount);
+	}
+	
+	bShouldStopProcessing.store(false);
+}
+
+int32 UWFCGeneratorComponent::GetQueueSize() const
+{
+	FScopeLock Lock(&QueueLock);
+	return PendingRequests.Num();
+}
+
+TArray<FGenerationRequest> UWFCGeneratorComponent::GetQueuedRequests() const
+{
+	FScopeLock Lock(&QueueLock);
+	return PendingRequests;
+}
+
 void UWFCGeneratorComponent::SetTileSet(UWFCTileSet* NewTileSet)
 {
-	if (bIsGenerating)
+	if (bIsProcessingQueue)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Cannot change TileSet during generation"));
+		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Cannot change TileSet during queue processing"));
 		return;
 	}
 
@@ -279,7 +394,6 @@ void UWFCGeneratorComponent::ExecuteGeneration()
 	if (!WFCCore)
 	{
 		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: WFC Core not initialized"));
-		bIsGenerating = false;
 		return;
 	}
 
@@ -295,7 +409,7 @@ void UWFCGeneratorComponent::ExecuteGenerationAsync()
 
 	GenerationFuture = Async(EAsyncExecution::ThreadPool, [this]() -> FWFCGenerationResult
 	{
-		if (WFCCore)
+		if (WFCCore && !bShouldStopProcessing.load())
 		{
 			return WFCCore->Generate();
 		}
@@ -304,28 +418,11 @@ void UWFCGeneratorComponent::ExecuteGenerationAsync()
 
 	AsyncTask(ENamedThreads::GameThread, [this]()
 	{
-		if (GenerationFuture.IsValid())
+		if (GenerationFuture.IsValid() && !bShouldStopProcessing.load())
 		{
 			FWFCGenerationResult Result = GenerationFuture.Get();
 			OnGenerationFinished(Result);
 		}
-	});
-}
-
-void UWFCGeneratorComponent::ExecuteGenerationAsyncAt(FVector Location, FRotator Rotation)
-{
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Executing asynchronous generation"));
-	FVector NewLocation = Location;
-	FRotator NewRotation = Rotation;
-
-	Async(EAsyncExecution::TaskGraph, [this, NewLocation, NewRotation]()
-	{
-		FWFCGenerationResult Result = WFCCore->Generate();
-
-		AsyncTask(ENamedThreads::GameThread, [this, NewLocation, NewRotation, Result]()
-		{
-			OnGenerationFinished(Result, NewLocation, NewRotation);
-		});
 	});
 }
 
@@ -334,7 +431,6 @@ void UWFCGeneratorComponent::ExecuteGenerationAt(FVector Location, FRotator Rota
 	if (!WFCCore)
 	{
 		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: WFC Core not initialized"));
-		bIsGenerating = false;
 		return;
 	}
 
@@ -346,7 +442,6 @@ void UWFCGeneratorComponent::ExecuteGenerationAt(FVector Location, FRotator Rota
 
 void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Result)
 {
-	bIsGenerating = false;
 	LastResult = Result;
 
 	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation finished - Success: %s, Iterations: %d, Time: %.3fs"),
@@ -370,7 +465,6 @@ void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Re
 void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Result, FVector Location,
                                                   FRotator Rotation)
 {
-	bIsGenerating = false;
 	LastResult = Result;
 	LastCollapseHistory = WFCCore->GetCollapseHistory();
 	CurCollapseHistoryStep = LastCollapseHistory.Num() - 1;
