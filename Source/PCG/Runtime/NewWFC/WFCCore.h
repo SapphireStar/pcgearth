@@ -6,6 +6,8 @@
 #include "WFCTypes.h"
 #include "WFCTileSet.h"
 
+DECLARE_DELEGATE_TwoParams(FOnWFCStatusUpdate, FWFCCoordinate, int32);
+
 struct FWFCCell
 {
     FWFCCell() = default;
@@ -47,6 +49,8 @@ public:
     FWFCCell* GetCell(const FWFCCoordinate& Coord);
     const FWFCCell* GetCell(const FWFCCoordinate& Coord) const;
     TArray<FWFCCoordinate> GetCollapseHistory() {return CollapseHistory;}
+
+    FOnWFCStatusUpdate OnStatusUpdate;
 private:
     UWFCTileSet* TileSet = nullptr;
     FWFCConfiguration Config;
@@ -61,7 +65,7 @@ private:
     
     TMap<FWFCCoordinate, TArray<int32>> PositionConstraints;
     TMap<int32, int32> TileInstanceCounts;
-
+    TMap<FWFCCoordinate, TSet<int32>> BacktrackBlacklist;
     static const TArray<FIntVector> DirectionVectors;
 
 private:
@@ -110,5 +114,10 @@ private:
     void LogGenerationStep(const FWFCCoordinate& Coord, int32 TileIndex) const;
     void LogPropagationStep(const FWFCCoordinate& From, const FWFCCoordinate& To, int32 RemovedTile) const;
     FString GetGridStateString() const;
-    
+
+
+    void RestoreState(int32 ToDepth);
+        void BlacklistTile(const FWFCCoordinate& Coord, int32 TileIndex);
+        bool IsTileBlacklisted(const FWFCCoordinate& Coord, int32 TileIndex) const;
+        void ClearBlacklistForCoordinate(const FWFCCoordinate& Coord);
 };

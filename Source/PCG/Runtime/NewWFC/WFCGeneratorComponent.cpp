@@ -75,6 +75,8 @@ void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomCo
 		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
 		return;
 	}
+
+	WFCCore->OnStatusUpdate.BindUObject(this, &UWFCGeneratorComponent::OnWFCStatusUpdate);
 }
 
 void UWFCGeneratorComponent::StartGeneration()
@@ -616,8 +618,8 @@ AActor* UWFCGeneratorComponent::SpawnTileActor(const FWFCCoordinate& Position, i
 	FRotator WorldRotation = TileDef.BaseRotation;
 
 	UWorld* World = GetOwner()->GetWorld();
-	AActor* TileActor = World->SpawnActor<AActor>(AActor::StaticClass(), WorldPosition, WorldRotation);
-
+	AActor* TileActor = World->SpawnActor<AActor>();
+	
 	if (!TileActor)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Failed to spawn actor for tile %d"), TileIndex);
@@ -625,9 +627,8 @@ AActor* UWFCGeneratorComponent::SpawnTileActor(const FWFCCoordinate& Position, i
 	}
 	
 
-	UStaticMeshComponent* MeshComponent = NewObject<UStaticMeshComponent>(this);
+	UStaticMeshComponent* MeshComponent = NewObject<UStaticMeshComponent>(TileActor);
 	MeshComponent->RegisterComponent();
-	MeshComponent->SetupAttachment(GetOwner()->GetRootComponent());
 	MeshComponent->SetStaticMesh(TileDef.Mesh);
 
 	if (TileDef.Material)
@@ -637,9 +638,9 @@ AActor* UWFCGeneratorComponent::SpawnTileActor(const FWFCCoordinate& Position, i
 
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	MeshComponent->SetCollisionResponseToAllChannels(ECR_Block);
-
+	
 	TileActor->SetRootComponent(MeshComponent);
-	MeshComponent->RegisterComponent();
+	
 
 	if (RootVisualization)
 	{
@@ -675,4 +676,10 @@ FVector UWFCGeneratorComponent::CoordinateToLocalPosition(const FWFCCoordinate& 
 	) - FVector(CellSize * Configuration.GridSize.X / 2.f, CellSize * Configuration.GridSize.Y / 2.f, 0);
 
 	return BasePosition + CellPosition;
+}
+
+void UWFCGeneratorComponent::OnWFCStatusUpdate(FWFCCoordinate Coord, int32 Tile)
+{
+	
+	SpawnTileActor(Coord, Tile);
 }

@@ -280,8 +280,8 @@ void FWFCCore::ApplyConstraints()
 void FWFCCore::CellPreProcess()
 {
 	FRandomStream Stream;
-	int rand = Stream.FRandRange(0,10);
-	
+	int rand = Stream.FRandRange(0, 10);
+
 	for (const auto& [Coord, Cell] : Grid)
 	{
 		if (IsBoundaryCoordinate(Coord))
@@ -289,7 +289,6 @@ void FWFCCore::CellPreProcess()
 			CollapseCellTo(Coord, 0);
 			PropagateConstraints();
 		}
-
 	}
 }
 
@@ -653,6 +652,7 @@ FWFCCoordinate FWFCCore::SelectCellCenterOut()
 
 bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 {
+	
 	FWFCCell* Cell = GetCell(Coord);
 	if (!Cell || Cell->IsCollapsed())
 	{
@@ -696,6 +696,14 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 
 	LogGenerationStep(Coord, SelectedTile);
 
+	if (OnStatusUpdate.IsBound())
+	{
+		AsyncTask(ENamedThreads::GameThread, [this, Coord, SelectedTile]()
+		{
+			OnStatusUpdate.Execute(Coord, SelectedTile);
+		});
+	}
+	
 	return true;
 }
 
@@ -717,15 +725,7 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 
 
 	FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
-	if (!CheckDecorators(TileIndex, TileDef, Coord))
-	{
-		return false;
-	}
-	/*if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Try collapse %s to tile %s failed"), *Coord.ToString(), *TileSet->GetTile(TileIndex).TileName);
-		return false;
-	}*/
+
 
 	if (TileIndex < 0)
 	{
@@ -747,12 +747,8 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 	Cell->Entropy = 0.0f;
 
 	TileInstanceCounts.FindOrAdd(TileIndex, 0)++;
-
-	CollapseHistory.Add(Coord);
-
+	
 	QueuePropagation(Coord);
-
-	LogGenerationStep(Coord, TileIndex);
 
 	return true;
 }
@@ -943,7 +939,14 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 				Cell->CollapsedTileIndex = i;
 				TileInstanceCounts.FindOrAdd(i, 0)++;
 				CollapseHistory.Add(Coord);
-
+				
+				if (OnStatusUpdate.IsBound())
+				{
+					AsyncTask(ENamedThreads::GameThread, [this, Coord, i]()
+					{
+						OnStatusUpdate.Execute(Coord, i);
+					});
+				}
 				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Auto-collapsed cell %s to tile %d"),
 				       *Coord.ToString(), i);
 				break;
@@ -1169,7 +1172,7 @@ bool FWFCCore::CheckDecorators(int TileIndex, const FWFCTileDefinition& Tile, co
 	{
 		return false;
 	}
-	if (TileInstanceCounts.Contains(TileIndex) && Tile.MaxInstancesPerGeneration>0)
+	if (TileInstanceCounts.Contains(TileIndex) && Tile.MaxInstancesPerGeneration > 0)
 	{
 		if (TileInstanceCounts[TileIndex] >= Tile.MaxInstancesPerGeneration)
 		{

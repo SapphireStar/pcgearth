@@ -181,4 +181,8 @@ private:
     AActor* SpawnTileActor(const FWFCCoordinate& Position, int32 TileIndex);
     FVector CoordinateToWorldPosition(const FWFCCoordinate& Coord) const;
     FVector CoordinateToLocalPosition(const FWFCCoordinate& Coord) const;
+
+    void OnWFCStatusUpdate(FWFCCoordinate Coord, int32 Tile);
+
+    
 };
