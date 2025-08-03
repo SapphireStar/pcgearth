@@ -228,8 +228,8 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
 	float X = InputVector.X;
 	float Y = InputVector.Y;
 
-	FVector CameraForward = Camera->GetForwardVector() * Y;
-	FVector CameraRight = Camera->GetRightVector() * X;
+	FVector CameraForward = SpringArm->GetForwardVector() * Y;
+	FVector CameraRight = SpringArm->GetRightVector() * X;
 	FVector DesiredMoveDirection = (CameraForward + CameraRight).GetSafeNormal();
 
 	FVector CurrentVelocity = MainBody->GetPhysicsLinearVelocity();
@@ -304,6 +304,7 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
 		FVector LimitedVelocity = CurrentDirection * MaxSpeed;
 		MainBody->SetPhysicsLinearVelocity(LimitedVelocity);
 	}
+
 }
 
 void ASpaceShipPawn::Accelerate(const FInputActionValue& Value)
@@ -333,6 +334,17 @@ void ASpaceShipPawn::Look(const FInputActionValue& Value)
 	float X = Value.Get<FVector2D>().X;
 	float Y = -Value.Get<FVector2D>().Y;
 
+	/*if (Y > 0 && SpringArm->GetRelativeRotation().Pitch >80)
+	{
+		return;
+	}
+	if (Y < 0 && SpringArm->GetRelativeRotation().Pitch < -80)
+	{
+		return;
+	}
+
+	SpringArm->AddRelativeRotation(FRotator(Y * PitchSensitive * GetWorld()->DeltaTimeSeconds, X * YawSensitive * GetWorld()->DeltaTimeSeconds, 0));*/
+	
 	FVector UpVector = Camera->GetUpVector();
 
 	FQuat DeltaQuat = FQuat(UpVector, FMath::DegreesToRadians(X * YawSensitive) * GetWorld()->DeltaTimeSeconds);

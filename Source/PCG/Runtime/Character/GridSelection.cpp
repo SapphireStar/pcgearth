@@ -213,6 +213,10 @@ void AGridSelectionManager::GenerateGrid()
 
 void AGridSelectionManager::DrawSelectedGrid()
 {
+	if (SelectedGridPoints.Num()<2)
+	{
+		return;
+	}
 	FVector LocalGridExtent = WorldToLocal(SelectedGridPoints[2]);
 	if (FMath::IsNearlyZero(LocalGridExtent.X) || FMath::IsNearlyZero(LocalGridExtent.Y))
 	{
