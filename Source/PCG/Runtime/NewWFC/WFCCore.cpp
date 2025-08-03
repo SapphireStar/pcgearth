@@ -279,9 +279,6 @@ void FWFCCore::ApplyConstraints()
 
 void FWFCCore::CellPreProcess()
 {
-	FRandomStream Stream;
-	int rand = Stream.FRandRange(0, 10);
-
 	for (const auto& [Coord, Cell] : Grid)
 	{
 		if (IsBoundaryCoordinate(Coord))
@@ -383,7 +380,6 @@ bool FWFCCore::RunGenerationLoop()
 			SaveState();
 		}
 
-		// 坍缩选中的单元
 		if (!CollapseCell(NextCoord))
 		{
 			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Collapse failed for cell %s"), *NextCoord.ToString());
@@ -561,7 +557,7 @@ FWFCCoordinate FWFCCore::SelectCellLayered()
 		float MinEntropy = FLT_MAX;
 		TArray<FWFCCoordinate> LayerCandidates;
 
-		for (int32 X = 0; X < Config.GridSize.X; X++)
+		for (int32 X = 0; X < Config.GridSize.X ; X++)
 		{
 			for (int32 Y = 0; Y < Config.GridSize.Y; Y++)
 			{
@@ -652,7 +648,6 @@ FWFCCoordinate FWFCCore::SelectCellCenterOut()
 
 bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 {
-	
 	FWFCCell* Cell = GetCell(Coord);
 	if (!Cell || Cell->IsCollapsed())
 	{
@@ -661,19 +656,8 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 		return false;
 	}
 
-	if (Cell->GetPossibleTileCount() == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Cannot collapse - no possible tiles at %s"), *Coord.ToString());
-		return false;
-	}
-
-	int32 SelectedTile = SelectRandomTile(*Cell, Coord);
-
-	if (SelectedTile < 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
-		return false;
-	}
+	int32 SelectedTile = FMath::Max(SelectRandomTile(*Cell, Coord), 0);
+	
 
 	if (!CheckConstraints(Coord, SelectedTile))
 	{
@@ -703,7 +687,7 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 			OnStatusUpdate.Execute(Coord, SelectedTile);
 		});
 	}
-	
+
 	return true;
 }
 
@@ -723,32 +707,29 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 		return false;
 	}
 
-
-	FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
-
-
-	if (TileIndex < 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
-		return false;
-	}
-
-	if (!CheckConstraints(Coord, TileIndex))
-	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Constraint check failed for tile %d at %s"),
-		       TileIndex, *Coord.ToString());
-		return false;
-	}
+	int32 SelectedTile = 0;
 
 	Cell->bCollapsed = true;
-	Cell->CollapsedTileIndex = TileIndex;
+	Cell->CollapsedTileIndex = SelectedTile;
 	Cell->PossibleTiles.SetRange(0, Cell->PossibleTiles.Num(), false);
-	Cell->PossibleTiles[TileIndex] = true;
+	Cell->PossibleTiles[SelectedTile] = true;
 	Cell->Entropy = 0.0f;
 
-	TileInstanceCounts.FindOrAdd(TileIndex, 0)++;
-	
+	TileInstanceCounts.FindOrAdd(SelectedTile, 0)++;
+
+	CollapseHistory.Add(Coord);
+
 	QueuePropagation(Coord);
+
+	LogGenerationStep(Coord, SelectedTile);
+
+	if (OnStatusUpdate.IsBound())
+	{
+		AsyncTask(ENamedThreads::GameThread, [this, Coord, SelectedTile]()
+		{
+			OnStatusUpdate.Execute(Coord, SelectedTile);
+		});
+	}
 
 	return true;
 }
@@ -767,7 +748,6 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 			{
 				continue;
 			}
-
 			/*if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
 			{
 				continue;
@@ -825,10 +805,10 @@ bool FWFCCore::PropagateConstraints()
 
 	while (!PropagationQueue.IsEmpty() && PropagationSteps < MaxPropagationSteps)
 	{
+		
 		FWFCCoordinate CurrentCoord;
 		PropagationQueue.Dequeue(CurrentCoord);
 		PropagationSteps++;
-
 		if (!PropagateFrom(CurrentCoord))
 		{
 			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Propagation failed from %s at step %d"),
@@ -907,7 +887,12 @@ bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
 
 bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bool bTrackChanges)
 {
+	auto tile = TileSet->GetTile(TileIndex);
 	FWFCCell* Cell = GetCell(Coord);
+	if (tile.Category == EWFCTileCategory::Empty)
+	{
+		return true;
+	}
 	if (!Cell || TileIndex < 0 || TileIndex >= Cell->PossibleTiles.Num() || !Cell->PossibleTiles[TileIndex])
 	{
 		return true;
@@ -924,7 +909,7 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 	int32 RemainingOptions = Cell->GetPossibleTileCount();
 	if (RemainingOptions == 0)
 	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Cell at %s has no remaining options after removing tile %d"),
+		UE_LOG(LogTemp, Log, TEXT("WFCCore: Cell at %s has no remaining options after removing tile %d"),
 		       *Coord.ToString(), TileIndex);
 		return false;
 	}
@@ -939,7 +924,7 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 				Cell->CollapsedTileIndex = i;
 				TileInstanceCounts.FindOrAdd(i, 0)++;
 				CollapseHistory.Add(Coord);
-				
+
 				if (OnStatusUpdate.IsBound())
 				{
 					AsyncTask(ENamedThreads::GameThread, [this, Coord, i]()

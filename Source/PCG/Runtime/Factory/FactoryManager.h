@@ -27,7 +27,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION()
-	void OnTimeZeroGameover(UClass* DataClassType);
+	void OnTimeZeroGameover(UClass* DataClassType, EGameOverType eType);
 	void BuildMiningFactoryAt(FVector Position, int Volume, AMineSphere* MineSphere, FFactoryInfo Info);
 	void BuildCraftFactoryAt(FVector Position, int Volume, FFactoryInfo Info, FFactoryRecipeInfo RecipeInfo);
 

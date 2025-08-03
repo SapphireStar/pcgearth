@@ -36,7 +36,7 @@ public:
 	virtual void Destroyed() override;
 	
 	UFUNCTION()
-	void OnTimeZeroGameover(UClass* ClassType);
+	void OnTimeZeroGameover(UClass* ClassType, EGameOverType eType);
 	
 	FOnVisualizationComplete OnVisualizationComplete;
 	FOnVisualizationProgress OnVisualizationProgress;

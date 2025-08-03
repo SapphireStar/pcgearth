@@ -680,6 +680,5 @@ FVector UWFCGeneratorComponent::CoordinateToLocalPosition(const FWFCCoordinate& 
 
 void UWFCGeneratorComponent::OnWFCStatusUpdate(FWFCCoordinate Coord, int32 Tile)
 {
-	
 	SpawnTileActor(Coord, Tile);
 }

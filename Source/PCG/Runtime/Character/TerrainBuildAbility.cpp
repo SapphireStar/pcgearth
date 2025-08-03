@@ -1,7 +1,6 @@
 #include "TerrainBuildAbility.h"
 #include "EngineUtils.h"
 #include "PCG/Runtime/Factory/FactoryBuilding.h"
-#include "ViewportInteractionTypes.h"
 #include "Camera/CameraComponent.h"
 #include "GeometryScript/GeometryScriptSelectionTypes.h"
 #include "GeometryScript/MeshBasicEditFunctions.h"
@@ -62,7 +61,6 @@ void UTerrainBuildAbility::BeginPlay()
 void UTerrainBuildAbility::OnInitializeAbility()
 {
 	Super::OnInitializeAbility();
-	PlayerData = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData;
 }
 
 void UTerrainBuildAbility::OnActivateAbility()
@@ -201,6 +199,16 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 		bIsGridSlectionStarted = false;
 		UE_LOG(LogTemp, Warning, TEXT("No valid planet found"));
 	}
+}
+
+void UTerrainBuildAbility::OnCancelUseAbility()
+{
+	Super::OnCancelUseAbility();
+	if (GridSelection)
+		GridSelection->ShutDownGridSelection();
+	bIsGridSlectionStarted = false;
+	DeselectPlanet();
+	FactorySphereMeshComponent->SetVisibility(false);
 }
 
 void UTerrainBuildAbility::InitializeMineSphere()

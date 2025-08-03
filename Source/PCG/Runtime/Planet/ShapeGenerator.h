@@ -60,7 +60,7 @@ struct FShapeSettings
 	FShapeSettings(const FShapeSettings& Other);
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float PlanetRadius = 100.f;
+	float PlanetRadius = 30000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FNoiseLayer> NoiseLayers;

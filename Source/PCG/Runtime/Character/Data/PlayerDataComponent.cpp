@@ -59,6 +59,53 @@ void UPlayerDataComponent::ChangePlayerResourceValue(EFactoryResource eResourceT
 	UE_LOG(LogTemp, Error, TEXT("UPlayerDataComponent::ChangePlayerResourceValue: Player has no such resource type: %s"), *UEnum::GetValueAsString(eResourceType));
 }
 
+void UPlayerDataComponent::ChangePlayerAbilityPropertyValue(EPlayerAbilityPropertyType ePropertyType, float NewValue)
+{
+	float OldValue = -1.0f;
+	switch (ePropertyType)
+	{
+	case EPlayerAbilityPropertyType::EPAPT_Damage:
+		OldValue = PlayerStatus.PlayerAbilityInfo.Damage;
+		PlayerStatus.PlayerAbilityInfo.Damage = NewValue;
+		OnAbilityPropertyChanged.Broadcast(ePropertyType, OldValue, NewValue);
+		return;
+		break;
+	case EPlayerAbilityPropertyType::EPAPT_DamageMultiplier:
+		OldValue = PlayerStatus.PlayerAbilityInfo.DamageMultiplier;
+		PlayerStatus.PlayerAbilityInfo.DamageMultiplier = NewValue;
+		OnAbilityPropertyChanged.Broadcast(ePropertyType, OldValue, NewValue);
+		return;
+		break;
+	case EPlayerAbilityPropertyType::EPAPT_ResourceMultiplier:
+		OldValue = PlayerStatus.PlayerAbilityInfo.ResourceMultiplier;
+		PlayerStatus.PlayerAbilityInfo.ResourceMultiplier = NewValue;
+		OnAbilityPropertyChanged.Broadcast(ePropertyType, OldValue, NewValue);
+		return;
+		break;
+	case EPlayerAbilityPropertyType::EPAPT_SpeedMultiplier:
+		OldValue = PlayerStatus.PlayerAbilityInfo.SpeedMultiplier;
+		PlayerStatus.PlayerAbilityInfo.SpeedMultiplier = NewValue;
+		OnAbilityPropertyChanged.Broadcast(ePropertyType, OldValue, NewValue);
+		return;
+		break;
+	case EPlayerAbilityPropertyType::EPAPT_FuelMax:
+		OldValue = PlayerStatus.PlayerAbilityInfo.FuelMax;
+		PlayerStatus.PlayerAbilityInfo.FuelMax = NewValue;
+		OnAbilityPropertyChanged.Broadcast(ePropertyType, OldValue, NewValue);
+		return;
+		break;
+	case EPlayerAbilityPropertyType::EPAPT_CurrentFuel:
+		OldValue = PlayerStatus.PlayerAbilityInfo.CurrentFuel;
+		PlayerStatus.PlayerAbilityInfo.CurrentFuel = NewValue;
+		OnAbilityPropertyChanged.Broadcast(ePropertyType, OldValue, NewValue);
+		return;
+		break;
+	}
+
+	UE_LOG(LogTemp, Error, TEXT("UPlayerDataComponent::ChangePlayerAbilityPropertyValue: Haven't add define for enum %s"), *UEnum::GetValueAsString(ePropertyType));
+	return;
+}
+
 void UPlayerDataComponent::ChangePlayerRecipeIndex(int NewIndex)
 {
 	int OldIndex = PlayerStatus.PlayerCurrentRecipeIndex;
@@ -109,9 +156,4 @@ FFactoryRecipeInfo UPlayerDataComponent::GetRecipeInfo(ERecipeType eType)
 		}
 	}
 	return FFactoryRecipeInfo();
-}
-
-void UPlayerDataComponent::BroadcastTimeZeroGameover()
-{
-	OnTimeZeroGameOver.Broadcast(UPlayerDataComponent::StaticClass());
 }

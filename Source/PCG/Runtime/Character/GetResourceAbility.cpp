@@ -81,8 +81,10 @@ void UGetResourceAbility::OnKeepUsingAbility(UPrimitiveComponent* TraceStartComp
 	{
 		if (AGeometryPlanetActor* Planet = Cast<AGeometryPlanetActor>(HitResult.GetActor()))
 		{
+			float PlayerBaseDamage = PlayerData->GetPlayerAbilityPropertyValue(EPlayerAbilityPropertyType::EPAPT_Damage);
+			float PlayerDamageMultiplier = PlayerData->GetPlayerAbilityPropertyValue(EPlayerAbilityPropertyType::EPAPT_DamageMultiplier);
 			if (UInstancedStaticMeshComponent* ISM= Cast<UInstancedStaticMeshComponent>(HitResult.Component))
-				Planet->OnGetHitByLaser(ISM, HitResult.Item, 100 * GetWorld()->DeltaTimeSeconds);
+				Planet->OnGetHitByLaser(ISM, HitResult.Item, PlayerBaseDamage * PlayerDamageMultiplier * GetWorld()->DeltaTimeSeconds);
 		}
 	}	
 }

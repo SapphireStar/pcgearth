@@ -48,7 +48,7 @@ public:
 	virtual void OnStartUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera) override;
 	virtual void OnKeepUsingAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera) override;
 	virtual void OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera) override;
-
+	virtual void OnCancelUseAbility() override;
 
 protected:
 	virtual void InitializeMineSphere();
@@ -98,8 +98,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Building")
 	float SelectRange = 10000.f;
 
-	UPROPERTY()
-	TObjectPtr<UPlayerDataComponent> PlayerData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FLinearColor AvailableColor =  FLinearColor::Green;

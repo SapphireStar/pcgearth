@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Data/DataTypes.h"
+#include "Data/PlayerDataComponent.h"
 #include "ItemAbilityComponent.generated.h"
 
 UCLASS(Blueprintable)
@@ -65,6 +66,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera);
 
+	UFUNCTION(BlueprintCallable)
+	virtual void OnCancelUseAbility();
+
 public:
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsActivated = false;
@@ -83,4 +87,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability Info")
 	TObjectPtr<class UTexture2D> AbilityIcon;
+
+protected:
+	UPROPERTY()
+	TObjectPtr<UPlayerDataComponent> PlayerData;
 };

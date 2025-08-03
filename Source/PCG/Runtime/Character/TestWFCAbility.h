@@ -66,9 +66,6 @@ protected:
 
 private:
 	UPROPERTY()
-	TObjectPtr<UPlayerDataComponent> PlayerData;
-
-	UPROPERTY()
 	TObjectPtr<AGridSelectionManager> GridSelection;
 
 	UPROPERTY()

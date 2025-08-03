@@ -107,29 +107,7 @@ bool UWFCTileSet::AreSocketsCompatible(const FString& Socket1, const FString& So
 		return S2.Equals(Socket1, ESearchCase::IgnoreCase);
 	}
 
-	if (Socket1.Equals("0") && Socket2.Equals("0"))
-	{
-		return true;
-	}
-
-	/*for (const FWFCSocket& SocketDef : SocketDefinitions)
-	{
-	    if (SocketDef.SocketName.Equals(Socket1, ESearchCase::IgnoreCase))
-	    {
-	        return SocketDef.CompatibleSockets.Contains(Socket2);
-	    }
-	}
-	
-	for (const FWFCSocket& SocketDef : SocketDefinitions)
-	{
-	    if (SocketDef.SocketName.Equals(Socket2, ESearchCase::IgnoreCase))
-	    {
-	        return SocketDef.CompatibleSockets.Contains(Socket1);
-	    }
-	}*/
-
 	return false;
-	//return Socket1.Equals(Socket2, ESearchCase::IgnoreCase);
 }
 
 FWFCSocket UWFCTileSet::GetSocketDefinition(const FString& SocketName) const

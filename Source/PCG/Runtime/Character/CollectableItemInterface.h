@@ -29,5 +29,8 @@ public:
 	virtual EFactoryResource GetCollectableResourceType_Implementation() const { return EFactoryResource::EFR_Wood;}
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void OnResourceBeCollected(FVector CollectedInstanceScale);
+	void OnResourceBeCollected(int ItemIndex);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void OnGetHit(int ItemIndex, float Damage);
 };

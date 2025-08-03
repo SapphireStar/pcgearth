@@ -28,7 +28,7 @@ void AFactoryManager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AFactoryManager::OnTimeZeroGameover(UClass* DataClassType)
+void AFactoryManager::OnTimeZeroGameover(UClass* DataClassType, EGameOverType eType)
 {
 	for (auto Building : SpawnedBuildings)
 	{
@@ -50,7 +50,7 @@ void AFactoryManager::BuildCraftFactoryAt(FVector Position, int Volume, FFactory
 	FFactoryRecipeInfo RecipeInfo)
 {
 	ACraftingBuilding* Factory = GetWorld()->SpawnActor<ACraftingBuilding>();
-	Factory->BuildFactoryAt(Position, Volume, Info);
+	Factory->BuildFactoryAt(Position, Volume, PlayerData->GetPlayerData().CraftingFactoryInfo);
 	Factory->SetRecipeInfo(RecipeInfo);
 	Factory->ActivateFactory();
 	SpawnedBuildings.Add(Factory);

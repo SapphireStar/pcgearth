@@ -156,8 +156,8 @@ void AGeometryPlanetActor::ApplyNoiseToPlanet()
 	if (!NoiseShapeGenerator)
 	{
 		NoiseShapeGenerator = NewObject<UShapeGenerator>();
-		NoiseShapeGenerator->Initialize(NoiseShapeSettings);
 	}
+	NoiseShapeGenerator->Initialize(NoiseShapeSettings);
 	NoiseApplier::ApplySimpleNoise(DynamicMeshComponent->GetDynamicMesh(), FGeometryScriptMeshSelection(), nullptr, NoiseShapeGenerator);
 }
 
@@ -436,7 +436,7 @@ void AGeometryPlanetActor::SetPixelValue(int32 Offset, float X, float Y, float Z
 }
 
 void AGeometryPlanetActor::InitializeISMFoliage(UInstancedStaticMeshComponent* ISMComponent)
-{
+	{
 	ISMFoliageItemsHealth.Init(100, ISMComponent->GetInstanceCount());
 }
 

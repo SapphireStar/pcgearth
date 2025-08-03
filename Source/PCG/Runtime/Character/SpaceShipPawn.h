@@ -20,6 +20,7 @@ class USpringArmComponent;
 class UCapsuleComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityChanged, EAbilityType, OldAbility, EAbilityType, NewAbility);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerAimingResourceChanged, EFactoryResource, ResourceType);
 
 UCLASS()
@@ -45,29 +46,33 @@ public:
 
 	void Move(const FInputActionValue& Value);
 	void StopMove(const FInputActionValue& Value);
+	void Accelerate(const FInputActionValue& Value);
+	void StopAccelerate(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Roll(const FInputActionValue& Value);
 	void Rise(const FInputActionValue& Value);
+	void Decline(const FInputActionValue& Value);
 	void ProcessInput(float Deltatime);
 	void CycleAbility(const FInputActionValue& Value);
 	void SwitchAbility(const FInputActionValue& Value);
 	void StartUseAbility(const FInputActionValue& Value);
 	void KeepUsingAbility(const FInputActionValue& Value);
 	void CompleteUseAbility(const FInputActionValue& Value);
+	void CancelUseAbility(const FInputActionValue& Value);
 	void CycleRecipe(const FInputActionValue& Value);
 
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	TObjectPtr<UItemAbilityComponent> CreateAbilityComponent(EAbilityType eAbilityType, FName AbilityName);
-	
+
 	void DrawDebugInfo();
 	void DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, const FVector& Acceleration);
 
 	float GetLaserRange() const { return LaserRange; }
-	
+
 	UFUNCTION(BlueprintCallable)
-	int GetCurrentAbilityIndex(){return  CurrentAbilityIndex;}
-	
+	int GetCurrentAbilityIndex() { return CurrentAbilityIndex; }
+
 	UFUNCTION(BlueprintCallable)
 	void ChangeCraftRecipe(FFactoryRecipeInfo RecipeInfo);
 
@@ -76,7 +81,15 @@ public:
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable)
 	FOnPlayerAimingResourceChanged OnPlayerAimingResourceChanged;
+
+	//FOV控制
+	void UpdateFOVBasedOnSpeed(float DeltaTime);
+	float CalculateTargetFOV(float CurrentSpeed);
+
 protected:
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UPlayerDataComponent> PlayerData;
+
 	//Components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UStaticMeshComponent> MainBody;
@@ -98,6 +111,9 @@ protected:
 	TObjectPtr<UInputAction> MoveAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> AccelerateAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> LookAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -108,6 +124,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> RiseAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> DeclineAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> DigTerrainAction;
@@ -121,6 +140,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UInputAction> CycleRecipeAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UInputAction> CancelUseAbilityAction;
+
 	//Control
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float LowSpeedThreshold = 500.0f;
@@ -133,6 +155,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxSpeed = 5000.0f;
+
+	UPROPERTY(BlueprintReadOnly)
+	float BaseSpeed = 5000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float StopThreshold = 10.0f;
@@ -151,7 +176,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SmoothBrakeDamping = 2.0f;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float YawSensitive = 20.f;
 
@@ -160,7 +185,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RollSensitive = 20.f;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Speed = 50.f;
 
@@ -184,21 +209,45 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RollDeceleration = 200.f;
-	
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "在飞船开始加速时，施加给飞船的初始的力"))
+	float AccelerateImpulse = 100.f;
+
+	//FOV控制
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DefaultFOV = 90.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SpeedFOV = 110.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FOVInterpSpeed = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinSpeedForFOV = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxSpeedForFOV = 3000.0f;
+	
+	    float CurrentFOV;
+	
+        float TargetFOV;
+
+	//Movement
 	FVector ActorPrevLocation;
 	FVector ActorCurrentLocation;
 	bool bIsAccelerating = false;
 	FVector CurrentVelocity = FVector::ZeroVector;
 	FVector CurrentAcceleration = FVector::ZeroVector;
 	bool bIsRollAccelerating = false;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float VertexSelectionTolerance = 500.f;
+	
 
 	//Ability
 	bool bIsAbilityInitialized = false;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	EAbilityType CurrentAbilityType;
 
@@ -210,10 +259,8 @@ protected:
 
 private:
 
-	UPROPERTY()
-	TObjectPtr<UPlayerDataComponent> PlayerData;
-
 	int CurrentAbilityIndex = 0;
 
+	bool bIsBoosting = false;
 	//int CurrentRecipeIndex = 0;
 };

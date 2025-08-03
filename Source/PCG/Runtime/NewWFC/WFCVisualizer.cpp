@@ -76,7 +76,7 @@ void AWFCVisualizer::Destroyed()
 	
 }
 
-void AWFCVisualizer::OnTimeZeroGameover(UClass* ClassType)
+void AWFCVisualizer::OnTimeZeroGameover(UClass* ClassType, EGameOverType eType)
 {
 	ClearVisualization();
 }

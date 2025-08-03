@@ -2,6 +2,7 @@
 #include "ItemAbilityComponent.h"
 #include "Engine/World.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "PCG/Runtime/PCGGameMode.h"
 
 UItemAbilityComponent::UItemAbilityComponent()
 {
@@ -40,7 +41,7 @@ void UItemAbilityComponent::OnInitializeAbility()
 	{
 		UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Initialized"), *AbilityName.ToString()), true);
 	}
-		
+	PlayerData = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData;
 }
 
 void UItemAbilityComponent::OnActivateAbility()
@@ -87,5 +88,9 @@ void UItemAbilityComponent::OnKeepUsingAbility(UPrimitiveComponent* TraceStartCo
 }
 
 void UItemAbilityComponent::OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera)
+{
+}
+
+void UItemAbilityComponent::OnCancelUseAbility()
 {
 }

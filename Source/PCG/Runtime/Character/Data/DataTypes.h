@@ -26,6 +26,17 @@ enum class EFactoryResource : uint8
 };
 
 UENUM(BlueprintType)
+enum class EPlayerAbilityPropertyType : uint8
+{
+	EPAPT_Damage				UMETA(DisplayName = "Damage"),
+	EPAPT_DamageMultiplier		UMETA(DisplayName = "DamageMultiplier"),
+	EPAPT_ResourceMultiplier	UMETA(DisplayName = "ResourceMultiplier"),
+	EPAPT_SpeedMultiplier		UMETA(DisplayName = "SpeedMultiplier"),
+	EPAPT_FuelMax				UMETA(DisplayName = "FuelMax"),
+	EPAPT_CurrentFuel			UMETA(DisplayName = "CurrentFuel"),
+};
+
+UENUM(BlueprintType)
 enum class EAbilityType : uint8
 {
 	None				UMETA(DisplayName = "None"),
@@ -48,6 +59,13 @@ enum class EPopupType : uint8
 {
 	SubmitPopup		UMETA(DisplayName = "SubmitPopup"),
 	GameWindowPopup	UMETA(DisplayName = "GameWindowPopup"),
+};
+
+UENUM(BlueprintType)
+enum class EGameOverType : uint8
+{
+	EGOT_Win		UMETA(DisplayName = "Win"),
+	EGOT_FuelEmpty	UMETA(DisplayName = "FuelEmpty"),
 };
 
 USTRUCT(BlueprintType, Blueprintable)
@@ -96,12 +114,59 @@ struct PCG_API FResourceStatus
 };
 
 USTRUCT(BlueprintType, Blueprintable)
+struct FPlayerAbilityInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DamageMultiplier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ResourceMultiplier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SpeedMultiplier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FuelMax;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float CurrentFuel;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FPlayerAbilityPropertyUpgradeItem
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EPlayerAbilityPropertyType PropertyType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float IncreaseValue;
+};
+USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FPlayerAbilityPropertyUpgradeRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FPlayerAbilityPropertyUpgradeItem> PropertyItem;
+};
+
+
+USTRUCT(BlueprintType, Blueprintable)
 struct PCG_API FPlayerStatusNew
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FResourceStatus> Resources;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FPlayerAbilityInfo PlayerAbilityInfo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int PlayerCurrentRecipeIndex;
@@ -138,7 +203,7 @@ struct FFactoryInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ProduceCD = 5;
 
-	// 用于调整工厂大小对工厂效率的影响
+	//用于调整工厂大小对工厂效率的影响
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int EfficiencyDivider = 1;
 

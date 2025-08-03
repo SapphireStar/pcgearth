@@ -21,6 +21,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGemChanged, int, OldValue, int, 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPlayerResourceChanged, EFactoryResource, ResourceType, int, OldValue, int, NewValue);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPlayerAbilityPropertyChanged, EPlayerAbilityPropertyType, PropertyType, float, OldValue, float, NewValue);
+
+
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPlayerRecipeIndexChanged, int, OldValue, int, NewValue);
 
 
@@ -35,7 +39,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentTempleStageChanged, int, 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDataComponentInitialized, UClass*, DataClassType);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimeZeroGameOver, UClass*, DataClassType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTimeZeroGameOver, UClass*, DataClassType, EGameOverType, eGameOverType);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProduceTypeChanged, EFactoryResource, ResourceType);
 
@@ -82,6 +86,37 @@ public:
 	}
 
 	UFUNCTION(BlueprintCallable)
+	void ChangePlayerAbilityPropertyValue(EPlayerAbilityPropertyType ePropertyType, float NewValue);
+
+	UFUNCTION(BlueprintPure)
+	float GetPlayerAbilityPropertyValue(EPlayerAbilityPropertyType ePropertyType) const
+	{
+		switch (ePropertyType)
+		{
+		case EPlayerAbilityPropertyType::EPAPT_Damage:
+			return PlayerStatus.PlayerAbilityInfo.Damage;
+			break;
+		case EPlayerAbilityPropertyType::EPAPT_DamageMultiplier:
+			return PlayerStatus.PlayerAbilityInfo.DamageMultiplier;
+			break;
+		case EPlayerAbilityPropertyType::EPAPT_ResourceMultiplier:
+			return PlayerStatus.PlayerAbilityInfo.ResourceMultiplier;
+			break;
+		case EPlayerAbilityPropertyType::EPAPT_SpeedMultiplier:
+			return PlayerStatus.PlayerAbilityInfo.SpeedMultiplier;
+			break;
+		case EPlayerAbilityPropertyType::EPAPT_FuelMax:
+			return PlayerStatus.PlayerAbilityInfo.FuelMax;
+			break;
+		case EPlayerAbilityPropertyType::EPAPT_CurrentFuel:
+			return PlayerStatus.PlayerAbilityInfo.CurrentFuel;
+			break;
+		}
+		UE_LOG(LogTemp, Error, TEXT("UPlayerDataComponent::GetPlayerAbilityPropertyValue: Haven't add define for enum %s"), *UEnum::GetValueAsString(ePropertyType));
+		return -1.0f;
+	}
+
+	UFUNCTION(BlueprintCallable)
 	void ChangePlayerRecipeIndex(int NewIndex);
 
 	UFUNCTION(BlueprintPure)
@@ -122,15 +157,15 @@ public:
 	FFactoryRecipeInfo GetRecipeInfo(ERecipeType eType);
 
 
-	UFUNCTION(BlueprintCallable)
-	void BroadcastTimeZeroGameover();
-
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerStatusChanged OnPlayerStatusChanged;
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerResourceChanged OnPlayerResourceChanged;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
+	FOnPlayerAbilityPropertyChanged  OnAbilityPropertyChanged;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnPlayerRecipeIndexChanged OnPlayerRecipeIndexChanged;
@@ -149,7 +184,7 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnDataComponentInitialized OnInitialized;
 
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, BlueprintCallable)
 	FOnTimeZeroGameOver OnTimeZeroGameOver;
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable)
