@@ -8,7 +8,7 @@
 #include "MineSphereStone.generated.h"
 
 UCLASS()
-class PCG_API AMineSphereStone : public AMineSphere, public ICollectableItemInterface
+class PCG_API AMineSphereStone : public AMineSphere
 {
 	GENERATED_BODY()
 

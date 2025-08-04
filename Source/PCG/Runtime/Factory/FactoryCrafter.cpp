@@ -18,24 +18,32 @@ void ACraftingBuilding::SetRecipeInfo(FFactoryRecipeInfo RecipeInfo)
 
 bool ACraftingBuilding::StartOneProduce()
 {
+	LastInputValues.Init(0, RecipeInfo.Input.Num());
+	LastOutputValue = 0;
 	if (!CheckCanProduce())
 	{
 		return false;
 	}
-
-	//减去需要的材料
-	for (int i = 0; i < RecipeInfo.Input.Num(); i++)
+	
+	for (int i = 0; i < FactoryEfficiency; i++)
 	{
-		EFactoryResource Type = RecipeInfo.Input[i].ResourceType;
-		int NewValue = PlayerData->GetPlayerResourceValue(Type) - RecipeInfo.Input[i].Value;
+		if (!CheckCanProduce())
+		{
+			break;
+		}
+		for (int j = 0; j < RecipeInfo.Input.Num(); j++)
+		{
+			EFactoryResource Type = RecipeInfo.Input[j].ResourceType;
+			int NewValue = PlayerData->GetPlayerResourceValue(Type) - RecipeInfo.Input[j].Value;
+			PlayerData->ChangePlayerResourceValue(Type, NewValue);
+			LastInputValues[j] += RecipeInfo.Input[j].Value;
+		}
+
+		EFactoryResource Type = RecipeInfo.Output.ResourceType;
+		int NewValue = PlayerData->GetPlayerResourceValue(Type) + RecipeInfo.Output.Value;
 		PlayerData->ChangePlayerResourceValue(Type, NewValue);
+		LastOutputValue += RecipeInfo.Output.Value;
 	}
-
-	//添加产出材料
-	EFactoryResource Type = RecipeInfo.Output.ResourceType;
-	int NewValue = PlayerData->GetPlayerResourceValue(Type) + RecipeInfo.Output.Value;
-	PlayerData->ChangePlayerResourceValue(Type, NewValue);
-
 	return true;
 }
 
@@ -53,4 +61,28 @@ bool ACraftingBuilding::CheckCanProduce()
 		}
 	}
 	return true;
+}
+
+FTooltipInfo ACraftingBuilding::GetFactoryTooltipInfo_Implementation()
+{
+	FTooltipInfo TooltipInfo;
+	FResourceStatus ConsumeStatus;
+	ConsumeStatus.ResourceType = EFactoryResource::EFR_Wood;
+	ConsumeStatus.Value = Volume;
+	TooltipInfo.Consume.Add(ConsumeStatus);
+	
+	if (LastInputValues.Num()==0) return TooltipInfo;
+	for (int i = 0; i < RecipeInfo.Input.Num(); i++)
+	{
+		FResourceStatus Status;
+		Status.ResourceType = RecipeInfo.Input[i].ResourceType;
+		Status.Value = LastInputValues[i];
+		TooltipInfo.Input.Add(Status);
+	}
+	
+	FResourceStatus OutputStatus;
+	OutputStatus.ResourceType = RecipeInfo.Output.ResourceType;
+	OutputStatus.Value = LastOutputValue;
+	TooltipInfo.Output.Add(OutputStatus);
+	return TooltipInfo;
 }

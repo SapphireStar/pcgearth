@@ -54,6 +54,16 @@ void AGeometryPlanetActor::Tick(float DeltaTime)
 		}
 			bIsTextureInitialized = true;
 	}
+
+	/*if (UpdateTextureCounter < UpdateTextureCD)
+	{
+		UpdateTextureCounter+= DeltaTime;
+	}
+	else
+	{
+		UpdateTextureCounter = 0;
+		UpdateMineAreas();
+	}*/
 }
 
 void AGeometryPlanetActor::InitializePlanet(FGeometryPlanetData PlanetData)
@@ -216,7 +226,8 @@ void AGeometryPlanetActor::SpawnStoneMineSpheres()
 			AMineSphereStone* MineSphere = GetWorld()->SpawnActor<AMineSphereStone>();
 			MineSphere->UpdateMineSphere(RandomStream.FRandRange(MineConfiguration.RadiusMin, MineConfiguration.RadiusMax));
 			MineSphere->SetMotherWorldPlanet(this);
-			MineSphere->SetActorLocation(Position - Normal *  RandomStream.FRandRange(0, MineSphere->GetRadius() - 300));
+			float Offset = RandomStream.FRandRange(MineSphere->GetRadius() - MineConfiguration.OffsetMax, MineSphere->GetRadius() - MineConfiguration.OffsetMin);
+			MineSphere->SetActorLocation(Position - Normal *  Offset);
 			SpawnedMineSpheres++;
 			MineSpheres.Add(MineSphere);
 		}
@@ -251,7 +262,8 @@ void AGeometryPlanetActor::SpawnOreMineSpheres()
 			AMineSphereOre* MineSphere = GetWorld()->SpawnActor<AMineSphereOre>();
 			MineSphere->UpdateMineSphere(RandomStream.FRandRange(MineConfiguration.RadiusMin, MineConfiguration.RadiusMax));
 			MineSphere->SetMotherWorldPlanet(this);
-			MineSphere->SetActorLocation(Position - Normal *  RandomStream.FRandRange(0, MineSphere->GetRadius() - 300));
+			float Offset = RandomStream.FRandRange(MineSphere->GetRadius() - MineConfiguration.OffsetMax, MineSphere->GetRadius() - MineConfiguration.OffsetMin);
+			MineSphere->SetActorLocation(Position - Normal *  Offset);
 			SpawnedMineSpheres++;
 			MineSpheres.Add(MineSphere);
 		}

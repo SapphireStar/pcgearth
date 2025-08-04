@@ -19,8 +19,14 @@ public:
 protected:
 	virtual bool StartOneProduce() override;
 	bool CheckCanProduce();
-	
+
+public:
+	virtual FTooltipInfo GetFactoryTooltipInfo_Implementation() override;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FFactoryRecipeInfo RecipeInfo;
+
+	TArray<int> LastInputValues;
+	int LastOutputValue;
 };

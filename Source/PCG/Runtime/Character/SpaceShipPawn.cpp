@@ -138,6 +138,29 @@ ASpaceShipPawn::ASpaceShipPawn()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
 
+	GetResourceAbility = Cast<UGetResourceAbility>(CreateAbilityComponent(EAbilityType::GetResource, FName("GetResource")));
+
+	TerrainDigAbility = Cast<UTerrainDigAbility>(CreateAbilityComponent(EAbilityType::TerrainDig, FName("TerrainDig")));
+	GetResourceAbility->SetLaserRange(LaserRange);
+	
+	TerrainBuildAbility = Cast<UTerrainBuildAbility>(CreateAbilityComponent(EAbilityType::TerrainBuild, FName("TerrainBuild")));
+	
+	TerrainBuildCrafterAbility = Cast<UTerrainBuildCrafterAbility>(CreateAbilityComponent(EAbilityType::TerrainBuildCrafter, FName("TerrainBuildCrafter")));
+
+
+	if (GetResourceAbility != nullptr)
+		Abilities.Add(GetResourceAbility);
+	if (TerrainDigAbility != nullptr)
+		Abilities.Add(TerrainDigAbility);
+	if (TerrainBuildAbility != nullptr)
+		Abilities.Add(TerrainBuildAbility);
+	if (TerrainBuildCrafterAbility != nullptr)
+		Abilities.Add(TerrainBuildCrafterAbility);
+
+
+	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
+	CurrentAbilityComponent->OnActivateAbility();
+	bIsAbilityInitialized = true;
 	SetupPlayerAbilityComponent();
 }
 
@@ -194,32 +217,7 @@ void ASpaceShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 void ASpaceShipPawn::SetupPlayerAbilityComponent()
 {
-	TObjectPtr<UItemAbilityComponent> TerrainBuild = CreateAbilityComponent(
-		EAbilityType::TerrainBuild, FName("TerrainBuild"));
-	
-	TObjectPtr<UTerrainBuildCrafterAbility> TerrainBuildCrafter = Cast<UTerrainBuildCrafterAbility>(
-		CreateAbilityComponent(EAbilityType::TerrainBuildCrafter, FName("TerrainBuildCrafter")));
-	
-	TObjectPtr<UItemAbilityComponent> TerrainDig =
-		CreateAbilityComponent(EAbilityType::TerrainDig, FName("TerrainDig"));
-	
-	TObjectPtr<UGetResourceAbility> GetResource = Cast<UGetResourceAbility>(CreateAbilityComponent(
-		EAbilityType::GetResource, FName("GetResource")));
-	GetResource->SetLaserRange(LaserRange);
-	
-	if (TerrainBuild != nullptr)
-		Abilities.Add(TerrainBuild);
-	if (TerrainDig != nullptr)
-		Abilities.Add(TerrainDig);
-	if (GetResource != nullptr)
-		Abilities.Add(GetResource);
-	if (TerrainBuildCrafter != nullptr)
-		Abilities.Add(TerrainBuildCrafter);
 
-
-	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
-	CurrentAbilityComponent->OnActivateAbility();
-	bIsAbilityInitialized = true;
 }
 
 void ASpaceShipPawn::Move(const FInputActionValue& Value)

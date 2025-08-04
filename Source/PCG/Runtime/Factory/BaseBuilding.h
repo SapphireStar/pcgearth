@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TooltipableInterface.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 #include "PCG/Runtime/PCGGameMode.h"
@@ -10,7 +11,7 @@
 #include "BaseBuilding.generated.h"
 
 UCLASS()
-class PCG_API ABaseBuilding : public AActor
+class PCG_API ABaseBuilding : public AActor, public ITooltipableInterface
 {
 	GENERATED_BODY()
 
@@ -29,6 +30,9 @@ public:
 	void BuildFactoryAt(FVector Position, int Volume, FFactoryInfo Info);
 	void ActivateFactory();
 	void DeactivateFactory();
+
+	UFUNCTION(BlueprintCallable)
+	virtual FTooltipInfo GetFactoryTooltipInfo_Implementation();
 
 protected:
 	void OnBuildFactory(int Volume);
@@ -54,6 +58,8 @@ protected:
 
 	TObjectPtr<USphereComponent> SphereCollision;
 
+	TObjectPtr<USphereComponent> SphereCollisionForTrace;
+
 	TObjectPtr<UStaticMeshComponent> SphereStaticMeshComponent;
 
 	TObjectPtr<UStaticMeshComponent> SphereStaticMesh;
@@ -65,4 +71,6 @@ protected:
 	int FactoryEfficiency = 0;
 
 	float CurrentInterval = 0;
+
+	int Volume = 0;
 };

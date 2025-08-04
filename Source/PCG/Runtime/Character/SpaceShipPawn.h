@@ -10,6 +10,10 @@
 #include "PCG/Runtime/WaveFunctionCollapse/WFCGenerator.h"
 #include "SpaceShipPawn.generated.h"
 
+class UGetResourceAbility;
+class UTerrainDigAbility;
+class UTerrainBuildCrafterAbility;
+class UTerrainBuildAbility;
 class AGridSelectionManager;
 class UItemPlaceComponent;
 class UDynamicMeshComponent;
@@ -254,8 +258,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UItemAbilityComponent> CurrentAbilityComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<TObjectPtr<UItemAbilityComponent>> Abilities;
+
+	TObjectPtr<UTerrainBuildAbility> TerrainBuildAbility;
+
+	TObjectPtr<UTerrainBuildCrafterAbility>  TerrainBuildCrafterAbility;
+
+	TObjectPtr<UTerrainDigAbility>  TerrainDigAbility;
+
+	TObjectPtr<UGetResourceAbility>   GetResourceAbility;
 
 private:
 

@@ -275,6 +275,20 @@ struct PCG_API FAbilityControlInfo
 	TArray<TObjectPtr<UAbilityControlGroup>> AbilityControls;
 };
 
+USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FTooltipInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FResourceStatus> Input;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FResourceStatus> Consume;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FResourceStatus> Output;
+	
+};
+
 /*USTRUCT(BlueprintType, Blueprintable)
 struct PCG_API FGridDisplayInfo
 {

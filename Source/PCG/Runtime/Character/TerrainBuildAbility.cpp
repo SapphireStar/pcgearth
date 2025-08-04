@@ -614,3 +614,17 @@ void UTerrainBuildAbility::DeselectPlanet()
 	this->Planet = nullptr;
 	LastHitResult = FHitResult();
 }
+
+FTooltipInfo UTerrainBuildAbility::GetFactoryTooltipInfo_Implementation()
+{
+	FIntVector FactorySize = CalculateWFCGridSize(GridSelection->PeekGridSelection());
+
+	int volume = FactorySize.X * FactorySize.Y * WFCGeneratorComponent->Configuration.GridSize.Z;
+	FTooltipInfo TooltipInfo;
+	FResourceStatus ConsumeStatus;
+	ConsumeStatus.Value = volume;
+	ConsumeStatus.ResourceType = EFactoryResource::EFR_Wood;
+	TooltipInfo.Consume.Add(ConsumeStatus);
+
+	return TooltipInfo;
+}

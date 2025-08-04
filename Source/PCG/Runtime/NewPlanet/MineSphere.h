@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "PCG/Runtime/Character/CollectableItemInterface.h"
 #include "PCG/Runtime/Character/Data/PlayerDataComponent.h"
 #include "MineSphere.generated.h"
 
@@ -11,7 +12,7 @@ class AGeometryPlanet;
 class USphereComponent;
 
 UCLASS()
-class PCG_API AMineSphere : public AActor
+class PCG_API AMineSphere : public AActor, public ICollectableItemInterface
 {
 	GENERATED_BODY()
 
@@ -55,5 +56,6 @@ private:
 	UPROPERTY()
 	TObjectPtr<AActor> MotherWorldPlanet;
 
-	
+	float InitialRadius;
+	int TotalMineralCount;
 };

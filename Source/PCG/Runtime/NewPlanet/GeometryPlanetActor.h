@@ -120,6 +120,8 @@ protected:
 	TArray<AMineSphere*> MineSpheres;
 	
 private:
+	float UpdateTextureCD = 1;
+	float UpdateTextureCounter = 0;
 	bool bIsTextureInitialized = false;
 	UPROPERTY()
 	UMaterialInstanceDynamic* DynamicMaterialInstance;

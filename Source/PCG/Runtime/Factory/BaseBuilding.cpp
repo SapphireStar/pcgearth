@@ -21,6 +21,12 @@ ABaseBuilding::ABaseBuilding()
 	SphereStaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(FName("SphereStaticMeshComponent"));
 	SphereStaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SphereStaticMeshComponent->SetupAttachment(RootComponent);
+
+	SphereCollisionForTrace = CreateDefaultSubobject<USphereComponent>(FName("SphereCollisionForTrace"));
+	SphereCollisionForTrace->SetupAttachment(RootComponent);
+	SphereCollisionForTrace->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SphereCollisionForTrace->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Block);
+	SphereCollisionForTrace->SetSphereRadius(500);
 }
 
 // Called when the game starts or when spawned
@@ -62,6 +68,7 @@ void ABaseBuilding::BuildFactoryAt(FVector Position, int Volume, FFactoryInfo In
 		float MeshScale = FactoryInfo.FactoryRadius / MeshRadius;
 		SphereStaticMeshComponent->SetWorldScale3D(FVector(MeshScale, MeshScale, MeshScale));
 	}
+	
 }
 
 void ABaseBuilding::ActivateFactory()
@@ -74,8 +81,14 @@ void ABaseBuilding::DeactivateFactory()
 	bIsFactoryActivated = false;
 }
 
+FTooltipInfo ABaseBuilding::GetFactoryTooltipInfo_Implementation()
+{
+	return FTooltipInfo();
+}
+
 void ABaseBuilding::OnBuildFactory(int Volume)
 {
+	this->Volume =  Volume;
 	FactoryEfficiency = Volume / FactoryInfo.EfficiencyDivider;
 }
 

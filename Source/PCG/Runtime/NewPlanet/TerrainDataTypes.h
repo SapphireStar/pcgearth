@@ -43,6 +43,12 @@ struct PCG_API FMineSphereSpawnConfiguration
 	float RadiusMax;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float OffsetMin;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float OffsetMax;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int MaxMineSphereAmount;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

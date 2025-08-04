@@ -31,8 +31,11 @@ public:
 
 	void SetMineSphere(AMineSphere* MineSphere);
 	virtual bool StartOneProduce() override;
+	virtual FTooltipInfo GetFactoryTooltipInfo_Implementation() override;
 
 private:
 	UPROPERTY()
 	AMineSphere* MineSphere;
+
+	int LastGetMinralCount;
 };

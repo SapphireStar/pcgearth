@@ -30,13 +30,16 @@ void AMineSphere::BeginPlay()
 void AMineSphere::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	this->Radius = (float)RemainMinralCount/(float)TotalMineralCount * InitialRadius;
 }
 
 void AMineSphere::UpdateMineSphere(float Radius)
 {
 	this->Radius = Radius;
+	InitialRadius = Radius;
 	Sphere->SetSphereRadius(Radius);
 	RemainMinralCount = (4/3 * PI * Radius * Radius * Radius)/MineralDivider;
+	TotalMineralCount =  RemainMinralCount;
 }
 
 void AMineSphere::SetMotherWorldPlanet(AActor* planet)

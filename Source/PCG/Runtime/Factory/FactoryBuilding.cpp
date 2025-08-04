@@ -39,13 +39,32 @@ bool AMiningBuilding::StartOneProduce()
 	if (MineSphere->GetCanMine())
 	{
 		std::function<void(UPlayerDataComponent*)> pfun;
-		int NewPlayerMine = PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Stone) + MineSphere->TryStartOneMine(FactoryEfficiency, pfun);
+		LastGetMinralCount = MineSphere->TryStartOneMine(FactoryEfficiency, pfun);
+		int NewPlayerMine = PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Stone) + LastGetMinralCount;
 		pfun(PlayerData);
 		return true;
 	}
 	else
 	{
+		LastGetMinralCount = 0;
 		UE_LOG(LogTemp, Log, TEXT("FactoryBuilding: MineSphere is run out of Mine"));
 	}
 	return false;
 }
+
+FTooltipInfo AMiningBuilding::GetFactoryTooltipInfo_Implementation()
+{
+	FTooltipInfo TooltipInfo;
+	FResourceStatus ConsumeStatus;
+	ConsumeStatus.ResourceType = EFactoryResource::EFR_Wood;
+	ConsumeStatus.Value = Volume;
+	TooltipInfo.Consume.Add(ConsumeStatus);
+	
+	FResourceStatus ResourceStatus;
+	ResourceStatus.ResourceType = MineSphere->GetCollectableResourceType_Implementation();
+	ResourceStatus.Value = LastGetMinralCount;
+	TooltipInfo.Output.Add(ResourceStatus);
+	return TooltipInfo;
+}
+
+

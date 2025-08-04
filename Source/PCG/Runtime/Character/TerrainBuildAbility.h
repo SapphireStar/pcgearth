@@ -29,7 +29,7 @@ struct FBuildingPreviewMessage
 	FString Message;
 };
 UCLASS()
-class PCG_API UTerrainBuildAbility : public UItemAbilityComponent
+class PCG_API UTerrainBuildAbility : public UItemAbilityComponent, public ITooltipableInterface
 {
 	GENERATED_BODY()
 
@@ -72,6 +72,9 @@ protected:
 	
 	void SelectPlanet(AGeometryPlanetActor* Planet, FHitResult& HitResult);
 	void DeselectPlanet();
+
+public:
+	virtual FTooltipInfo GetFactoryTooltipInfo_Implementation() override;
 
 protected:
 	UPROPERTY()
