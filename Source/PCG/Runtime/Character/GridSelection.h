@@ -60,6 +60,15 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     UMaterial* SelectedGridMaterial;
+
+    UPROPERTY()
+    UMaterialInstanceDynamic* SelectedGridMaterialInstance;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FLinearColor AvailableColor = FLinearColor::Green;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FLinearColor UnavailableColor = FLinearColor::Red;
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     UMaterial* SelectedPointMaterial;
@@ -126,11 +135,9 @@ public:
     UFUNCTION(BlueprintCallable)
     TArray<FVector> GetFinalGrid() const;
 
-    UFUNCTION(BlueprintCallable)
-    void ShowText(FVector PlayerPos);
+    void SetGridUnavailable();
+    void SetGridAvailable();
 
-    UFUNCTION(BlueprintCallable)
-    void HideText();
 protected:
     void GenerateGrid();
 

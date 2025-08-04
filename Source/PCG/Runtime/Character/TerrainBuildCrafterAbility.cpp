@@ -22,14 +22,17 @@ void UTerrainBuildCrafterAbility::OnTickAbility()
 	if (bIsGridSlectionStarted)
 	{
 		FBox GridBounds = GridSelection->PeekGridSelection();
+		FIntVector GridSize = GridSelection->PeekGridSize();
 		FVector TargetPos = GridBounds.GetCenter();
-		if (CheckCanBuildFactory(TargetPos, 0, GridBounds))
+		if (CheckCanBuildFactory(TargetPos, 0, GridBounds) && ValidateGridBounds(GridBounds, GridSize)&&ValidatePlayerResource(GridSize))
 		{
 			ChangeFactorySphereColor(AvailableColor);
+			GridSelection->SetGridAvailable();
 		}
 		else
 		{
 			ChangeFactorySphereColor(UnavailableColor);
+			GridSelection->SetGridUnavailable();
 		}
 		FactorySphereMeshComponent->SetWorldLocation(TargetPos);
 	}
@@ -119,9 +122,9 @@ void UTerrainBuildCrafterAbility::OnCompleteUseAbility(UPrimitiveComponent* Trac
 	else if (Planet)
 	{
 		FBox GridBounds = GridSelection->PeekGridSelection();
-		if (ValidateGridBounds(GridBounds))
+		FIntVector GridSize = GridSelection->PeekGridSize();
+		if (ValidateGridBounds(GridBounds, GridSize))
 		{
-			FIntVector GridSize = GridSelection->PeekGridSize();
 			if (ProcessBuilding(Planet, LastHitResult, GridBounds, GridSize, nullptr))
 			{
 				bIsGridSlectionStarted = false;

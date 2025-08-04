@@ -46,8 +46,9 @@ void AGridSelectionManager::BeginPlay()
 
 	SelectedGrid->SetupAttachment(RootComponent);
 	SelectedGrid->SetVisibility(false);
+	SelectedGridMaterialInstance = UMaterialInstanceDynamic::Create(SelectedGridMaterial, this);
 	SelectedGrid->SetStaticMesh(SelectedGridMesh);
-	SelectedGrid->SetMaterial(0, SelectedGridMaterial);
+	SelectedGrid->SetMaterial(0, SelectedGridMaterialInstance);
 	SelectedGrid->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SelectedGrid->SetWorldScale3D(FVector(0,0,SelectedGridsThickness));
 	for (auto MeshComp : SelectedPoints)
@@ -386,11 +387,14 @@ TArray<FVector> AGridSelectionManager::GetFinalGrid() const
 	return FinalShape;
 }
 
-void AGridSelectionManager::ShowText(FVector PlayerPos)
+void AGridSelectionManager::SetGridAvailable()
 {
-	
+	SelectedGridMaterialInstance->SetVectorParameterValue("Color", AvailableColor);
 }
 
-void AGridSelectionManager::HideText()
+void AGridSelectionManager::SetGridUnavailable()
 {
+	SelectedGridMaterialInstance->SetVectorParameterValue("Color", UnavailableColor);
 }
+
+

@@ -286,7 +286,7 @@ struct PCG_API FTooltipInfo
 	TArray<FResourceStatus> Consume;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FResourceStatus> Output;
-	
+
 };
 
 /*USTRUCT(BlueprintType, Blueprintable)

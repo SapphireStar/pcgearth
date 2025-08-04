@@ -256,16 +256,21 @@ protected:
 	EAbilityType CurrentAbilityType;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UItemAbilityComponent> CurrentAbilityComponent;
+	TObjectPtr<UItemAbilityComponent> CurrentAbilityComponen;
 
-	TArray<TObjectPtr<UItemAbilityComponent>> Abilities;
+	UPROPERTY(BlueprintReadOnly)
+	TArray<TObjectPtr<UItemAbilityComponent>> Abilitie;
 
-	TObjectPtr<UTerrainBuildAbility> TerrainBuildAbility;
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<UTerrainBuildAbility> TerrainBuildAbilit;
 
-	TObjectPtr<UTerrainBuildCrafterAbility>  TerrainBuildCrafterAbility;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UTerrainBuildCrafterAbility>  TerrainBuildCraftAbility;
 
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UTerrainDigAbility>  TerrainDigAbility;
 
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UGetResourceAbility>   GetResourceAbility;
 
 private:
