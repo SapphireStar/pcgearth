@@ -16,14 +16,14 @@
 
 UTerrainBuildAbility::UTerrainBuildAbility()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
 	FactorySphereMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FactorySphereMesh"));
 }
 
 void UTerrainBuildAbility::BeginPlay()
 {
 	Super::BeginPlay();
-
 	if (!WFCGeneratorComponent && GetWorld())
 	{
 		for (TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
@@ -75,14 +75,17 @@ void UTerrainBuildAbility::OnTickAbility()
 	if (bIsGridSlectionStarted)
 	{
 		FBox GridBounds = GridSelection->PeekGridSelection();
+		FIntVector GridSize = GridSelection->PeekGridSize();
 		FVector TargetPos = GridBounds.GetCenter();
-		if (CheckCanBuildFactory(TargetPos, 0, GridBounds) && CheckIsOnMineSphere(GridBounds))
+		if (CheckCanBuildFactory(TargetPos, 0, GridBounds) && CheckIsOnMineSphere(GridBounds) && ValidateGridBounds(GridBounds, GridSize)&&ValidatePlayerResource(GridSize))
 		{
 			ChangeFactorySphereColor(AvailableColor);
+			GridSelection->SetGridAvailable();
 		}
 		else
 		{
 			ChangeFactorySphereColor(UnavailableColor);
+			GridSelection->SetGridUnavailable();
 		}
 		FactorySphereMeshComponent->SetWorldLocation(TargetPos);
 	}
@@ -125,13 +128,13 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 
 	if (!bIsGridSlectionStarted)
 	{
-		FVector End = TraceStartComp->GetComponentLocation() + Camera->GetForwardVector() * SelectRange;
+		FVector End = Camera->GetComponentLocation() + Camera->GetForwardVector() * SelectRange;
 		TArray<AActor*> ActorsToIgnore;
 		FHitResult HitResult;
 
 		UKismetSystemLibrary::LineTraceSingle(
 			GetWorld(),
-			TraceStartComp->GetComponentLocation(),
+			Camera->GetComponentLocation(),
 			End,
 			UEngineTypes::ConvertToTraceType(ECC_Visibility),
 			true,
@@ -172,10 +175,10 @@ void UTerrainBuildAbility::OnCompleteUseAbility(UPrimitiveComponent* TraceStartC
 	else if (Planet)
 	{
 		FBox GridBounds = GridSelection->PeekGridSelection();
+		FIntVector GridSize = GridSelection->PeekGridSize();
 		AMineSphere* MineSphere = CheckIsOnMineSphere(GridBounds);
-		if (ValidateGridBounds(GridBounds) && MineSphere)
+		if (ValidateGridBounds(GridBounds, GridSize) && MineSphere)
 		{
-			FIntVector GridSize = GridSelection->PeekGridSize();
 			if (ProcessBuilding(Planet, LastHitResult, GridBounds, GridSize, MineSphere))
 			{
 				bIsGridSlectionStarted = false;
@@ -448,7 +451,7 @@ bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHi
 			return false;
 		}
 
-		if (TryConsumeWood(volume))
+		if (TryConsumeWood(volume, GridSize))
 		{
 			WFCGeneratorComponent->StartGenerationWithCustomConfigAt(BuildingPos,
 			                                                         GridSelection->GetGridRotation());
@@ -473,14 +476,13 @@ void UTerrainBuildAbility::SpawnFactoryActor(FVector Position, int Volume, AMine
 	FactoryManager->BuildMiningFactoryAt(Position, Volume, MineSphere, PlayerData->GetPlayerData().MiningFactoryInfo);
 }
 
-bool UTerrainBuildAbility::TryConsumeWood(int& outVolume)
+bool UTerrainBuildAbility::TryConsumeWood(int& outVolume, FIntVector GridSize)
 {
 	if (WFCGeneratorComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Try consume wood"));
-		int volume = WFCGeneratorComponent->Configuration.GridSize.X * WFCGeneratorComponent->Configuration.GridSize.Y *
-			WFCGeneratorComponent->Configuration.GridSize.Z;
-		if (PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Wood) >= volume)
+		int volume = GridSize.X * GridSize.Y * WFCGeneratorComponent->Configuration.GridSize.Z;
+		if (ValidatePlayerResource(GridSize))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%d Wood consumed"), volume);
 			PlayerData->ChangePlayerResourceValue(EFactoryResource::EFR_Wood,
@@ -551,28 +553,42 @@ FVector UTerrainBuildAbility::FindNormalOnPlanet(FVector ImpactPosition, FVector
 
 FIntVector UTerrainBuildAbility::CalculateWFCGridSize(FBox GridBounds)
 {
-	int SizeX = UKismetMathLibrary::Round((GridBounds.Max.X - GridBounds.Min.X) / GridSelection->GetGridSize());
-	int SizeY = UKismetMathLibrary::Round((GridBounds.Max.Y - GridBounds.Min.Y) / GridSelection->GetGridSize());
-	int SizeZ = UKismetMathLibrary::Round((GridBounds.Max.Z - GridBounds.Min.Z) / GridSelection->GetGridSize());
+	FVector Size = GridBounds.GetSize();
+	int SizeX = UKismetMathLibrary::Round(Size.X / GridSelection->GetGridSize());
+	int SizeY = UKismetMathLibrary::Round(Size.Y / GridSelection->GetGridSize());
+	int SizeZ = UKismetMathLibrary::Round(Size.Z / GridSelection->GetGridSize());
+	UE_LOG(LogTemp, Log, TEXT("Size: %s"), *Size.ToString());
 	return FIntVector(SizeX, SizeY, SizeZ);
 }
 
-bool UTerrainBuildAbility::ValidateGridBounds(FBox GridBounds)
+bool UTerrainBuildAbility::ValidateGridBounds(FBox GridBounds, FIntVector GridSize)
 {
+	if (GridSize.X<=1 || GridSize.Y<=1)
+	{
+		return false;
+	}
 	if (GridBounds.Max.X <= GridBounds.Min.X ||
 		GridBounds.Max.Y <= GridBounds.Min.Y)
 	{
-		UE_LOG(LogTemp, Error, TEXT("TerrainBuildAbility: Grid size invalid"));
 		return false;
 	}
 
 	if (GridBounds.Max.X - GridBounds.Min.X < GridSelection->GetGridSize() / 2 ||
 		GridBounds.Max.Y - GridBounds.Min.Y < GridSelection->GetGridSize() / 2)
 	{
-		UE_LOG(LogTemp, Error, TEXT("TerrainBuildAbility: Grid size too small"));
 		return false;
 	}
 
+	return true;
+}
+
+bool UTerrainBuildAbility::ValidatePlayerResource(FIntVector GridSize)
+{
+	if (PlayerData->GetPlayerResourceValue(EFactoryResource::EFR_Wood) <
+		GridSize.X * GridSize.Y * WFCGeneratorComponent->Configuration.GridSize.Z)
+	{
+		return false;
+	}
 	return true;
 }
 
@@ -617,14 +633,24 @@ void UTerrainBuildAbility::DeselectPlanet()
 
 FTooltipInfo UTerrainBuildAbility::GetFactoryTooltipInfo_Implementation()
 {
-	FIntVector FactorySize = CalculateWFCGridSize(GridSelection->PeekGridSelection());
-
-	int volume = FactorySize.X * FactorySize.Y * WFCGeneratorComponent->Configuration.GridSize.Z;
+	FIntVector GridSize = GridSelection->PeekGridSize();
+	int Volume =  GridSize.X * GridSize.Y * WFCGeneratorComponent->Configuration.GridSize.Z;
 	FTooltipInfo TooltipInfo;
 	FResourceStatus ConsumeStatus;
-	ConsumeStatus.Value = volume;
 	ConsumeStatus.ResourceType = EFactoryResource::EFR_Wood;
+	ConsumeStatus.Value = Volume;
 	TooltipInfo.Consume.Add(ConsumeStatus);
-
+	
+	
+	FBox GridBounds = GridSelection->PeekGridSelection();
+	if (AMineSphere* MineSphere = CheckIsOnMineSphere(GridBounds))
+	{
+		FResourceStatus OutputStatus;
+		EFactoryResource ResourceType = MineSphere->GetCollectableResourceType_Implementation();
+		OutputStatus.ResourceType = ResourceType;
+		OutputStatus.Value = (Volume / PlayerData->GetPlayerData().CraftingFactoryInfo.EfficiencyDivider);
+		TooltipInfo.Output.Add(OutputStatus);
+	}
+	
 	return TooltipInfo;
 }

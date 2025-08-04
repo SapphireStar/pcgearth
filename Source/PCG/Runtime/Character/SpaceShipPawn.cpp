@@ -143,23 +143,22 @@ ASpaceShipPawn::ASpaceShipPawn()
 	TerrainDigAbility = Cast<UTerrainDigAbility>(CreateAbilityComponent(EAbilityType::TerrainDig, FName("TerrainDig")));
 	GetResourceAbility->SetLaserRange(LaserRange);
 	
-	TerrainBuildAbilit = Cast<UTerrainBuildAbility>(CreateAbilityComponent(EAbilityType::TerrainBuild, FName("TerrainBuild")));
+	TerrainBuildAbility = Cast<UTerrainBuildAbility>(CreateAbilityComponent(EAbilityType::TerrainBuild, FName("TerrainBuild")));
 	
 	TerrainBuildCraftAbility = Cast<UTerrainBuildCrafterAbility>(CreateAbilityComponent(EAbilityType::TerrainBuildCrafter, FName("TerrainBuildCrafter")));
 
 
 	if (GetResourceAbility != nullptr)
-		Abilitie.Add(GetResourceAbility);
+		Abilities.Add(GetResourceAbility);
 	if (TerrainDigAbility != nullptr)
-		Abilitie.Add(TerrainDigAbility);
-	if (TerrainBuildAbilit != nullptr)
-		Abilitie.Add(TerrainBuildAbilit);
+		Abilities.Add(TerrainDigAbility);
+	if (TerrainBuildAbility != nullptr)
+		Abilities.Add(TerrainBuildAbility);
 	if (TerrainBuildCraftAbility != nullptr)
-		Abilitie.Add(TerrainBuildCraftAbility);
+		Abilities.Add(TerrainBuildCraftAbility);
 
 
-	CurrentAbilityComponen = Abilitie[CurrentAbilityIndex];
-	CurrentAbilityComponen->OnActivateAbility();
+	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
 	bIsAbilityInitialized = true;
 	SetupPlayerAbilityComponent();
 }
@@ -170,6 +169,8 @@ void ASpaceShipPawn::BeginPlay()
 	Super::BeginPlay();
 	MainBody->SetSimulatePhysics(true);
 	PlayerData = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData;
+
+	CurrentAbilityComponent->OnActivateAbility();
 
 	BaseSpeed = MaxSpeed;
 	Camera->SetFieldOfView(DefaultFOV);
@@ -433,22 +434,22 @@ void ASpaceShipPawn::ProcessInput(float Deltatime)
 
 void ASpaceShipPawn::CycleAbility(const FInputActionValue& Value)
 {
-	UItemAbilityComponent* OldAbility = CurrentAbilityComponen;
+	UItemAbilityComponent* OldAbility = CurrentAbilityComponent;
 	float Axis = Value.Get<float>();
 	if (Axis < 0)
 	{
-		CurrentAbilityIndex = (CurrentAbilityIndex + 1) % Abilitie.Num();
+		CurrentAbilityIndex = (CurrentAbilityIndex + 1) % Abilities.Num();
 	}
 	else if (Axis > 0)
 	{
 		CurrentAbilityIndex = (CurrentAbilityIndex - 1);
 		if (CurrentAbilityIndex < 0)
 		{
-			CurrentAbilityIndex = Abilitie.Num() - 1;
+			CurrentAbilityIndex = Abilities.Num() - 1;
 		}
 	}
-	CurrentAbilityComponen = Abilitie[CurrentAbilityIndex];
-	UItemAbilityComponent* NewAbility = CurrentAbilityComponen;
+	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
+	UItemAbilityComponent* NewAbility = CurrentAbilityComponent;
 
 	OldAbility->OnDeactivateAbility();
 	NewAbility->OnActivateAbility();
@@ -456,20 +457,20 @@ void ASpaceShipPawn::CycleAbility(const FInputActionValue& Value)
 
 	if (GEngine)
 	{
-		FString name = UEnum::GetValueAsString(Abilitie[CurrentAbilityIndex]->AbilityType);
+		FString name = UEnum::GetValueAsString(Abilities[CurrentAbilityIndex]->AbilityType);
 		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("Axis: %s"), *name));
 	}
 }
 
 void ASpaceShipPawn::SwitchAbility(const FInputActionValue& Value)
 {
-	UItemAbilityComponent* OldAbility = CurrentAbilityComponen;
+	UItemAbilityComponent* OldAbility = CurrentAbilityComponent;
 	UE_LOG(LogTemp, Warning, TEXT("Switch Ability: %f"), Value.Get<float>());
 	int Index = FMath::RoundToInt(Value.Get<float>()) - 1;
-	CurrentAbilityIndex = (Index) % Abilitie.Num();
+	CurrentAbilityIndex = (Index) % Abilities.Num();
 
-	CurrentAbilityComponen = Abilitie[CurrentAbilityIndex];
-	UItemAbilityComponent* NewAbility = CurrentAbilityComponen;
+	CurrentAbilityComponent = Abilities[CurrentAbilityIndex];
+	UItemAbilityComponent* NewAbility = CurrentAbilityComponent;
 
 	OldAbility->OnDeactivateAbility();
 	NewAbility->OnActivateAbility();
@@ -477,34 +478,34 @@ void ASpaceShipPawn::SwitchAbility(const FInputActionValue& Value)
 
 	if (GEngine)
 	{
-		FString name = UEnum::GetValueAsString(Abilitie[CurrentAbilityIndex]->AbilityType);
+		FString name = UEnum::GetValueAsString(Abilities[CurrentAbilityIndex]->AbilityType);
 		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Cyan, FString::Printf(TEXT("Axis: %s"), *name));
 	}
 }
 
 void ASpaceShipPawn::StartUseAbility(const FInputActionValue& Value)
 {
-	CurrentAbilityComponen->OnStartUseAbility(Front, Camera);
+	CurrentAbilityComponent->OnStartUseAbility(Front, Camera);
 }
 
 void ASpaceShipPawn::KeepUsingAbility(const FInputActionValue& Value)
 {
-	CurrentAbilityComponen->OnKeepUsingAbility(Front, Camera);
+	CurrentAbilityComponent->OnKeepUsingAbility(Front, Camera);
 }
 
 void ASpaceShipPawn::CompleteUseAbility(const FInputActionValue& Value)
 {
-	CurrentAbilityComponen->OnCompleteUseAbility(Front, Camera);
+	CurrentAbilityComponent->OnCompleteUseAbility(Front, Camera);
 }
 
 void ASpaceShipPawn::CancelUseAbility(const FInputActionValue& Value)
 {
-	CurrentAbilityComponen->OnCancelUseAbility();
+	CurrentAbilityComponent->OnCancelUseAbility();
 }
 
 void ASpaceShipPawn::CycleRecipe(const FInputActionValue& Value)
 {
-	if (CurrentAbilityComponen->AbilityType == EAbilityType::TerrainBuildCrafter)
+	if (CurrentAbilityComponent->AbilityType == EAbilityType::TerrainBuildCrafter)
 	{
 		int total = PlayerData->GetPlayerData().RecipeInfos.Num();
 		PlayerData->ChangePlayerRecipeIndex(PlayerData->GetPlayerCurrentRecipeIndex() + 1);
@@ -596,7 +597,7 @@ TObjectPtr<UItemAbilityComponent> ASpaceShipPawn::CreateAbilityComponent(EAbilit
 
 void ASpaceShipPawn::ChangeCraftRecipe(FFactoryRecipeInfo RecipeInfo)
 {
-	Cast<UTerrainBuildCrafterAbility>(Abilitie[CurrentAbilityIndex])->SetFactoryRecipeInfo(RecipeInfo);
+	Cast<UTerrainBuildCrafterAbility>(Abilities[CurrentAbilityIndex])->SetFactoryRecipeInfo(RecipeInfo);
 	PlayerData->ChangePlayerCurrentRecipe(RecipeInfo);
 }
 

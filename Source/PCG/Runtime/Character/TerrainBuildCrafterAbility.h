@@ -23,6 +23,8 @@ public:
 	virtual void SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere, float Radius) override;
 	virtual float CalculateFactoryRadius(int Volume) override;
 	void SetFactoryRecipeInfo(FFactoryRecipeInfo RecipeInfo);
+	virtual FTooltipInfo GetFactoryTooltipInfo_Implementation() override;
+
 private:
 	FFactoryRecipeInfo FactoryRecipeInfo;
 };

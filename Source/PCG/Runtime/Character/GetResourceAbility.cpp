@@ -66,12 +66,12 @@ void UGetResourceAbility::OnKeepUsingAbility(UPrimitiveComponent* TraceStartComp
 	TraceParams.bReturnPhysicalMaterial = true;
 
 	FHitResult HitResult;
-	FVector End = TraceStartComp->GetComponentLocation() + Camera->GetForwardVector() * Range;
+	FVector End = Camera->GetComponentLocation() + Camera->GetForwardVector() * Range;
 
 
 	bool bHit = GetWorld()->LineTraceSingleByChannel(
 		HitResult,
-		TraceStartComp->GetComponentLocation(),
+		Camera->GetComponentLocation(),
 		End,
 		ECC_Visibility,
 		TraceParams

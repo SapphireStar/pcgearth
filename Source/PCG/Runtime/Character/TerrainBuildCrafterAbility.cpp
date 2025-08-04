@@ -4,6 +4,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "PCG/Runtime/Factory/FactoryCrafter.h"
 #include "PCG/Runtime/NewPlanet/GeometryPlanetActor.h"
+#include "PCG/Runtime/NewWFC/WFCGeneratorComponent.h"
 
 
 UTerrainBuildCrafterAbility::UTerrainBuildCrafterAbility()
@@ -75,13 +76,13 @@ void UTerrainBuildCrafterAbility::OnCompleteUseAbility(UPrimitiveComponent* Trac
 
 	if (!bIsGridSlectionStarted)
 	{
-		FVector End = TraceStartComp->GetComponentLocation() + Camera->GetForwardVector() * SelectRange;
+		FVector End = Camera->GetComponentLocation() + Camera->GetForwardVector() * SelectRange;
 		TArray<AActor*> ActorsToIgnore;
 		FHitResult HitResult;
 
 		UKismetSystemLibrary::LineTraceSingle(
 			GetWorld(),
-			TraceStartComp->GetComponentLocation(),
+			Camera->GetComponentLocation(),
 			End,
 			UEngineTypes::ConvertToTraceType(ECC_Visibility),
 			true,
@@ -167,4 +168,29 @@ void UTerrainBuildCrafterAbility::SetFactoryRecipeInfo(FFactoryRecipeInfo Recipe
 		                                  TEXT("SetFactoryRecipeInfo: Output %s"),
 		                                  *UEnum::GetValueAsString(RecipeInfo.Output.ResourceType)));
 	this->FactoryRecipeInfo = RecipeInfo;
+}
+
+FTooltipInfo UTerrainBuildCrafterAbility::GetFactoryTooltipInfo_Implementation()
+{
+	FIntVector GridSize = GridSelection->PeekGridSize();
+	int Volume =  GridSize.X * GridSize.Y * WFCGeneratorComponent->Configuration.GridSize.Z;
+	FTooltipInfo TooltipInfo;
+	FResourceStatus ConsumeStatus;
+	ConsumeStatus.ResourceType = EFactoryResource::EFR_Wood;
+	ConsumeStatus.Value = Volume;
+	TooltipInfo.Consume.Add(ConsumeStatus);
+	
+	for (int i = 0; i < FactoryRecipeInfo.Input.Num(); i++)
+	{
+		FResourceStatus Status;
+		Status.ResourceType = FactoryRecipeInfo.Input[i].ResourceType;
+		Status.Value = FactoryRecipeInfo.Input[i].Value * (Volume / PlayerData->GetPlayerData().CraftingFactoryInfo.EfficiencyDivider);
+		TooltipInfo.Input.Add(Status);
+	}
+	
+	FResourceStatus OutputStatus;
+	OutputStatus.ResourceType = FactoryRecipeInfo.Output.ResourceType;
+	OutputStatus.Value = FactoryRecipeInfo.Output.Value * (Volume / PlayerData->GetPlayerData().CraftingFactoryInfo.EfficiencyDivider);
+	TooltipInfo.Output.Add(OutputStatus);
+	return TooltipInfo;
 }

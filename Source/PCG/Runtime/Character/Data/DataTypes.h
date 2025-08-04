@@ -84,6 +84,21 @@ struct PCG_API FResourceInfo
 };
 
 USTRUCT(BlueprintType, Blueprintable)
+struct PCG_API FUpgradeItemInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UTexture2D> Icon;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EPlayerAbilityPropertyType UpgradeType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Title;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
 struct PCG_API FAbilityInfo
 {
 	GENERATED_BODY()

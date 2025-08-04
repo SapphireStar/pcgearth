@@ -50,6 +50,8 @@ public:
 	virtual void OnCompleteUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera) override;
 	virtual void OnCancelUseAbility() override;
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool GetIsSelectingGrid() const { return bIsGridSlectionStarted;}
 protected:
 	virtual void InitializeMineSphere();
 	virtual bool CheckCanBuildFactory(FVector Position, int Volume, FBox GridBounds);
@@ -60,14 +62,15 @@ protected:
 	void FlattenTerrain(class AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices, FBox GridBounds);
 	bool SpawnBuilding(class AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds, FIntVector GridSize, AMineSphere* MineSphere, FVector LowestVertexPos);
 	virtual void SpawnFactoryActor(FVector Position, int Volume, AMineSphere* MineSphere, float Radius);
-	bool TryConsumeWood(int& outVolume);
+	bool TryConsumeWood(int& outVolume, FIntVector GridSize);
 	
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	FRotator FindNormalRotationOnPlanet(FVector ImpactPosition, FVector PlanetPosition);
 	FVector FindNormalOnPlanet(FVector ImpactPosition, FVector PlanetPosition);
 	FIntVector CalculateWFCGridSize(FBox GridBounds);
-	bool ValidateGridBounds(FBox GridBounds);
+	bool ValidateGridBounds(FBox GridBounds, FIntVector GridSize);
+	bool ValidatePlayerResource(FIntVector GridSize);
 	AMineSphere* CheckIsOnMineSphere(FBox GridBounds);
 	
 	void SelectPlanet(AGeometryPlanetActor* Planet, FHitResult& HitResult);

@@ -256,13 +256,13 @@ protected:
 	EAbilityType CurrentAbilityType;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UItemAbilityComponent> CurrentAbilityComponen;
+	TObjectPtr<UItemAbilityComponent> CurrentAbilityComponent;
 
 	UPROPERTY(BlueprintReadOnly)
-	TArray<TObjectPtr<UItemAbilityComponent>> Abilitie;
+	TArray<TObjectPtr<UItemAbilityComponent>> Abilities;
 
 	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UTerrainBuildAbility> TerrainBuildAbilit;
+	TObjectPtr<UTerrainBuildAbility> TerrainBuildAbility;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UTerrainBuildCrafterAbility>  TerrainBuildCraftAbility;
