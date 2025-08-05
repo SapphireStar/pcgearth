@@ -6,6 +6,8 @@
 #include "WFCTypes.h"
 #include "WFCTileSet.h"
 
+struct FWFCPreProcessCacheData;
+class UWFCPreProcessCache;
 DECLARE_DELEGATE_TwoParams(FOnWFCStatusUpdate, FWFCCoordinate, int32);
 
 struct FWFCCell
@@ -68,7 +70,7 @@ private:
     TMap<FWFCCoordinate, TSet<int32>> BacktrackBlacklist;
     static const TArray<FIntVector> DirectionVectors;
 
-private:
+public:
     void InitializeGrid();
     void BuildPropagationRules();
     void ValidatePropagationRules();
@@ -120,4 +122,15 @@ private:
         void BlacklistTile(const FWFCCoordinate& Coord, int32 TileIndex);
         bool IsTileBlacklisted(const FWFCCoordinate& Coord, int32 TileIndex) const;
         void ClearBlacklistForCoordinate(const FWFCCoordinate& Coord);
+
+    //尝试使用Cache
+public:
+    void SetPreProcessCache(UWFCPreProcessCache* InCache);
+    bool LoadPreProcessedGrid();
+
+private:
+    UPROPERTY()
+    TObjectPtr<UWFCPreProcessCache> PreProcessCache;
+    
+    void ApplyCachedGrid(const FWFCPreProcessCacheData& CacheData);
 };

@@ -5,6 +5,7 @@
 #include "WFCTypes.h"
 #include "WFCTileSet.h"
 #include "WFCCore.h"
+#include "WFCPreProcessCache.h"
 #include "WFCGeneratorComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWFCGenerationComplete, const FWFCGenerationResult&, Result);
@@ -135,6 +136,13 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void PrevCollapseStep();
+    
+//尝试使用缓存
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WFC Configuration")
+    TObjectPtr<UWFCPreProcessCache> PreProcessCache;
+
+    UFUNCTION(BlueprintCallable, Category = "WFC")
+    void SetPreProcessCache(UWFCPreProcessCache* InCache);
 
 protected:
     UPROPERTY()

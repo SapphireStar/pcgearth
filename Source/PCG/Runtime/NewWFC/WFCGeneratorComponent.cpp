@@ -66,7 +66,7 @@ void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomCo
 	CompleteTileSet = NewObject<UWFCTileSet>();
 
 	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Starting generation with grid size %s"),
-	       *CustomConfig.GridSize.ToString());
+		   *CustomConfig.GridSize.ToString());
 
 	Configuration = CustomConfig;
 
@@ -74,6 +74,12 @@ void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomCo
 	{
 		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
 		return;
+	}
+
+	if (PreProcessCache)
+	{
+		WFCCore->SetPreProcessCache(PreProcessCache);
+		UE_LOG(LogTemp, Log, TEXT("WFCGenerator: PreProcess cache set"));
 	}
 
 	WFCCore->OnStatusUpdate.BindUObject(this, &UWFCGeneratorComponent::OnWFCStatusUpdate);
@@ -681,4 +687,14 @@ FVector UWFCGeneratorComponent::CoordinateToLocalPosition(const FWFCCoordinate& 
 void UWFCGeneratorComponent::OnWFCStatusUpdate(FWFCCoordinate Coord, int32 Tile)
 {
 	SpawnTileActor(Coord, Tile);
+}
+
+
+void UWFCGeneratorComponent::SetPreProcessCache(UWFCPreProcessCache* InCache)
+{
+	PreProcessCache = InCache;
+	if (WFCCore)
+	{
+		WFCCore->SetPreProcessCache(PreProcessCache);
+	}
 }

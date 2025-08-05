@@ -92,6 +92,7 @@ void UPlayerDataComponent::ChangePlayerAbilityPropertyValue(EPlayerAbilityProper
 		OldValue = PlayerStatus.PlayerAbilityInfo.FuelMax;
 		PlayerStatus.PlayerAbilityInfo.FuelMax = NewValue;
 		OnAbilityPropertyChanged.Broadcast(ePropertyType, OldValue, NewValue);
+		ChangePlayerAbilityPropertyValue(EPlayerAbilityPropertyType::EPAPT_CurrentFuel, NewValue);
 		return;
 		break;
 	case EPlayerAbilityPropertyType::EPAPT_CurrentFuel:

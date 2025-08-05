@@ -2,6 +2,8 @@
 
 #include "WFCCore.h"
 
+#include "WFCPreProcessCache.h"
+
 const TArray<FIntVector> FWFCCore::DirectionVectors = {
 	FIntVector(0, 0, 1),
 	FIntVector(0, 0, -1),
@@ -279,6 +281,16 @@ void FWFCCore::ApplyConstraints()
 
 void FWFCCore::CellPreProcess()
 {
+	if (LoadPreProcessedGrid())
+	{
+		UE_LOG(LogTemp, Log, TEXT("WFCCore: Applied cached preprocess data for grid size %s"), 
+			   *Config.GridSize.ToString());
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("WFCCore: No cache found, generating preprocess data for grid size %s"), 
+		   *Config.GridSize.ToString());
+	
 	for (const auto& [Coord, Cell] : Grid)
 	{
 		if (IsBoundaryCoordinate(Coord))
@@ -312,7 +324,10 @@ FWFCGenerationResult FWFCCore::Generate()
 	CellPreProcess();
 
 	Result.bSuccess = RunGenerationLoop();
-
+	while (!Result.bSuccess)
+	{
+		Result.bSuccess = RunGenerationLoop();
+	}
 	if (Result.bSuccess)
 	{
 		for (const auto& [Coord, Cell] : Grid)
@@ -656,8 +671,20 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 		return false;
 	}
 
-	int32 SelectedTile = FMath::Max(SelectRandomTile(*Cell, Coord), 0);
-	
+	if (Cell->GetPossibleTileCount() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Cannot collapse - no possible tiles at %s"), *Coord.ToString());
+		return false;
+	}
+
+	int32 SelectedTile = SelectRandomTile(*Cell, Coord);
+
+	if (SelectedTile < 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
+		return false;
+	}
+
 
 	if (!CheckConstraints(Coord, SelectedTile))
 	{
@@ -889,10 +916,7 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 {
 	auto tile = TileSet->GetTile(TileIndex);
 	FWFCCell* Cell = GetCell(Coord);
-	if (tile.Category == EWFCTileCategory::Empty)
-	{
-		return true;
-	}
+
 	if (!Cell || TileIndex < 0 || TileIndex >= Cell->PossibleTiles.Num() || !Cell->PossibleTiles[TileIndex])
 	{
 		return true;
@@ -1291,4 +1315,56 @@ FString FWFCCore::GetGridStateString() const
 	                              TotalCells > 0 ? (float)CollapsedCount / TotalCells * 100.0f : 0.0f);
 
 	return StateString;
+}
+
+
+void FWFCCore::SetPreProcessCache(UWFCPreProcessCache* InCache)
+{
+	PreProcessCache = InCache;
+}
+
+
+bool FWFCCore::LoadPreProcessedGrid()
+{
+	if (!PreProcessCache)
+	{
+		return false;
+	}
+
+	FWFCPreProcessCacheData CacheData;
+	if (PreProcessCache->GetCacheForGridSize(Config.GridSize, CacheData))
+	{
+		ApplyCachedGrid(CacheData);
+		return true;
+	}
+
+	return false;
+}
+
+void FWFCCore::ApplyCachedGrid(const FWFCPreProcessCacheData& CacheData)
+{
+	Grid.Empty();
+	TileInstanceCounts = CacheData.CachedTileInstanceCounts;
+	CollapseHistory = CacheData.CachedCollapseHistory;
+
+	for (const auto& [Coord, CachedCell] : CacheData.CachedGrid)
+	{
+		FWFCCell& Cell = Grid.Add(Coord, FWFCCell(TileSet->GetTileCount()));
+        
+		Cell.PossibleTiles.SetNum(CachedCell.PossibleTiles.Num(), false);
+		for (int32 i = 0; i < CachedCell.PossibleTiles.Num(); i++)
+		{
+			Cell.PossibleTiles[i] = CachedCell.PossibleTiles[i];
+		}
+        
+		Cell.bCollapsed = CachedCell.bCollapsed;
+		Cell.CollapsedTileIndex = CachedCell.CollapsedTileIndex;
+		Cell.Entropy = CachedCell.Entropy;
+	}
+
+	while (!PropagationQueue.IsEmpty())
+	{
+		FWFCCoordinate Dummy;
+		PropagationQueue.Dequeue(Dummy);
+	}
 }
