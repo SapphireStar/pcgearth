@@ -307,9 +307,6 @@ FWFCGenerationResult FWFCCore::Generate()
 	FWFCGenerationResult Result;
 	double StartTime = FPlatformTime::Seconds();
 
-	UE_LOG(LogTemp, Log, TEXT("WFCCore: Starting generation with mode %d, max iterations %d"),
-	       (int32)Config.GenerationMode, Config.MaxIterations);
-
 	TileInstanceCounts.Empty();
 	ChangeHistory.Empty();
 	CollapseHistory.Empty();
@@ -324,9 +321,25 @@ FWFCGenerationResult FWFCCore::Generate()
 	CellPreProcess();
 
 	Result.bSuccess = RunGenerationLoop();
+	int count = 0;
 	while (!Result.bSuccess)
 	{
+		if (count >= 100)
+		{break;}
+		TileInstanceCounts.Empty();
+		ChangeHistory.Empty();
+		CollapseHistory.Empty();
+		InitializeGrid();
+
+		while (!PropagationQueue.IsEmpty())
+		{
+			FWFCCoordinate Dummy;
+			PropagationQueue.Dequeue(Dummy);
+		}
+
+		CellPreProcess();
 		Result.bSuccess = RunGenerationLoop();
+		count++;
 	}
 	if (Result.bSuccess)
 	{

@@ -150,6 +150,7 @@ AActor* AWFCVisualizer::SpawnTileActor(const FWFCVisualizationTile& Tile)
 	TileActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	TileActor->SetActorRelativeLocation(Tile.Location);
 	TileActor->SetActorRelativeRotation(Tile.Rotation);
+	TileActor->SetActorTickEnabled(false);
 	SpawnedActors.Add(TileActor);
 	return TileActor;
 }
