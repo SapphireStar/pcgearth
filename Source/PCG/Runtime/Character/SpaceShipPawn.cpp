@@ -223,7 +223,97 @@ void ASpaceShipPawn::SetupPlayerAbilityComponent()
 
 void ASpaceShipPawn::Move(const FInputActionValue& Value)
 {
-	FVector2D InputVector = Value.Get<FVector2D>();
+	    FVector2D InputVector = Value.Get<FVector2D>();
+    float X = InputVector.X;
+    float Y = InputVector.Y;
+
+    FVector CameraForward = SpringArm->GetForwardVector() * Y;
+    FVector CameraRight = SpringArm->GetRightVector() * X;
+    FVector DesiredMoveDirection = (CameraForward + CameraRight).GetSafeNormal();
+
+    FVector CurrentVelocity = MainBody->GetPhysicsLinearVelocity();
+    float CurrentSpeed = CurrentVelocity.Size();
+    FVector CurrentDirection = CurrentVelocity.GetSafeNormal();
+
+    bool bHasInput = !DesiredMoveDirection.IsNearlyZero();
+
+    if (bHasInput)
+    {
+        bIsAccelerating = true;
+        CurrentAcceleration = DesiredMoveDirection;
+
+        MainBody->SetLinearDamping(0.5f);
+
+        float DotProduct = FVector::DotProduct(CurrentDirection, DesiredMoveDirection);
+        
+        if (CurrentSpeed < LowSpeedThreshold)
+        {
+            MainBody->AddForce(DesiredMoveDirection * Acceleration * HighResponsivenessFactor);
+        }
+        else
+        {
+            if (DotProduct > 0.3f)
+            {
+                FVector AccelForce = DesiredMoveDirection * Acceleration;
+                
+                if (DotProduct < 0.95f)
+                {
+                    FVector DirectionCorrectionForce = (DesiredMoveDirection - CurrentDirection) * Acceleration * 0.8f;
+                    AccelForce += DirectionCorrectionForce;
+                }
+                
+                MainBody->AddForce(AccelForce);
+            }
+            else if (DotProduct > -0.3f) 
+            {
+                FVector TurnForce = DesiredMoveDirection * Acceleration * 1.2f;
+                FVector BrakeForce = -CurrentDirection * Acceleration * 0.3f;
+                MainBody->AddForce(TurnForce + BrakeForce);
+            }
+            else
+            {
+                FVector BrakeForce = -CurrentDirection * Acceleration * 1.5f;
+                FVector TurnForce = DesiredMoveDirection * Acceleration * 0.6f;
+                MainBody->AddForce(BrakeForce + TurnForce);
+            }
+        }
+    }
+    else
+    {
+        bIsAccelerating = false;
+        CurrentAcceleration = FVector::ZeroVector;
+
+        if (CurrentSpeed > StopThreshold)
+        {
+            float DynamicDamping = FMath::Clamp(
+                1.0f + (CurrentSpeed / MaxSpeed) * 3.0f, 
+                1.0f, 
+                4.0f
+            );
+            
+            MainBody->SetLinearDamping(DynamicDamping);
+            
+            if (CurrentSpeed > HighSpeedThreshold)
+            {
+                MainBody->AddForce(-CurrentDirection * Deceleration * 0.5f);
+            }
+        }
+        else
+        {
+            MainBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
+            MainBody->SetLinearDamping(0.5f);
+        }
+    }
+
+    if (CurrentSpeed > MaxSpeed)
+    {
+        float ExcessSpeed = CurrentSpeed - MaxSpeed;
+        float ReductionFactor = FMath::Clamp(1.0f - (ExcessSpeed / MaxSpeed * 0.1f), 0.9f, 1.0f);
+        
+        FVector LimitedVelocity = CurrentVelocity * ReductionFactor;
+        MainBody->SetPhysicsLinearVelocity(LimitedVelocity);
+    }
+	/*FVector2D InputVector = Value.Get<FVector2D>();
 	float X = InputVector.X;
 	float Y = InputVector.Y;
 
@@ -302,7 +392,7 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
 	{
 		FVector LimitedVelocity = CurrentDirection * MaxSpeed;
 		MainBody->SetPhysicsLinearVelocity(LimitedVelocity);
-	}
+	}*/
 
 }
 

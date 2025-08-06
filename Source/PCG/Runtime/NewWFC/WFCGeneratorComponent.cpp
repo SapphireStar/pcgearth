@@ -585,8 +585,10 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAtByFrame(const FWFC
 		Tile.Category = TileDef.Category;
 		VisualizationData.Tiles.Add(Tile);
 	}
-	if (GetWorld())
-		GetWorld()->SpawnActor<AWFCVisualizer>()->StartVisualization(GenerationActorPerFrame, VisualizationData);
+
+	AWFCVisualizer* Visualizer = GetWorld()->SpawnActor<AWFCVisualizer>();
+	Visualizer->SetActorLocation(FVector::ZeroVector);
+	Visualizer->StartVisualization(GenerationActorPerFrame, VisualizationData);
 	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Created %d tile actors"), CreatedCount);
 	return nullptr;
 }
@@ -686,7 +688,7 @@ FVector UWFCGeneratorComponent::CoordinateToLocalPosition(const FWFCCoordinate& 
 
 void UWFCGeneratorComponent::OnWFCStatusUpdate(FWFCCoordinate Coord, int32 Tile)
 {
-	SpawnTileActor(Coord, Tile);
+	//SpawnTileActor(Coord, Tile);
 }
 
 
