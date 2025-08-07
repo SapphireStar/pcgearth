@@ -10,6 +10,8 @@ UENUM(BlueprintType)
 enum class ETutorialType: uint8
 {
 	ETT_InitialTutorial		UMETA(DisplayName = "Initial Tutorial"),
+	ETT_FirstSubmitTutorial	UMETA(DisplayName = "First Submit Tutorial"),
+	ETT_MineTutorial			UMETA(DisplayName = "Mine Tutorial"),
 	ETT_CraftTutorial		UMETA(DisplayName = "Craft Tutorial"),
 };
 
