@@ -10,7 +10,7 @@
 
 UWFCGeneratorComponent::UWFCGeneratorComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
 
 	Configuration.GridSize = FIntVector(5, 5, 3);
 	Configuration.GenerationMode = EWFCGenerationMode::GroundFirst;
@@ -40,6 +40,13 @@ void UWFCGeneratorComponent::BeginPlay()
 	{
 		StartGenerationWithCustomConfigAt(FVector(0, 0, 0), FRotator(0, 0, 0));
 	}
+}
+
+void UWFCGeneratorComponent::TickComponent(float DeltaTime, enum ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
 }
 
 void UWFCGeneratorComponent::BeginDestroy()
@@ -176,25 +183,10 @@ int UWFCGeneratorComponent::ExecuteGenerationAsyncAt(FVector Location, FRotator 
 
 int UWFCGeneratorComponent::QueueGeneration(FVector Location, FRotator Rotation)
 {
-	if (bShouldStopProcessing.load())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Component is being destroyed, ignoring request"));
-		return 0;
-	}
-
-	if (GetQueueSize() >= MaxQueueSize)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Queue is full (%d), ignoring new request"), MaxQueueSize);
-		return 0;
-	}
-
 	uint32 RequestId = NextRequestId.fetch_add(1);
 	FGenerationRequest Request(Location, Rotation, RequestId);
 	
 	PendingRequests.Add(Request);
-	
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Queued generation request %d at location %s (Queue size: %d)"), 
-	       RequestId, *Location.ToString(), GetQueueSize());
 
 	if (!bIsProcessingQueue)
 	{
