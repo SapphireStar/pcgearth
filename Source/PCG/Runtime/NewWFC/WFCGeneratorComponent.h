@@ -152,7 +152,6 @@ protected:
     TArray<FGenerationRequest> PendingRequests;
     mutable FCriticalSection QueueLock;
     std::atomic<uint32> NextRequestId{1};
-    std::atomic<bool> bShouldStopProcessing{false};
 
     TUniquePtr<FWFCCore> WFCCore;
     

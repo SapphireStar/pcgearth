@@ -45,6 +45,7 @@ void AWFCVisualizer::StartVisualization(int ActorsPerFrame, const FWFCVisualizat
 	TotalTiles = VisualizationData.Tiles.Num();
 	SetActorLocation(VisualizationData.ParentLocation);
 	SetActorRotation(VisualizationData.ParentRotation);
+	
 	CurrentTileIndex = 0;
 	bIsVisualizing = true;
 }
