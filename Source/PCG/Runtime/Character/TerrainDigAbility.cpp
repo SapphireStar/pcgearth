@@ -148,9 +148,6 @@ void UTerrainDigAbility::DigTerrain(AGeometryPlanetActor* Planet, const TArray<i
 	bool bShouldFlatten = bForceAdaptive ? false : Analysis.bShouldFlatten;
 	float DigDepthToUse = bShouldFlatten ? 0.0f : CalculateAdaptiveDigDepth(Analysis);
     
-	UE_LOG(LogTemp, Log, TEXT("Terrain Analysis - Accumulated Diff: %.2f, Should Flatten: %s, Dig Depth: %.2f"), 
-		Analysis.AccumulatedDifference, bShouldFlatten ? TEXT("Yes") : TEXT("No"), DigDepthToUse);
-    
 	for (int32 VertexID : VertexIndices)
 	{
 		FVector CurrentPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
