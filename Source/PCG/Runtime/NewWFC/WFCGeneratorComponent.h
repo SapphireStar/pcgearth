@@ -8,6 +8,7 @@
 #include "WFCPreProcessCache.h"
 #include "WFCGeneratorComponent.generated.h"
 
+class AWFCVisualizer;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWFCGenerationComplete, const FWFCGenerationResult&, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWFCTileGenerated, const FWFCCoordinate&, Position, int32, TileIndex);
 
@@ -25,9 +26,12 @@ struct FGenerationRequest
     UPROPERTY(BlueprintReadOnly)
     int RequestId = 0;
 
+    UPROPERTY(BlueprintReadOnly)
+    FIntVector GridSize = FIntVector::ZeroValue;
+
     FGenerationRequest() = default;
-    FGenerationRequest(FVector InLocation, FRotator InRotation, uint32 InRequestId)
-        : Location(InLocation), Rotation(InRotation), RequestId(InRequestId) {}
+    FGenerationRequest(FVector InLocation, FRotator InRotation, uint32 InRequestId, FIntVector InGridSize)
+        : Location(InLocation), Rotation(InRotation), RequestId(InRequestId), GridSize(InGridSize) {}
 };
 
 UCLASS(ClassGroup=(WFC), meta=(BlueprintSpawnableComponent))
@@ -88,6 +92,9 @@ public:
     void StartGenerationWithCustomConfig(const FWFCConfiguration& CustomConfig);
 
     UFUNCTION(BlueprintCallable, Category = "WFC")
+    void StartGenerationWithCustomGridSizeAt(FVector Location, FRotator Rotation, FIntVector GridSize);
+
+    UFUNCTION(BlueprintCallable, Category = "WFC")
     void StartGenerationWithCustomConfigAt(FVector Location, FRotator Rotation);
 
     UFUNCTION(BlueprintCallable, Category = "WFC")
@@ -137,6 +144,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "WFC")
     void PrevCollapseStep();
+
+    UFUNCTION(BlueprintCallable, Category = "WFC")
+    void SetGridSize(int X, int Y);
     
 //尝试使用缓存
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WFC Configuration")
@@ -146,7 +156,7 @@ public:
     void SetPreProcessCache(UWFCPreProcessCache* InCache);
 
 protected:
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     bool bIsProcessingQueue = false;
 
     TArray<FGenerationRequest> PendingRequests;
@@ -191,6 +201,8 @@ private:
     FVector CoordinateToLocalPosition(const FWFCCoordinate& Coord) const;
 
     void OnWFCStatusUpdate(FWFCCoordinate Coord, int32 Tile);
+    UFUNCTION()
+    void OnVisualizationComplete(AWFCVisualizer* Visualizer);
 
     
 };

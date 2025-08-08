@@ -453,8 +453,7 @@ bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHi
 
 		if (TryConsumeWood(volume, GridSize))
 		{
-			WFCGeneratorComponent->StartGenerationWithCustomConfigAt(BuildingPos,
-			                                                         GridSelection->GetGridRotation());
+			WFCGeneratorComponent->StartGenerationWithCustomConfigAt(BuildingPos, GridSelection->GetGridRotation());
 			SpawnFactoryActor(BuildingPos, volume, MineSphere, CalculateFactoryRadius(volume));
 			return true;
 		}
