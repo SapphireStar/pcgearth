@@ -46,6 +46,7 @@ void UWFCGeneratorComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	ProcessNextRequest();
+
 }
 
 void UWFCGeneratorComponent::BeginDestroy()
@@ -144,9 +145,16 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
 	}
 }
 
+void UWFCGeneratorComponent::StartGenerationWithCustomGridSizeAt(FVector Location, FRotator Rotation, FIntVector GridSize)
+{
+	FGenerationRequest Request(Location, Rotation, 0, GridSize);
+	PendingRequests.Add(Request);
+}
+
 void UWFCGeneratorComponent::StartGenerationWithCustomConfigAt(FVector Location, FRotator Rotation)
 {
-	ExecuteGenerationAsyncAt(Location, Rotation);
+	FGenerationRequest Request(Location, Rotation, 0, Configuration.GridSize);
+	PendingRequests.Add(Request);
 }
 
 int UWFCGeneratorComponent::ExecuteGenerationAsyncAt(FVector Location, FRotator Rotation)
@@ -158,9 +166,8 @@ int UWFCGeneratorComponent::ExecuteGenerationAsyncAt(FVector Location, FRotator 
 
 int UWFCGeneratorComponent::QueueGeneration(FVector Location, FRotator Rotation)
 {
-	FGenerationRequest Request(Location, Rotation, 0);
-	PendingRequests.Add(Request);
-	
+
+
 	return 0;
 }
 
@@ -171,6 +178,7 @@ void UWFCGeneratorComponent::ProcessNextRequest()
 	{
 		return;
 	}
+
 	if (PendingRequests.Num() == 0)
 	{
 		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCGenerator: Queue is empty, stopping processing"));
@@ -182,31 +190,27 @@ void UWFCGeneratorComponent::ProcessNextRequest()
 
 	if (!WFCCore)
 	{
-		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: WFC Core not initialized for request %d"), Request.RequestId);
-		bIsProcessingQueue = false;
-		ProcessNextRequest();
 		return;
 	}
 
+	Configuration.GridSize = Request.GridSize;
 	WFCCore->UpdateGrid(Configuration);
-
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Processing queued request %d"), Request.RequestId);
-
+	
 	if (bUseAsyncGeneration)
 	{
-		bIsProcessingQueue = true;
 		Async(EAsyncExecution::TaskGraph, [this, Request]()
 		{
 			FWFCGenerationResult Result;
-
+			
+			UE_LOG(LogTemp, Warning, TEXT("GRID SIZE: %s"), *Configuration.GridSize.ToString());
 			Result = WFCCore->Generate();
 
 
 			AsyncTask(ENamedThreads::GameThread, [this, Request, Result]()
 			{
 				OnGenerationFinished(Result, Request.Location, Request.Rotation);
-				bIsProcessingQueue = false;
 			});
+			
 		});
 	}
 	else
@@ -348,6 +352,11 @@ void UWFCGeneratorComponent::PrevCollapseStep()
 	}
 }
 
+void UWFCGeneratorComponent::SetGridSize(int X, int Y)
+{
+	Configuration.GridSize = FIntVector(X, Y, Configuration.GridSize.Z);
+}
+
 void UWFCGeneratorComponent::ExecuteGeneration()
 {
 	if (!WFCCore)
@@ -379,6 +388,7 @@ void UWFCGeneratorComponent::ExecuteGenerationAsync()
 			OnGenerationFinished(Result);
 		}
 	});
+
 }
 
 void UWFCGeneratorComponent::ExecuteGenerationAt(FVector Location, FRotator Rotation)
@@ -388,9 +398,7 @@ void UWFCGeneratorComponent::ExecuteGenerationAt(FVector Location, FRotator Rota
 		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: WFC Core not initialized"));
 		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Executing synchronous generation"));
-
+	
 	FWFCGenerationResult Result = WFCCore->Generate();
 	OnGenerationFinished(Result, Location, Rotation);
 }
@@ -398,16 +406,6 @@ void UWFCGeneratorComponent::ExecuteGenerationAt(FVector Location, FRotator Rota
 void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Result)
 {
 	LastResult = Result;
-
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation finished - Success: %s, Iterations: %d, Time: %.3fs"),
-	       Result.bSuccess ? TEXT("True") : TEXT("False"),
-	       Result.IterationsUsed,
-	       Result.GenerationTimeSeconds);
-
-	if (!Result.bSuccess)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Generation failed: %s"), *Result.ErrorMessage);
-	}
 
 	if (bVisualizeTiles && Result.bSuccess)
 	{
@@ -417,23 +415,12 @@ void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Re
 	OnGenerationComplete.Broadcast(Result);
 }
 
-void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Result, FVector Location,
-                                                  FRotator Rotation)
+void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Result, FVector Location, FRotator Rotation)
 {
 	LastResult = Result;
 	LastCollapseHistory = WFCCore->GetCollapseHistory();
 	CurCollapseHistoryStep = LastCollapseHistory.Num() - 1;
-
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation finished - Success: %s, Iterations: %d, Time: %.3fs"),
-	       Result.bSuccess ? TEXT("True") : TEXT("False"),
-	       Result.IterationsUsed,
-	       Result.GenerationTimeSeconds);
-
-	if (!Result.bSuccess)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Generation failed: %s"), *Result.ErrorMessage);
-	}
-
+	
 	if (bVisualizeTiles && Result.bSuccess)
 	{
 		if (!bUseAsyncGeneration)
@@ -445,6 +432,7 @@ void UWFCGeneratorComponent::OnGenerationFinished(const FWFCGenerationResult& Re
 	}
 	
 	OnGenerationComplete.Broadcast(Result);
+	
 }
 
 void UWFCGeneratorComponent::CreateVisualization(const FWFCGenerationResult& Result)
@@ -453,9 +441,6 @@ void UWFCGeneratorComponent::CreateVisualization(const FWFCGenerationResult& Res
 	{
 		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Creating visualization for %d tiles"),
-	       Result.TileAssignments.Num());
 
 	int32 CreatedCount = 0;
 	for (const auto& [Coord, TileIndex] : Result.TileAssignments)
@@ -467,27 +452,18 @@ void UWFCGeneratorComponent::CreateVisualization(const FWFCGenerationResult& Res
 			CreatedCount++;
 		}
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Created %d tile actors"), CreatedCount);
 }
 
 USceneComponent* UWFCGeneratorComponent::CreateVisualizationAt(const FWFCGenerationResult& Result, FVector Location,
                                                                FRotator Rotation)
 {
 	USceneComponent* ParentComp = NewObject<USceneComponent>(GetOwner());
-	ParentComp->SetWorldLocation(FVector::ZeroVector);
-	ParentComp->SetWorldRotation(FRotator::ZeroRotator);
-	ParentComp->SetupAttachment(GetOwner()->GetRootComponent());
 	ParentComp->RegisterComponent();
 	SpawnedTileParents.Add(ParentComp);
 	if (!GetOwner() || !TileSet)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: no valid TileSet"));
 		return ParentComp;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Creating visualization for %d tiles"),
-	       Result.TileAssignments.Num());
 
 	int32 CreatedCount = 0;
 	for (const auto& [Coord, TileIndex] : Result.TileAssignments)
@@ -502,7 +478,6 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAt(const FWFCGenerat
 	}
 	ParentComp->SetWorldLocation(Location);
 	ParentComp->SetWorldRotation(Rotation);
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Created %d tile actors"), CreatedCount);
 	return ParentComp;
 }
 
@@ -514,8 +489,6 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAtByFrame(const FWFC
 	VisualizationData.ParentRotation = Rotation;
 	VisualizationData.bShowEmptyTiles = Configuration.bShowEmptyTiles;
 
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Creating visualization for %d tiles"),
-	       Result.TileAssignments.Num());
 
 	int32 CreatedCount = 0;
 	for (const auto& [Coord, TileIndex] : Result.TileAssignments)
@@ -536,14 +509,12 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAtByFrame(const FWFC
 	AWFCVisualizer* Visualizer = GetWorld()->SpawnActor<AWFCVisualizer>();
 	Visualizer->SetActorLocation(FVector::ZeroVector);
 	Visualizer->StartVisualization(GenerationActorPerFrame, VisualizationData);
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Created %d tile actors"), CreatedCount);
+	Visualizer->OnVisualizationComplete.AddDynamic(this, &UWFCGeneratorComponent::OnVisualizationComplete);
 	return nullptr;
 }
 
 void UWFCGeneratorComponent::ClearVisualization()
 {
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCGenerator: Clearing %d spawned actors"), SpawnedActors.Num());
-
 	for (auto& [Coord, Actor] : SpawnedActors)
 	{
 		if (IsValid(Actor))
@@ -565,7 +536,6 @@ AActor* UWFCGeneratorComponent::SpawnTileActor(const FWFCCoordinate& Position, i
 	FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
 	if (!TileDef.Mesh)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Tile %d has no mesh"), TileIndex);
 		return nullptr;
 	}
 
@@ -577,7 +547,6 @@ AActor* UWFCGeneratorComponent::SpawnTileActor(const FWFCCoordinate& Position, i
 
 	if (!TileActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Failed to spawn actor for tile %d"), TileIndex);
 		return nullptr;
 	}
 
@@ -636,6 +605,11 @@ FVector UWFCGeneratorComponent::CoordinateToLocalPosition(const FWFCCoordinate& 
 void UWFCGeneratorComponent::OnWFCStatusUpdate(FWFCCoordinate Coord, int32 Tile)
 {
 	//SpawnTileActor(Coord, Tile);
+}
+
+void UWFCGeneratorComponent::OnVisualizationComplete(AWFCVisualizer* Visualizer)
+{
+	bIsProcessingQueue = false;
 }
 
 

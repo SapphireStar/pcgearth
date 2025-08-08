@@ -84,7 +84,7 @@ void AWFCVisualizer::OnTimeZeroGameover(UClass* ClassType, EGameOverType eType)
 
 void AWFCVisualizer::ProcessSpawnTasks()
 {
-	if (SpawnedActors.Num() >= TotalTiles)
+	if (CurrentTileIndex >= TotalTiles)
 	{
 		if (bIsVisualizing)
 		{
@@ -173,7 +173,6 @@ void AWFCVisualizer::OnVisualizationFinished()
 		}
 	}
     
-	// 触发完成事件
 	if (OnVisualizationComplete.IsBound())
 	{
 		OnVisualizationComplete.Broadcast(this);
