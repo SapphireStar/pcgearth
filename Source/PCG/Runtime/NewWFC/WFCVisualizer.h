@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TileISMManager.h"
 #include "WFCTypes.h"
 #include "GameFramework/Actor.h"
 #include "WFCVisualizer.generated.h"
@@ -44,6 +45,9 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* RootSceneComponent;
+
+	UPROPERTY()
+	TObjectPtr<ATileISMManager> TileISMManager;
 	
 private:
 	int ActorsPerFrame = 5;
@@ -56,7 +60,6 @@ private:
 
 	void ProcessSpawnTasks();
 	AActor* SpawnTileActor(const FWFCVisualizationTile& Tile);
-	void CreateSpawnTasks(const FWFCGenerationResult& GenerationResult);
 	void OnVisualizationFinished();
 	float GetProgress() const
 	{

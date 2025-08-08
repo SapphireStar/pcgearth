@@ -7,6 +7,7 @@
 #include "Async/Async.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "PCG/Runtime/DebugHelper.h"
+#include "PCG/Runtime/PCGGameMode.h"
 
 UWFCGeneratorComponent::UWFCGeneratorComponent()
 {
@@ -40,6 +41,8 @@ void UWFCGeneratorComponent::BeginPlay()
 	{
 		StartGenerationWithCustomConfigAt(FVector(0, 0, 0), FRotator(0, 0, 0));
 	}
+
+	Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData->OnTimeZeroGameOver.AddDynamic(this, &UWFCGeneratorComponent::OnTimeZeroGameover);
 }
 
 void UWFCGeneratorComponent::TickComponent(float DeltaTime, enum ELevelTick TickType,
@@ -66,27 +69,21 @@ void UWFCGeneratorComponent::InitializeWFCCore(const FWFCConfiguration& CustomCo
 
 	if (!TileSet)
 	{
-		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: No TileSet assigned"));
 		return;
 	}
 
 	CompleteTileSet = NewObject<UWFCTileSet>();
 
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Starting generation with grid size %s"),
-	       *CustomConfig.GridSize.ToString());
-
 	Configuration = CustomConfig;
 
 	if (!WFCCore->Initialize(TileSet, Configuration))
 	{
-		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
 		return;
 	}
 
 	if (PreProcessCache)
 	{
 		WFCCore->SetPreProcessCache(PreProcessCache);
-		UE_LOG(LogTemp, Log, TEXT("WFCGenerator: PreProcess cache set"));
 	}
 
 	WFCCore->OnStatusUpdate.BindUObject(this, &UWFCGeneratorComponent::OnWFCStatusUpdate);
@@ -101,13 +98,11 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
 {
 	if (bIsProcessingQueue)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Queue is being processed"));
 		return;
 	}
 
 	if (!TileSet)
 	{
-		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: No TileSet assigned"));
 		return;
 	}
 
@@ -123,16 +118,12 @@ void UWFCGeneratorComponent::StartGenerationWithCustomConfig(const FWFCConfigura
 	}
 	CompleteTileSet->DefaultConfiguration = TileSet->DefaultConfiguration;
 
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Starting generation with grid size %s"),
-	       *CustomConfig.GridSize.ToString());
-
 	Configuration = CustomConfig;
 
 	ClearVisualization();
 
 	if (!WFCCore->Initialize(TileSet, Configuration))
 	{
-		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: Failed to initialize WFC core"));
 		return;
 	}
 
@@ -182,7 +173,6 @@ void UWFCGeneratorComponent::ProcessNextRequest()
 
 	if (PendingRequests.Num() == 0)
 	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCGenerator: Queue is empty, stopping processing"));
 		return;
 	}
 	Request = PendingRequests.Pop();
@@ -203,7 +193,6 @@ void UWFCGeneratorComponent::ProcessNextRequest()
 		{
 			FWFCGenerationResult Result;
 			
-			UE_LOG(LogTemp, Warning, TEXT("GRID SIZE: %s"), *Configuration.GridSize.ToString());
 			Result = WFCCore->Generate();
 
 
@@ -225,7 +214,6 @@ void UWFCGeneratorComponent::ProcessNextRequest()
 void UWFCGeneratorComponent::StopGeneration()
 {
 	bIsProcessingQueue = false;
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation stopped"));
 
 	if (GenerationFuture.IsValid())
 	{
@@ -245,7 +233,6 @@ void UWFCGeneratorComponent::ClearGeneration()
 	}
 
 	LastResult = FWFCGenerationResult();
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Generation cleared"));
 }
 
 void UWFCGeneratorComponent::ClearQueue()
@@ -253,11 +240,6 @@ void UWFCGeneratorComponent::ClearQueue()
 	FScopeLock Lock(&QueueLock);
 	int32 ClearedCount = PendingRequests.Num();
 	PendingRequests.Empty();
-
-	if (ClearedCount > 0)
-	{
-		UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Cleared %d requests from queue"), ClearedCount);
-	}
 }
 
 int32 UWFCGeneratorComponent::GetQueueSize() const
@@ -276,24 +258,20 @@ void UWFCGeneratorComponent::SetTileSet(UWFCTileSet* NewTileSet)
 {
 	if (bIsProcessingQueue)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCGenerator: Cannot change TileSet during queue processing"));
 		return;
 	}
 
 	TileSet = NewTileSet;
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: TileSet updated"));
 }
 
 void UWFCGeneratorComponent::AddConstraint(const FWFCGenerationConstraint& Constraint)
 {
 	Configuration.Constraints.Add(Constraint);
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Added constraint: %s"), *Constraint.ConstraintName);
 }
 
 void UWFCGeneratorComponent::ClearConstraints()
 {
 	Configuration.Constraints.Empty();
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Cleared all constraints"));
 }
 
 void UWFCGeneratorComponent::SetVisualizationEnabled(bool bEnabled)
@@ -362,20 +340,15 @@ void UWFCGeneratorComponent::ExecuteGeneration()
 {
 	if (!WFCCore)
 	{
-		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: WFC Core not initialized"));
 		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Executing synchronous generation"));
-
+	
 	FWFCGenerationResult Result = WFCCore->Generate();
 	OnGenerationFinished(Result);
 }
 
 void UWFCGeneratorComponent::ExecuteGenerationAsync()
 {
-	UE_LOG(LogTemp, Log, TEXT("WFCGenerator: Executing asynchronous generation"));
-
 	GenerationFuture = Async(EAsyncExecution::ThreadPool, [this]() -> FWFCGenerationResult
 	{
 		return WFCCore->Generate();
@@ -398,7 +371,6 @@ void UWFCGeneratorComponent::ExecuteGenerationAt(FVector Location, FRotator Rota
 {
 	if (!WFCCore)
 	{
-		UE_LOG(LogTemp, Error, TEXT("WFCGenerator: WFC Core not initialized"));
 		return;
 	}
 	
@@ -506,6 +478,7 @@ USceneComponent* UWFCGeneratorComponent::CreateVisualizationAtByFrame(const FWFC
 		Tile.StaticMesh = TileDef.Mesh;
 		Tile.Material = TileDef.Material;
 		Tile.Category = TileDef.Category;
+		Tile.TileIndex = TileIndex;
 		VisualizationData.Tiles.Add(Tile);
 	}
 
@@ -613,6 +586,12 @@ void UWFCGeneratorComponent::OnWFCStatusUpdate(FWFCCoordinate Coord, int32 Tile)
 void UWFCGeneratorComponent::OnVisualizationComplete(AWFCVisualizer* Visualizer)
 {
 	bIsProcessingQueue = false;
+}
+
+void UWFCGeneratorComponent::OnTimeZeroGameover(UClass* ClassType, EGameOverType eType)
+{
+	ClearGeneration();
+	InitializeWFCCore(Configuration);
 }
 
 

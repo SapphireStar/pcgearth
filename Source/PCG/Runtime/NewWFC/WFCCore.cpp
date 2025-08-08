@@ -26,7 +26,6 @@ bool FWFCCore::Initialize(UWFCTileSet* InTileSet, const FWFCConfiguration& InCon
 {
 	if (!InTileSet)
 	{
-		UE_LOG(LogTemp, Error, TEXT("WFCCore: TileSet is null"));
 		return false;
 	}
 
@@ -48,16 +47,12 @@ bool FWFCCore::Initialize(UWFCTileSet* InTileSet, const FWFCConfiguration& InCon
 	Config = InConfig;
 	RandomGenerator.Initialize(Config.RandomSeed);
 
-	UE_LOG(LogTemp, Log, TEXT("WFCCore: Initializing with %d tiles, grid size %s, seed %d"),
-	       TileSet->GetTileCount(), *Config.GridSize.ToString(), Config.RandomSeed);
-
 	Reset();
 
 	InitializeGrid();
 	BuildPropagationRules();
 	//ApplyConstraints();
 
-	UE_LOG(LogTemp, Log, TEXT("WFCCore: Initialization complete"));
 	return true;
 }
 
@@ -72,15 +67,12 @@ void FWFCCore::InitializeGrid()
 	Grid.Empty();
 	if (!TileSet)
 	{
-		UE_LOG(LogTemp, Error, TEXT("WFCCore: TileSet is null"));
 		return;
 	}
 
 	const int32 TileCount = TileSet->GetTileCount();
 	const int32 TotalCells = Config.GridSize.X * Config.GridSize.Y * Config.GridSize.Z;
-
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Initializing grid with %d cells, %d tile types"),
-	       TotalCells, TileCount);
+	
 
 	for (int32 X = 0; X < Config.GridSize.X; X++)
 	{
@@ -93,14 +85,9 @@ void FWFCCore::InitializeGrid()
 
 				Cell.PossibleTiles.SetRange(0, TileCount, true);
 				Cell.Entropy = CalculateEntropy(Cell);
-
-				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Initialized cell %s with entropy %.3f"),
-				       *Coord.ToString(), Cell.Entropy);
 			}
 		}
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("WFCCore: Grid initialization complete - %d cells created"), Grid.Num());
 }
 
 void FWFCCore::BuildPropagationRules()
@@ -108,9 +95,7 @@ void FWFCCore::BuildPropagationRules()
 	const int32 TileCount = TileSet->GetTileCount();
 	PropagationRules.Empty();
 	PropagationRules.SetNum(6);
-
-	UE_LOG(LogTemp, Log, TEXT("WFCCore: Building propagation rules for %d tiles"), TileCount);
-
+	
 	for (int32 Dir = 0; Dir < 6; Dir++)
 	{
 		PropagationRules[Dir].SetNum(TileCount);
@@ -120,9 +105,6 @@ void FWFCCore::BuildPropagationRules()
 		const TCHAR* DirectionNames[] = {
 			TEXT("Up"), TEXT("Down"), TEXT("Right"), TEXT("Left"), TEXT("Front"), TEXT("Back")
 		};
-
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Processing direction %s (opposite: %s)"),
-		       DirectionNames[Dir], DirectionNames[Dir ^ 1]);
 
 		int32 TotalRules = 0;
 
@@ -140,31 +122,18 @@ void FWFCCore::BuildPropagationRules()
 				{
 					PropagationRules[Dir][TileA].Add(TileB);
 					TotalRules++;
-
-					UE_LOG(LogTemp, VeryVerbose,
-					       TEXT("WFCCore: Rule %s: Tile %d (%s) -> Tile %d (%s) via sockets '%s' <-> '%s'"),
-					       DirectionNames[Dir], TileA, *TileDefA.TileName, TileB, *TileDefB.TileName, *SocketA,
-					       *SocketB);
+					
 				}
 			}
-
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Tile %d has %d compatible neighbors in direction %s"),
-			       TileA, PropagationRules[Dir][TileA].Num(), DirectionNames[Dir]);
 		}
-
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Direction %s has %d total compatibility rules"),
-		       DirectionNames[Dir], TotalRules);
+		
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("WFCCore: Propagation rules building complete"));
-
+	
 	ValidatePropagationRules();
 }
 
 void FWFCCore::ValidatePropagationRules()
 {
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Validating propagation rules symmetry"));
-
 	bool bFoundAsymmetry = false;
 	const int32 TileCount = TileSet->GetTileCount();
 
@@ -178,9 +147,6 @@ void FWFCCore::ValidatePropagationRules()
 			{
 				if (!PropagationRules[OppositeDir][TileB].Contains(TileA))
 				{
-					UE_LOG(LogTemp, Warning,
-					       TEXT("WFCCore: Asymmetric rule found - Tile %d -> %d in dir %d, but not reverse"),
-					       TileA, TileB, Dir);
 					bFoundAsymmetry = true;
 				}
 			}
@@ -189,107 +155,17 @@ void FWFCCore::ValidatePropagationRules()
 
 	if (!bFoundAsymmetry)
 	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Propagation rules symmetry validation passed"));
+		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Propagation Rules available"));
 	}
-}
-
-void FWFCCore::ApplyConstraints()
-{
-	PositionConstraints.Empty();
-
-	UE_LOG(LogTemp, Log, TEXT("WFCCore: Applying %d constraints"), Config.Constraints.Num());
-
-	for (const FWFCGenerationConstraint& Constraint : Config.Constraints)
-	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Applying constraint: %s"), *Constraint.ConstraintName);
-
-		for (const FWFCCoordinate& Pos : Constraint.RequiredPositions)
-		{
-			if (IsValidCoordinate(Pos))
-			{
-				PositionConstraints.FindOrAdd(Pos) = Constraint.AllowedTileIndices;
-				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Position %s constrained to %d allowed tiles"),
-				       *Pos.ToString(), Constraint.AllowedTileIndices.Num());
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("WFCCore: Invalid required position in constraint: %s"), *Pos.ToString());
-			}
-		}
-
-		for (const FWFCCoordinate& Pos : Constraint.ForbiddenPositions)
-		{
-			if (FWFCCell* Cell = GetCell(Pos))
-			{
-				for (int32 ForbiddenTile : Constraint.ForbiddenTileIndices)
-				{
-					if (ForbiddenTile >= 0 && ForbiddenTile < Cell->PossibleTiles.Num())
-					{
-						RemoveTileOption(Pos, ForbiddenTile, false);
-						UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Removed tile %d from position %s (forbidden)"),
-						       ForbiddenTile, *Pos.ToString());
-					}
-				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("WFCCore: Invalid forbidden position in constraint: %s"),
-				       *Pos.ToString());
-			}
-		}
-
-		if (Constraint.MinLayer >= 0 || Constraint.MaxLayer >= 0)
-		{
-			int32 AffectedCells = 0;
-			for (auto& [Coord, Cell] : Grid)
-			{
-				bool bInRange = true;
-				if (Constraint.MinLayer >= 0 && Coord.Z < Constraint.MinLayer)
-				{
-					bInRange = false;
-				}
-				if (Constraint.MaxLayer >= 0 && Coord.Z > Constraint.MaxLayer)
-				{
-					bInRange = false;
-				}
-
-				if (!bInRange)
-				{
-					for (int32 ForbiddenTile : Constraint.ForbiddenTileIndices)
-					{
-						if (ForbiddenTile >= 0 && ForbiddenTile < Cell.PossibleTiles.Num())
-						{
-							RemoveTileOption(Coord, ForbiddenTile, false);
-							AffectedCells++;
-						}
-					}
-				}
-			}
-
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Layer constraint affected %d cells"), AffectedCells);
-		}
-	}
-
-	if (!PropagationQueue.IsEmpty())
-	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Running initial constraint propagation"));
-		PropagateConstraints();
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("WFCCore: Constraint application complete"));
 }
 
 void FWFCCore::CellPreProcess()
 {
+	//在预处理中加载缓存
 	if (LoadPreProcessedGrid())
 	{
-		UE_LOG(LogTemp, Log, TEXT("WFCCore: Applied cached preprocess data for grid size %s"), 
-			   *Config.GridSize.ToString());
 		return;
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("WFCCore: No cache found, generating preprocess data for grid size %s"), 
-		   *Config.GridSize.ToString());
 	
 	for (const auto& [Coord, Cell] : Grid)
 	{
@@ -343,7 +219,19 @@ FWFCGenerationResult FWFCCore::Generate()
 	}
 	if (Result.bSuccess)
 	{
-		for (const auto& [Coord, Cell] : Grid)
+		for (const auto& Coord : CollapseHistory)
+		{
+			const auto& Cell = GetCell(Coord);
+			if (Cell->IsCollapsed())
+			{
+				Result.TileAssignments.Add(Coord, Cell->CollapsedTileIndex);
+			}
+			else
+			{
+				Result.FailedPositions.Add((Coord));
+			}
+		}
+		/*for (const auto& [Coord, Cell] : Grid)
 		{
 			if (Cell.IsCollapsed())
 			{
@@ -353,15 +241,10 @@ FWFCGenerationResult FWFCCore::Generate()
 			{
 				Result.FailedPositions.Add(Coord);
 			}
-		}
-
-		UE_LOG(LogTemp, Log, TEXT("WFCCore: Generation succeeded with %d placed tiles, %d failed positions"),
-		       Result.TileAssignments.Num(), Result.FailedPositions.Num());
+		}*/
 	}
 	else
 	{
-		Result.ErrorMessage = TEXT("Generation failed - contradiction detected or max iterations reached");
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: %s"), *Result.ErrorMessage);
 
 		for (const auto& [Coord, Cell] : Grid)
 		{
@@ -379,79 +262,32 @@ FWFCGenerationResult FWFCCore::Generate()
 	Result.GenerationTimeSeconds = FPlatformTime::Seconds() - StartTime;
 	Result.IterationsUsed = CollapseHistory.Num();
 
-	UE_LOG(LogTemp, Log, TEXT("WFCCore: Generation completed in %.3f seconds with %d iterations"),
-	       Result.GenerationTimeSeconds, Result.IterationsUsed);
-
 	return Result;
 }
 
 bool FWFCCore::RunGenerationLoop()
 {
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Starting generation loop"));
-
 	for (int32 Iteration = 0; Iteration < Config.MaxIterations; Iteration++)
 	{
 		FWFCCoordinate NextCoord = SelectNextCell();
 
 		if (NextCoord == FWFCCoordinate(-1, -1, -1))
 		{
-			UE_LOG(LogTemp, Log, TEXT("WFCCore: Generation completed at iteration %d - no more cells to collapse"),
-			       Iteration);
 			return true;
-		}
-
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Iteration %d - selected cell %s"), Iteration,
-		       *NextCoord.ToString());
-
-		if (Config.bEnableBacktracking)
-		{
-			SaveState();
 		}
 
 		if (!CollapseCell(NextCoord))
 		{
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Collapse failed for cell %s"), *NextCoord.ToString());
 
-			if (Config.bEnableBacktracking && CanBacktrack())
-			{
-				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Attempting backtrack"));
-				if (Backtrack())
-				{
-					continue;
-				}
-			}
-
-			UE_LOG(LogTemp, Warning, TEXT("WFCCore: Generation failed at iteration %d - collapse failed"), Iteration);
 			return false;
 		}
 
 		if (!PropagateConstraints())
 		{
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Propagation failed after collapsing cell %s"),
-			       *NextCoord.ToString());
-
-			if (Config.bEnableBacktracking && CanBacktrack())
-			{
-				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Attempting backtrack after propagation failure"));
-				if (Backtrack())
-				{
-					continue;
-				}
-			}
-
-			UE_LOG(LogTemp, Warning, TEXT("WFCCore: Generation failed at iteration %d - propagation failed"),
-			       Iteration);
 			return false;
-		}
-
-		if (Iteration % 100 == 0)
-		{
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Progress - Iteration %d, %s"), Iteration,
-			       *GetGridStateString());
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("WFCCore: Reached maximum iterations (%d) without completion"), Config.MaxIterations);
 	return false;
 }
 
@@ -495,8 +331,6 @@ FWFCCoordinate FWFCCore::SelectCellRandom()
 	if (Candidates.Num() > 0)
 	{
 		int32 SelectedIndex = RandomGenerator.RandRange(0, Candidates.Num() - 1);
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Random selection - %d candidates with entropy %.3f, selected %s"),
-		       Candidates.Num(), MinEntropy, *Candidates[SelectedIndex].ToString());
 		return Candidates[SelectedIndex];
 	}
 
@@ -561,17 +395,12 @@ FWFCCoordinate FWFCCore::SelectCellGroundFirst()
 	if (GroundCandidates.Num() > 0)
 	{
 		int32 SelectedIndex = RandomGenerator.RandRange(0, GroundCandidates.Num() - 1);
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: GroundFirst selection - %d ground candidates, selected %s"),
-		       GroundCandidates.Num(), *GroundCandidates[SelectedIndex].ToString());
 		return GroundCandidates[SelectedIndex];
 	}
 
 	if (OtherCandidates.Num() > 0)
 	{
 		int32 SelectedIndex = RandomGenerator.RandRange(0, OtherCandidates.Num() - 1);
-		UE_LOG(LogTemp, VeryVerbose,
-		       TEXT("WFCCore: GroundFirst selection - no ground candidates, %d other candidates, selected %s"),
-		       OtherCandidates.Num(), *OtherCandidates[SelectedIndex].ToString());
 		return OtherCandidates[SelectedIndex];
 	}
 
@@ -612,8 +441,6 @@ FWFCCoordinate FWFCCore::SelectCellLayered()
 		if (LayerCandidates.Num() > 0)
 		{
 			int32 SelectedIndex = RandomGenerator.RandRange(0, LayerCandidates.Num() - 1);
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Layered selection - layer %d, %d candidates, selected %s"),
-			       Z, LayerCandidates.Num(), *LayerCandidates[SelectedIndex].ToString());
 			return LayerCandidates[SelectedIndex];
 		}
 	}
@@ -666,8 +493,6 @@ FWFCCoordinate FWFCCore::SelectCellCenterOut()
 	if (CenterCandidates.Num() > 0)
 	{
 		int32 SelectedIndex = RandomGenerator.RandRange(0, CenterCandidates.Num() - 1);
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: CenterOut selection - distance %.1f, %d candidates, selected %s"),
-		       MinDistance, CenterCandidates.Num(), *CenterCandidates[SelectedIndex].ToString());
 		return CenterCandidates[SelectedIndex];
 	}
 
@@ -679,14 +504,11 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 	FWFCCell* Cell = GetCell(Coord);
 	if (!Cell || Cell->IsCollapsed())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Cannot collapse - cell is null or already collapsed at %s"),
-		       *Coord.ToString());
 		return false;
 	}
 
 	if (Cell->GetPossibleTileCount() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Cannot collapse - no possible tiles at %s"), *Coord.ToString());
 		return false;
 	}
 
@@ -694,15 +516,12 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 
 	if (SelectedTile < 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Failed to select tile for collapse at %s"), *Coord.ToString());
 		return false;
 	}
 
 
 	if (!CheckConstraints(Coord, SelectedTile))
 	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Constraint check failed for tile %d at %s"),
-		       SelectedTile, *Coord.ToString());
 		return false;
 	}
 
@@ -717,9 +536,7 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 	CollapseHistory.Add(Coord);
 
 	QueuePropagation(Coord);
-
-	LogGenerationStep(Coord, SelectedTile);
-
+	
 	if (OnStatusUpdate.IsBound())
 	{
 		AsyncTask(ENamedThreads::GameThread, [this, Coord, SelectedTile]()
@@ -736,14 +553,11 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 	FWFCCell* Cell = GetCell(Coord);
 	if (!Cell || Cell->IsCollapsed())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Cannot collapse - cell is null or already collapsed at %s"),
-		       *Coord.ToString());
 		return false;
 	}
 
 	if (Cell->GetPossibleTileCount() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Cannot collapse - no possible tiles at %s"), *Coord.ToString());
 		return false;
 	}
 
@@ -760,9 +574,7 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 	CollapseHistory.Add(Coord);
 
 	QueuePropagation(Coord);
-
-	LogGenerationStep(Coord, SelectedTile);
-
+	
 	if (OnStatusUpdate.IsBound())
 	{
 		AsyncTask(ENamedThreads::GameThread, [this, Coord, SelectedTile]()
@@ -788,10 +600,7 @@ int32 FWFCCore::SelectRandomTile(const FWFCCell& Cell, const FWFCCoordinate& Coo
 			{
 				continue;
 			}
-			/*if (IsEdgeCoordinate(Coord) && !CheckCanAtEdge(TileDef, Coord))
-			{
-				continue;
-			}*/
+
 			ValidTiles.Add(i);
 			Weights.Add(FMath::Max(TileDef.Weight, 0.01f)); //确保权重为正
 		}
@@ -851,20 +660,15 @@ bool FWFCCore::PropagateConstraints()
 		PropagationSteps++;
 		if (!PropagateFrom(CurrentCoord))
 		{
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Propagation failed from %s at step %d"),
-			       *CurrentCoord.ToString(), PropagationSteps);
 			return false;
 		}
 	}
 
 	if (PropagationSteps >= MaxPropagationSteps)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WFCCore: Propagation reached maximum steps (%d), possible infinite loop"),
-		       MaxPropagationSteps);
 		return false;
 	}
 
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Propagation completed in %d steps"), PropagationSteps);
 	return true;
 }
 
@@ -918,7 +722,6 @@ bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
 				return false;
 			}
 
-			LogPropagationStep(Coord, NeighborCoord, TileToRemove);
 		}
 	}
 
@@ -946,8 +749,6 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 	int32 RemainingOptions = Cell->GetPossibleTileCount();
 	if (RemainingOptions == 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("WFCCore: Cell at %s has no remaining options after removing tile %d"),
-		       *Coord.ToString(), TileIndex);
 		return false;
 	}
 
@@ -1087,73 +888,6 @@ bool FWFCCore::CheckSupportRequirement(const FWFCCoordinate& Coord, int32 TileIn
 	return false;
 }
 
-bool FWFCCore::CanBacktrack() const
-{
-	return Config.bEnableBacktracking &&
-		ChangeHistory.Num() > 0 &&
-		ChangeHistory.Num() <= Config.BacktrackingDepth;
-}
-
-void FWFCCore::SaveState()
-{
-	ChangeHistory.Emplace();
-}
-
-bool FWFCCore::Backtrack()
-{
-	if (ChangeHistory.Num() == 0)
-	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Cannot backtrack - no history available"));
-		return false;
-	}
-
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Backtracking from depth %d"), ChangeHistory.Num());
-
-	const TArray<FWFCChange>& LastChanges = ChangeHistory.Last();
-	for (int32 i = LastChanges.Num() - 1; i >= 0; i--)
-	{
-		const FWFCChange& Change = LastChanges[i];
-		FWFCCell* Cell = GetCell(Change.Position);
-		if (Cell && Change.TileIndex >= 0 && Change.TileIndex < Cell->PossibleTiles.Num())
-		{
-			Cell->PossibleTiles[Change.TileIndex] = !Change.bWasRemoved;
-			Cell->Entropy = CalculateEntropy(*Cell);
-
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Restored tile %d at %s (was %s)"),
-			       Change.TileIndex, *Change.Position.ToString(), Change.bWasRemoved ? TEXT("removed") : TEXT("added"));
-		}
-	}
-
-	ChangeHistory.Pop();
-	if (CollapseHistory.Num() > 0)
-	{
-		FWFCCoordinate LastCollapse = CollapseHistory.Pop();
-		FWFCCell* Cell = GetCell(LastCollapse);
-		if (Cell)
-		{
-			int32 CollapsedTile = Cell->CollapsedTileIndex;
-			Cell->bCollapsed = false;
-			Cell->CollapsedTileIndex = -1;
-
-			if (int32* Count = TileInstanceCounts.Find(CollapsedTile))
-			{
-				(*Count)--;
-				if (*Count <= 0)
-				{
-					TileInstanceCounts.Remove(CollapsedTile);
-				}
-			}
-
-			Cell->Entropy = CalculateEntropy(*Cell);
-
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Uncollapsed cell %s (was tile %d)"),
-			       *LastCollapse.ToString(), CollapsedTile);
-		}
-	}
-
-	return true;
-}
-
 bool FWFCCore::IsValidCoordinate(const FWFCCoordinate& Coord) const
 {
 	return Coord.X >= 0 && Coord.X < Config.GridSize.X &&
@@ -1256,8 +990,6 @@ const FWFCCell* FWFCCore::GetCell(const FWFCCoordinate& Coord) const
 
 void FWFCCore::Reset()
 {
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Resetting state"));
-
 	Grid.Empty();
 	ChangeHistory.Empty();
 	CollapseHistory.Empty();
@@ -1288,54 +1020,10 @@ TArray<FWFCCoordinate> FWFCCore::GetNeighbors(const FWFCCoordinate& Coord) const
 	return Neighbors;
 }
 
-void FWFCCore::LogGenerationStep(const FWFCCoordinate& Coord, int32 TileIndex) const
-{
-	if (TileSet)
-	{
-		FWFCTileDefinition TileDef = TileSet->GetTile(TileIndex);
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Collapsed %s to tile %d (%s)"),
-		       *Coord.ToString(), TileIndex, *TileDef.TileName);
-	}
-	else
-	{
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Collapsed %s to tile %d"),
-		       *Coord.ToString(), TileIndex);
-	}
-}
-
-void FWFCCore::LogPropagationStep(const FWFCCoordinate& From, const FWFCCoordinate& To, int32 RemovedTile) const
-{
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Propagation %s -> %s removed tile %d"),
-	       *From.ToString(), *To.ToString(), RemovedTile);
-}
-
-FString FWFCCore::GetGridStateString() const
-{
-	FString StateString;
-	int32 CollapsedCount = 0;
-	int32 TotalCells = Grid.Num();
-
-	for (const auto& [Coord, Cell] : Grid)
-	{
-		if (Cell.IsCollapsed())
-		{
-			CollapsedCount++;
-		}
-	}
-
-	StateString = FString::Printf(TEXT("Grid State: %d/%d collapsed (%.1f%%)"),
-	                              CollapsedCount, TotalCells,
-	                              TotalCells > 0 ? (float)CollapsedCount / TotalCells * 100.0f : 0.0f);
-
-	return StateString;
-}
-
-
 void FWFCCore::SetPreProcessCache(UWFCPreProcessCache* InCache)
 {
 	PreProcessCache = InCache;
 }
-
 
 bool FWFCCore::LoadPreProcessedGrid()
 {

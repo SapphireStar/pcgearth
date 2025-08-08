@@ -92,10 +92,6 @@ public:
     bool PropagateFrom(const FWFCCoordinate& Coord);
     bool RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bool bTrackChanges = true);
     
-    bool CanBacktrack() const;
-    bool Backtrack();
-    void SaveState();
-    
     bool IsValidCoordinate(const FWFCCoordinate& Coord) const;
     bool IsValidCoordinate(int X, int Y, int Z) const;
     bool IsEdgeCoordinate(const FWFCCoordinate& Coord) const;
@@ -112,16 +108,6 @@ public:
     bool CheckConstraints(const FWFCCoordinate& Coord, int32 TileIndex) const;
     bool CheckInstanceLimits(int32 TileIndex) const;
     bool CheckSupportRequirement(const FWFCCoordinate& Coord, int32 TileIndex) const;
-    
-    void LogGenerationStep(const FWFCCoordinate& Coord, int32 TileIndex) const;
-    void LogPropagationStep(const FWFCCoordinate& From, const FWFCCoordinate& To, int32 RemovedTile) const;
-    FString GetGridStateString() const;
-
-
-    void RestoreState(int32 ToDepth);
-        void BlacklistTile(const FWFCCoordinate& Coord, int32 TileIndex);
-        bool IsTileBlacklisted(const FWFCCoordinate& Coord, int32 TileIndex) const;
-        void ClearBlacklistForCoordinate(const FWFCCoordinate& Coord);
 
     //尝试使用Cache
 public:

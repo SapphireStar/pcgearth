@@ -3,6 +3,7 @@
 
 #include "WFCVisualizer.h"
 
+#include "EngineUtils.h"
 #include "WFCTileSet.h"
 #include "PCG/Runtime/PCGGameMode.h"
 
@@ -26,6 +27,12 @@ void AWFCVisualizer::BeginPlay()
 	Super::BeginPlay();
 	auto PlayerData = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData;
 	PlayerData->OnTimeZeroGameOver.AddDynamic(this, &AWFCVisualizer::OnTimeZeroGameover);
+
+	for (TActorIterator<ATileISMManager> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+	{
+		TileISMManager = *ActorItr;
+		break;
+	}
 }
 
 // Called every frame
@@ -52,11 +59,12 @@ void AWFCVisualizer::StartVisualization(int ActorsPerFrame, const FWFCVisualizat
 
 void AWFCVisualizer::StopVisualization()
 {
-	ClearVisualization();
+	bIsVisualizing = false;
 }
 
 void AWFCVisualizer::ClearVisualization()
 {
+	StopVisualization();
 	for (AActor* Actor : SpawnedActors)
 	{
 		Actor->Destroy();
@@ -126,7 +134,7 @@ void AWFCVisualizer::ProcessSpawnTasks()
 
 AActor* AWFCVisualizer::SpawnTileActor(const FWFCVisualizationTile& Tile)
 {
-	UWorld* World = GetWorld();
+	/*UWorld* World = GetWorld();
 	AActor* TileActor = World->SpawnActor<AActor>();
 	
 	if (!TileActor)
@@ -138,9 +146,9 @@ AActor* AWFCVisualizer::SpawnTileActor(const FWFCVisualizationTile& Tile)
 	UStaticMeshComponent* MeshComponent = NewObject<UStaticMeshComponent>(TileActor);
 	MeshComponent->RegisterComponent();
 	TileActor->SetRootComponent(MeshComponent);
-	MeshComponent->SetStaticMesh(Tile.StaticMesh);
+	MeshComponent->SetStaticMesh(Tile.StaticMesh);*/
 
-	if (Tile.Material)
+	/*if (Tile.Material)
 	{
 		MeshComponent->SetMaterial(0, Tile.Material);
 	}
@@ -150,14 +158,22 @@ AActor* AWFCVisualizer::SpawnTileActor(const FWFCVisualizationTile& Tile)
 
 	TileActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	TileActor->SetActorRelativeLocation(Tile.Location);
-	TileActor->SetActorRelativeRotation(Tile.Rotation);
-	TileActor->SetActorTickEnabled(false);
-	SpawnedActors.Add(TileActor);
-	return TileActor;
-}
+TileActor->SetActorRelativeRotation(Tile.Rotation);
+TileActor->SetActorTickEnabled(false);
+SpawnedActors.Add(TileActor);*/
+	
+	//使用InstancedStaticMesh代替生成Actor
+	FQuat ParentRotation = GetActorRotation().Quaternion();
+	FVector ParentLocation = GetActorLocation();
 
-void AWFCVisualizer::CreateSpawnTasks(const FWFCGenerationResult& GenerationResult)
-{
+	FVector WorldLocation = ParentLocation + ParentRotation.RotateVector(Tile.Location);
+
+	FQuat RelativeRotationQuat = Tile.Rotation.Quaternion();
+	FQuat WorldRotation = ParentRotation * RelativeRotationQuat;
+
+	TileISMManager->SpawnTileAt(Tile.TileIndex, WorldLocation, WorldRotation.Rotator());
+
+	return nullptr;
 }
 
 void AWFCVisualizer::OnVisualizationFinished()

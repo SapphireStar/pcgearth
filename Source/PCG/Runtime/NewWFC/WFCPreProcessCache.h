@@ -58,8 +58,6 @@ struct PCG_API FWFCPreProcessCacheData
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FWFCCoordinate> CachedCollapseHistory;
-
-    FWFCPreProcessCacheData() = default;
 };
 
 USTRUCT(BlueprintType)
@@ -78,8 +76,6 @@ struct PCG_API FWFCPreProcessCacheTableRow : public FTableRowBase
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FWFCCoordinate> CachedCollapseHistory;
-
-    FWFCPreProcessCacheTableRow() = default;
 };
 
 UCLASS(BlueprintType)
@@ -88,19 +84,19 @@ class PCG_API UWFCPreProcessCache : public UDataAsset
     GENERATED_BODY()
 
 public:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cache Settings")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TObjectPtr<UWFCTileSet> TileSet;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cache Settings")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TObjectPtr<UDataTable> CacheDataTable;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cache Settings")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int32 MinGridSize = 4;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cache Settings")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int32 MaxGridSize = 20;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cache Settings")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int32 GridHeight = 7;
 
 private:
@@ -114,13 +110,13 @@ public:
     UFUNCTION(BlueprintCallable, CallInEditor)
     void SaveCacheToDataTable();
 
-    UFUNCTION(BlueprintCallable, Category = "Cache Loading")
+    UFUNCTION(BlueprintCallable)
     bool LoadCacheFromDataTable();
 
-    UFUNCTION(BlueprintCallable, Category = "Cache Loading")
+    UFUNCTION(BlueprintCallable)
     bool GetCacheForGridSize(const FIntVector& GridSize, FWFCPreProcessCacheData& OutCacheData);
 
-    UFUNCTION(BlueprintCallable, Category = "Cache Loading")
+    UFUNCTION(BlueprintCallable)
     void ClearCache();
 
     UFUNCTION(BlueprintCallable, CallInEditor)

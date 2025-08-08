@@ -203,6 +203,7 @@ private:
     void OnWFCStatusUpdate(FWFCCoordinate Coord, int32 Tile);
     UFUNCTION()
     void OnVisualizationComplete(AWFCVisualizer* Visualizer);
-
+    UFUNCTION()
+    void OnTimeZeroGameover(UClass* ClassType, EGameOverType eType);
     
 };
