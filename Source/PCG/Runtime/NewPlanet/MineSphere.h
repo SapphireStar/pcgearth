@@ -52,10 +52,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int RemainMinralCount;
 
-private:
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<AActor> MotherWorldPlanet;
 
+private:
 	float InitialRadius;
 	int TotalMineralCount;
 };
