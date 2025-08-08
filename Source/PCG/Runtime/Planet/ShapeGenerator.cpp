@@ -20,12 +20,12 @@ FShapeSettings::FShapeSettings(const FShapeSettings& Other)
 }
 
 
-void UShapeGenerator::Initialize(FShapeSettings ShapeSettings)
+void UShapeGenerator::Initialize(FShapeSettings ShapeSetting)
 {
-	this->ShapeSettings = ShapeSettings;
-	for (int i = 0; i < ShapeSettings.NoiseLayers.Num(); i++)
+	this->ShapeSettings = ShapeSetting;
+	for (int i = 0; i < ShapeSetting.NoiseLayers.Num(); i++)
 	{
-		NoiseFilters.Add(NoiseFactory::CreateNoiseFilter(ShapeSettings.NoiseLayers[i]));
+		NoiseFilters.Add(NoiseFactory::CreateNoiseFilter(ShapeSetting.NoiseLayers[i]));
 	}
 
 	ElevationMinMax =MakeShared<MinMax>();

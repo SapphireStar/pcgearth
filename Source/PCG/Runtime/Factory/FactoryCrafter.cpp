@@ -11,9 +11,9 @@ ACraftingBuilding::ACraftingBuilding()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void ACraftingBuilding::SetRecipeInfo(FFactoryRecipeInfo RecipeInfo)
+void ACraftingBuilding::SetRecipeInfo(FFactoryRecipeInfo Recipeinfo)
 {
-	this->RecipeInfo = RecipeInfo;
+	this->RecipeInfo = Recipeinfo;
 }
 
 bool ACraftingBuilding::StartOneProduce()

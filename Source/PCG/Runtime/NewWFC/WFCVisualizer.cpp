@@ -38,13 +38,13 @@ void AWFCVisualizer::Tick(float DeltaTime)
 	}
 }
 
-void AWFCVisualizer::StartVisualization(int ActorsPerFrame, const FWFCVisualizationData& VisualizationData)
+void AWFCVisualizer::StartVisualization(int ActorPerFrame, const FWFCVisualizationData& Visualizationdata)
 {
-	this->ActorsPerFrame = ActorsPerFrame;
-	this->VisualizationData = VisualizationData;
-	TotalTiles = VisualizationData.Tiles.Num();
-	SetActorLocation(VisualizationData.ParentLocation);
-	SetActorRotation(VisualizationData.ParentRotation);
+	this->ActorsPerFrame = ActorPerFrame;
+	this->VisualizationData = Visualizationdata;
+	TotalTiles = Visualizationdata.Tiles.Num();
+	SetActorLocation(Visualizationdata.ParentLocation);
+	SetActorRotation(Visualizationdata.ParentRotation);
 	
 	CurrentTileIndex = 0;
 	bIsVisualizing = true;

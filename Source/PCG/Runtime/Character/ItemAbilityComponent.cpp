@@ -35,11 +35,11 @@ void UItemAbilityComponent::OnInitializeAbility()
 		
 		ReceiveOnInitializeAbility();
 	}
-	FName AbilityName = UEnum::GetValueAsName(AbilityType);
+	FName Abilityname = UEnum::GetValueAsName(AbilityType);
 	
 	if (GetWorld())
 	{
-		UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Initialized"), *AbilityName.ToString()), true);
+		UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Initialized"), *Abilityname.ToString()), true);
 	}
 	PlayerData = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode())->PlayerData;
 }
@@ -54,9 +54,9 @@ void UItemAbilityComponent::OnActivateAbility()
 		
 		ReceiveOnActivateAbility();
 	}
-	FName AbilityName = UEnum::GetValueAsName(AbilityType);
+	FName Abilityname = UEnum::GetValueAsName(AbilityType);
 	if (GetWorld())
-			UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Activated"), *AbilityName.ToString()), true);
+			UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Activated"), *Abilityname.ToString()), true);
 }
 
 void UItemAbilityComponent::OnTickAbility()
@@ -74,9 +74,9 @@ void UItemAbilityComponent::OnDeactivateAbility()
 
 		ReceiveOnDeactivateAbility();
 	}
-	FName AbilityName = UEnum::GetValueAsName(AbilityType);
+	FName Abilityname = UEnum::GetValueAsName(AbilityType);
 	if (GetWorld())
-		UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Deactivated"), *AbilityName.ToString()), true);
+		UKismetSystemLibrary::PrintString(GetWorld(), FString::Printf(TEXT("%s Deactivated"), *Abilityname.ToString()), true);
 }
 
 void UItemAbilityComponent::OnStartUseAbility(UPrimitiveComponent* TraceStartComp, UCameraComponent* Camera)

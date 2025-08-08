@@ -6,10 +6,10 @@ void UWFCTileSet::ReadDatatable()
 	{
 		TileRuleSets.Empty();
 		TileRuleSets.Add(FWFCTileRuleSet());
-		TArray<FName> TileSetNames = TileSetTable->GetRowNames();
-		for (FName TileSetName : TileSetNames)
+		auto TileSetNames = TileSetTable->GetRowNames();
+		for (auto Name : TileSetNames)
 		{
-			FWFCTileDataTableRow* TileDefData = TileSetTable->FindRow<FWFCTileDataTableRow>(TileSetName, TEXT(""));
+			FWFCTileDataTableRow* TileDefData = TileSetTable->FindRow<FWFCTileDataTableRow>(Name, TEXT(""));
 			FWFCTileDefinition TileDefinition;
 			TileDefinition.Sockets.SetNum(6);
 			TileDefinition.TileName = TileDefData->TileName;

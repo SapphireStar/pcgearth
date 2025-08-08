@@ -3,13 +3,13 @@
 
 #include "WFCTileData.h"
 
-void FWFCTile::InitializeTileVariant(const FWFCTile& other, TArray<FString> Sockets, float RotationZ)
+void FWFCTile::InitializeTileVariant(const FWFCTile& other, TArray<FString> Socket, float Rotationz)
 {
-	this->TileName = other.TileName + TEXT("_") + FString::SanitizeFloat(RotationZ);
+	this->TileName = other.TileName + TEXT("_") + FString::SanitizeFloat(Rotationz);
 	this->StaticMesh =  other.StaticMesh;
-	this->Sockets =  Sockets;
+	this->Sockets =  Socket;
 	this->bShouldCreateRotationVariant =  other.bShouldCreateRotationVariant;
-	this->RotationZ =  RotationZ;
+	this->RotationZ =  Rotationz;
 	this->Weight =  other.Weight;
 	this->bIsBaseTile = false;
 }

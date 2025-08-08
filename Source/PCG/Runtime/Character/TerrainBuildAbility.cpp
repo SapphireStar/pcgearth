@@ -335,21 +335,21 @@ void UTerrainBuildAbility::ChangeFactorySphereColor(FLinearColor NewColor)
 		FactorySphereDynamicMaterial->SetVectorParameterValue(FName("Color"), NewColor);
 }
 
-bool UTerrainBuildAbility::ProcessBuilding(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds,
+bool UTerrainBuildAbility::ProcessBuilding(AGeometryPlanetActor* planet, const FHitResult& HitResult, FBox GridBounds,
                                            FIntVector GridSize, AMineSphere* MineSphere)
 {
-	if (!Planet)
+	if (!planet)
 	{
 		return false;
 	}
 
-	FVector ImpactRelativePoint = HitResult.ImpactPoint - Planet->GetActorLocation();
+	FVector ImpactRelativePoint = HitResult.ImpactPoint - planet->GetActorLocation();
 	FGeometryScriptMeshSelection selection;
 
 	UGeometryScriptLibrary_MeshSelectionFunctions::SelectMeshElementsInSphere(
-		Planet->GetDynamicMeshComponent()->GetDynamicMesh(),
+		planet->GetDynamicMeshComponent()->GetDynamicMesh(),
 		selection,
-		GridBounds.GetCenter() - Planet->GetActorLocation(),
+		GridBounds.GetCenter() - planet->GetActorLocation(),
 		FVector::DistXY(GridBounds.Max, GridBounds.Min) / 2.f + 200.f,
 		EGeometryScriptMeshSelectionType::Vertices,
 		false,
@@ -358,20 +358,20 @@ bool UTerrainBuildAbility::ProcessBuilding(AGeometryPlanetActor* Planet, const F
 
 	TArray<int32> indicesout;
 	selection.ConvertToMeshIndexArray(
-		Planet->GetDynamicMeshComponent()->GetDynamicMesh()->GetMeshRef(),
+		planet->GetDynamicMeshComponent()->GetDynamicMesh()->GetMeshRef(),
 		indicesout);
 
 	if (indicesout.Num() > 0)
 	{
-		int LowestVertexID = FindLowestVertex(Planet->GetDynamicMeshComponent(), indicesout);
+		int LowestVertexID = FindLowestVertex(planet->GetDynamicMeshComponent(), indicesout);
 		bool bIsValidVertex;
-		auto Mesh = Planet->GetDynamicMeshComponent()->GetDynamicMesh();
+		auto Mesh = planet->GetDynamicMeshComponent()->GetDynamicMesh();
 
 		auto lowestPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
 			Mesh, LowestVertexID, bIsValidVertex);
-		if (SpawnBuilding(Planet, HitResult, GridBounds, GridSize, MineSphere, lowestPos))
+		if (SpawnBuilding(planet, HitResult, GridBounds, GridSize, MineSphere, lowestPos))
 		{
-			FlattenTerrain(Planet, indicesout, GridBounds);
+			FlattenTerrain(planet, indicesout, GridBounds);
 		}
 		else
 		{
@@ -389,21 +389,21 @@ bool UTerrainBuildAbility::ProcessBuilding(AGeometryPlanetActor* Planet, const F
 	return true;
 }
 
-void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanetActor* Planet, const TArray<int32>& VertexIndices,
+void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanetActor* planet, const TArray<int32>& VertexIndices,
                                           FBox GridBounds)
 {
-	if (!Planet || VertexIndices.Num() == 0)
+	if (!planet || VertexIndices.Num() == 0)
 	{
 		return;
 	}
 
-	int LowestVertexID = FindLowestVertex(Planet->GetDynamicMeshComponent(), VertexIndices);
+	int LowestVertexID = FindLowestVertex(planet->GetDynamicMeshComponent(), VertexIndices);
 	bool bIsValidVertex;
-	auto Mesh = Planet->GetDynamicMeshComponent()->GetDynamicMesh();
+	auto Mesh = planet->GetDynamicMeshComponent()->GetDynamicMesh();
 
 	auto lowestPos = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
 		Mesh, LowestVertexID, bIsValidVertex);
-	FVector PlaneNormal = (GridBounds.GetCenter() - Planet->GetActorLocation()).GetSafeNormal();
+	FVector PlaneNormal = (GridBounds.GetCenter() - planet->GetActorLocation()).GetSafeNormal();
 
 	for (int32 VertexID : VertexIndices)
 	{
@@ -420,18 +420,18 @@ void UTerrainBuildAbility::FlattenTerrain(AGeometryPlanetActor* Planet, const TA
 		}
 	}
 
-	Planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
-	Planet->GetDynamicMeshComponent()->UpdateCollision();
+	planet->GetDynamicMeshComponent()->NotifyMeshUpdated();
+	planet->GetDynamicMeshComponent()->UpdateCollision();
 }
 
 //这里LowestVertexPos是相对顶点坐标，不是世界坐标
-bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHitResult& HitResult, FBox GridBounds,
+bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* planet, const FHitResult& HitResult, FBox GridBounds,
                                          FIntVector GridSize, AMineSphere* MineSphere, FVector LowestVertexPos)
 {
 	FVector BuildingPos = GridBounds.GetCenter();
-	FVector BuildingPosNormal = (BuildingPos - Planet->GetActorLocation()).GetSafeNormal();
+	FVector BuildingPosNormal = (BuildingPos - planet->GetActorLocation()).GetSafeNormal();
 	float LowestLength = LowestVertexPos.Length();
-	BuildingPos = Planet->GetActorLocation() + BuildingPosNormal * LowestLength - 50.f;
+	BuildingPos = planet->GetActorLocation() + BuildingPosNormal * LowestLength - 50.f;
 
 	if (WFCGeneratorComponent)
 	{
@@ -619,9 +619,9 @@ AMineSphere* UTerrainBuildAbility::CheckIsOnMineSphere(FBox GridBounds)
 	return nullptr;
 }
 
-void UTerrainBuildAbility::SelectPlanet(AGeometryPlanetActor* Planet, FHitResult& HitResult)
+void UTerrainBuildAbility::SelectPlanet(AGeometryPlanetActor* planet, FHitResult& HitResult)
 {
-	this->Planet = Planet;
+	this->Planet = planet;
 	LastHitResult = HitResult;
 }
 

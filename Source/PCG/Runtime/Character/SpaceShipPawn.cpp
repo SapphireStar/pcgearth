@@ -22,7 +22,7 @@
 #include "GeometryScript/MeshBasicEditFunctions.h"
 #include "GeometryScript/MeshQueryFunctions.h"
 
-void ASpaceShipPawn::DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, const FVector& Acceleration)
+void ASpaceShipPawn::DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, const FVector& acceleration)
 {
 	if (!MeshComponent)
 	{
@@ -74,9 +74,9 @@ void ASpaceShipPawn::DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, 
 	}
 
 	// 绘制加速度箭头（红色）
-	if (!Acceleration.IsNearlyZero())
+	if (!acceleration.IsNearlyZero())
 	{
-		FVector AccelerationEnd = ActorLocation + (Acceleration * AccelerationScale);
+		FVector AccelerationEnd = ActorLocation + (acceleration * AccelerationScale);
 
 		DrawDebugDirectionalArrow(
 			GetWorld(),
@@ -94,7 +94,7 @@ void ASpaceShipPawn::DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, 
 		DrawDebugString(
 			GetWorld(),
 			AccelerationEnd + FVector(0, 0, 40), // 稍微偏移显示文本
-			FString::Printf(TEXT("Acceleration: %.1f"), Acceleration.Size()),
+			FString::Printf(TEXT("Acceleration: %.1f"), acceleration.Size()),
 			nullptr,
 			FColor::Red,
 			LifeTime
@@ -231,9 +231,9 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
     FVector CameraRight = SpringArm->GetRightVector() * X;
     FVector DesiredMoveDirection = (CameraForward + CameraRight).GetSafeNormal();
 
-    FVector CurrentVelocity = MainBody->GetPhysicsLinearVelocity();
-    float CurrentSpeed = CurrentVelocity.Size();
-    FVector CurrentDirection = CurrentVelocity.GetSafeNormal();
+    FVector Currentvelocity = MainBody->GetPhysicsLinearVelocity();
+    float CurrentSpeed = Currentvelocity.Size();
+    FVector CurrentDirection = Currentvelocity.GetSafeNormal();
 
     bool bHasInput = !DesiredMoveDirection.IsNearlyZero();
 
@@ -310,7 +310,7 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
         float ExcessSpeed = CurrentSpeed - MaxSpeed;
         float ReductionFactor = FMath::Clamp(1.0f - (ExcessSpeed / MaxSpeed * 0.1f), 0.9f, 1.0f);
         
-        FVector LimitedVelocity = CurrentVelocity * ReductionFactor;
+        FVector LimitedVelocity = Currentvelocity * ReductionFactor;
         MainBody->SetPhysicsLinearVelocity(LimitedVelocity);
     }
 	/*FVector2D InputVector = Value.Get<FVector2D>();
@@ -702,10 +702,10 @@ void ASpaceShipPawn::UpdateFOVBasedOnSpeed(float DeltaTime)
 	float CurrentSpeed = HorizontalVelocity.Size();
 
 	// 计算目标FOV
-	float TargetFOV = CalculateTargetFOV(CurrentSpeed);
+	float Targetfov = CalculateTargetFOV(CurrentSpeed);
 
 	// 平滑插值到目标FOV
-	CurrentFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, FOVInterpSpeed);
+	CurrentFOV = FMath::FInterpTo(CurrentFOV, Targetfov, DeltaTime, FOVInterpSpeed);
 	PC->PlayerCameraManager->SetFOV(CurrentFOV);
 }
 

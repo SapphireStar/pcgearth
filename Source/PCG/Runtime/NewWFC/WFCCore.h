@@ -68,7 +68,7 @@ private:
     TMap<FWFCCoordinate, TArray<int32>> PositionConstraints;
     TMap<int32, int32> TileInstanceCounts;
     TMap<FWFCCoordinate, TSet<int32>> BacktrackBlacklist;
-    const TArray<FIntVector> DirectionVectors;
+    static const TArray<FIntVector> DirectionVectors;
 
 public:
     void InitializeGrid();

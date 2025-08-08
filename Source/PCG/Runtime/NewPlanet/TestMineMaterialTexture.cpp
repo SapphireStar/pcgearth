@@ -19,7 +19,7 @@ void ATestMineMaterialTexture::BeginPlay()
 {
 	DynamicMaterialInstance = UMaterialInstanceDynamic::Create(Material,this);
 	StaticMesh->SetMaterial(0, DynamicMaterialInstance);
-	while (TextureDataSize < Positions.Num())
+	while (TextureDataSize < static_cast<uint32>(Positions.Num()))
 	{
 		TextureDataSize *= 2;
 	}
@@ -39,17 +39,17 @@ void ATestMineMaterialTexture::Tick(float DeltaTime)
 		DynamicMaterialInstance->SetTextureParameterValue("SpherePos", DynamicTexture);
 }
 
-UTexture2D* ATestMineMaterialTexture::GenerateMineMaterialTexture(TArray<FVector>& Positions,
-	TArray<float>& Values)
+UTexture2D* ATestMineMaterialTexture::GenerateMineMaterialTexture(TArray<FVector>& positions,
+	TArray<float>& values)
 {
-	if (Positions.Num() == 0 || Values.Num() == 0 || Positions.Num() != Values.Num())
+	if (positions.Num() == 0 || values.Num() == 0 || positions.Num() != values.Num())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Invalid input arrays for material texture generation"));
 		return nullptr;
 	}
 
-	int32 TextureWidth = Values.Num();
-	UTexture2D* DataTexture = UTexture2D::CreateTransient(TextureWidth, 1, PF_A32B32G32R32F);
+	int32 Texturewidth = values.Num();
+	UTexture2D* DataTexture = UTexture2D::CreateTransient(Texturewidth, 1, PF_A32B32G32R32F);
     
 	if (!DataTexture)
 	{
@@ -73,13 +73,13 @@ UTexture2D* ATestMineMaterialTexture::GenerateMineMaterialTexture(TArray<FVector
 	}
     
 	// 写入数据
-	for (int32 i = 0; i < Values.Num(); i++)
+	for (int32 i = 0; i < values.Num(); i++)
 	{
 		PixelData[i] = FColor(
-			Positions[i].X,
-			Positions[i].Y,
-			Positions[i].Z,
-			Values[i]
+			positions[i].X,
+			positions[i].Y,
+			positions[i].Z,
+			values[i]
 		);
 	}
     

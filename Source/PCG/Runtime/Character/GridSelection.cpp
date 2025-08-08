@@ -11,11 +11,7 @@ AGridSelectionManager::AGridSelectionManager()
 	RootSceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	RootComponent = RootSceneComponent;
 
-
-
 	//创建网格平面（设置为不可见，仅用于碰撞检测）
-	ECollisionChannel CollisionChannel;
-	FCollisionResponseParams ResponseParams;
 
 	GridPlaneMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GridPlaneMesh"));
 	GridPlaneMesh->SetupAttachment(RootComponent);

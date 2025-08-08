@@ -24,9 +24,9 @@ void AMiningBuilding::Tick(float DeltaTime)
 	OnTickFactory(DeltaTime);
 }
 
-void AMiningBuilding::SetMineSphere(AMineSphere* MineSphere)
+void AMiningBuilding::SetMineSphere(AMineSphere* Minesphere)
 {
-	this->MineSphere = MineSphere;
+	this->MineSphere = Minesphere;
 }
 
 bool AMiningBuilding::StartOneProduce()

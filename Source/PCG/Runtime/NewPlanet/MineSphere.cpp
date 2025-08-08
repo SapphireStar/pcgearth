@@ -33,12 +33,12 @@ void AMineSphere::Tick(float DeltaTime)
 	this->Radius = (float)RemainMinralCount/(float)TotalMineralCount * InitialRadius;
 }
 
-void AMineSphere::UpdateMineSphere(float Radius)
+void AMineSphere::UpdateMineSphere(float radius)
 {
-	this->Radius = Radius;
-	InitialRadius = Radius;
-	Sphere->SetSphereRadius(Radius);
-	RemainMinralCount = (4/3 * PI * Radius * Radius * Radius)/MineralDivider;
+	this->Radius = radius;
+	InitialRadius = radius;
+	Sphere->SetSphereRadius(radius);
+	RemainMinralCount = (4/3 * PI * radius * radius * radius)/MineralDivider;
 	TotalMineralCount =  RemainMinralCount;
 }
 

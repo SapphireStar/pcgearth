@@ -15,4 +15,5 @@ TSharedPtr<INoiseFilterInterface> NoiseFactory::CreateNoiseFilter(FNoiseLayer No
 		break;
 	default: ;
 	}
+	return MakeShared<SimpleNoiseFilter>(NoiseLayer);
 }
