@@ -48,9 +48,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 0.5f, ClampMax = 2.f))
 	float AnimSpeed = 1.f;
-	
+
+	UPROPERTY()
+	TMap<int, float> TileAnimProgress;
+
 	TDoubleLinkedList<TPair<int,int>> TileToUpdate;
 
-	TMap<int, float> TileAnimProgress;
-	
 };
