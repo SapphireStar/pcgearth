@@ -45,6 +45,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRuntimeFloatCurve CurveData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin = 0.5f, ClampMax = 2.f))
+	float AnimSpeed = 1.f;
 	
 	TDoubleLinkedList<TPair<int,int>> TileToUpdate;
 

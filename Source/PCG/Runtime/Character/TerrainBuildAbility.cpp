@@ -438,7 +438,7 @@ bool UTerrainBuildAbility::SpawnBuilding(AGeometryPlanetActor* Planet, const FHi
 		//TODO:根据GridSize查找应有的Z高度
 		int volume = 0;
 		FIntVector FactorySize = GridSize;
-		WFCGeneratorComponent->Configuration.GridSize = FIntVector(FactorySize.Y + 2, FactorySize.X + 2,
+		WFCGeneratorComponent->Configuration.GridSize = FIntVector(FactorySize.X + 2, FactorySize.Y + 2,
 		                                                           WFCGeneratorComponent->Configuration.GridSize.Z);
 
 		volume = WFCGeneratorComponent->Configuration.GridSize.X * WFCGeneratorComponent->Configuration.GridSize.Y *

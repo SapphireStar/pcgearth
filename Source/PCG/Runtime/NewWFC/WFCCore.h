@@ -62,7 +62,6 @@ private:
     TArray<TArray<TArray<int32>>> PropagationRules; 
     TQueue<FWFCCoordinate> PropagationQueue;
     
-    TArray<TArray<FWFCChange>> ChangeHistory; 
     TArray<FWFCCoordinate> CollapseHistory; 
     
     TMap<FWFCCoordinate, TArray<int32>> PositionConstraints;
@@ -74,7 +73,6 @@ public:
     void InitializeGrid();
     void BuildPropagationRules();
     void ValidatePropagationRules();
-    void ApplyConstraints();
     void CellPreProcess();
     
     bool RunGenerationLoop();

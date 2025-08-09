@@ -184,7 +184,6 @@ FWFCGenerationResult FWFCCore::Generate()
 	double StartTime = FPlatformTime::Seconds();
 
 	TileInstanceCounts.Empty();
-	ChangeHistory.Empty();
 	CollapseHistory.Empty();
 	InitializeGrid();
 
@@ -203,7 +202,6 @@ FWFCGenerationResult FWFCCore::Generate()
 		if (count >= 100)
 		{break;}
 		TileInstanceCounts.Empty();
-		ChangeHistory.Empty();
 		CollapseHistory.Empty();
 		InitializeGrid();
 
@@ -738,11 +736,6 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 		return true;
 	}
 
-	if (bTrackChanges && ChangeHistory.Num() > 0)
-	{
-		ChangeHistory.Last().Emplace(Coord, TileIndex, true);
-	}
-
 	Cell->PossibleTiles[TileIndex] = false;
 	Cell->Entropy = CalculateEntropy(*Cell);
 
@@ -991,7 +984,6 @@ const FWFCCell* FWFCCore::GetCell(const FWFCCoordinate& Coord) const
 void FWFCCore::Reset()
 {
 	Grid.Empty();
-	ChangeHistory.Empty();
 	CollapseHistory.Empty();
 	TileInstanceCounts.Empty();
 	PositionConstraints.Empty();

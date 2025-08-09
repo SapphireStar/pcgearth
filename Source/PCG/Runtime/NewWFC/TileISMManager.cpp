@@ -44,7 +44,7 @@ void ATileISMManager::Tick(float DeltaTime)
 			else
 			{
 				float scale = CurveData.GetRichCurve()->Eval(AnimValue);
-				TileAnimProgress[it.Key ^ it.Value] += DeltaTime * 2;
+				TileAnimProgress[it.Key ^ it.Value] += DeltaTime * AnimSpeed;
 				FVector NewScale = FVector::Max(FVector::One() * 0.01f, FVector::One() * scale);
 				
 				Transform.SetScale3D(NewScale);
