@@ -352,8 +352,6 @@ void UWFCGeneratorComponent::ExecuteGenerationAsync()
 	GenerationFuture = Async(EAsyncExecution::ThreadPool, [this]() -> FWFCGenerationResult
 	{
 		return WFCCore->Generate();
-
-		return FWFCGenerationResult();
 	});
 
 	AsyncTask(ENamedThreads::GameThread, [this]()
