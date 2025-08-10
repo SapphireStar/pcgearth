@@ -535,13 +535,6 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 
 	QueuePropagation(Coord);
 	
-	if (OnStatusUpdate.IsBound())
-	{
-		AsyncTask(ENamedThreads::GameThread, [this, Coord, SelectedTile]()
-		{
-			OnStatusUpdate.Execute(Coord, SelectedTile);
-		});
-	}
 
 	return true;
 }
@@ -572,14 +565,6 @@ bool FWFCCore::CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex)
 	CollapseHistory.Add(Coord);
 
 	QueuePropagation(Coord);
-	
-	if (OnStatusUpdate.IsBound())
-	{
-		AsyncTask(ENamedThreads::GameThread, [this, Coord, SelectedTile]()
-		{
-			OnStatusUpdate.Execute(Coord, SelectedTile);
-		});
-	}
 
 	return true;
 }
@@ -755,14 +740,7 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 				Cell->CollapsedTileIndex = i;
 				TileInstanceCounts.FindOrAdd(i, 0)++;
 				CollapseHistory.Add(Coord);
-
-				if (OnStatusUpdate.IsBound())
-				{
-					AsyncTask(ENamedThreads::GameThread, [this, Coord, i]()
-					{
-						OnStatusUpdate.Execute(Coord, i);
-					});
-				}
+				
 				break;
 			}
 		}
