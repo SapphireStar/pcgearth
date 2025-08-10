@@ -159,16 +159,16 @@ void AGeometryPlanetActor::MarkPlanetRefresh(bool bImmediate, bool bImmediateEve
 	}
 }
 
-void AGeometryPlanetActor::ApplyNoiseToPlanet()
+UDynamicMesh* AGeometryPlanetActor::ApplyNoiseToPlanet()
 {
 	if (!NoiseShapeSettings.IsValid())
-		return;
+		return nullptr;
 	if (!NoiseShapeGenerator)
 	{
 		NoiseShapeGenerator = NewObject<UShapeGenerator>();
 	}
 	NoiseShapeGenerator->Initialize(NoiseShapeSettings);
-	NoiseApplier::ApplySimpleNoise(DynamicMeshComponent->GetDynamicMesh(), FGeometryScriptMeshSelection(), nullptr, NoiseShapeGenerator);
+	return NoiseApplier::ApplySimpleNoise(DynamicMeshComponent->GetDynamicMesh(), FGeometryScriptMeshSelection(), nullptr, NoiseShapeGenerator);
 }
 
 void AGeometryPlanetActor::SpawnCraters()

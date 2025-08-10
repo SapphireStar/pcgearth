@@ -280,6 +280,9 @@ struct FWFCVisualizationTile
     FString TileName;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int TileIndex;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FVector Location;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)

@@ -9,11 +9,6 @@ void UWFCPreProcessCache::CreateCacheDataTable()
         CacheDataTable->RowStruct = FWFCPreProcessCacheTableRow::StaticStruct();
         
         MarkPackageDirty();
-        UE_LOG(LogTemp, Log, TEXT("WFCPreProcessCache: Created new DataTable"));
-    }
-    else
-    {
-        UE_LOG(LogTemp, Log, TEXT("WFCPreProcessCache: DataTable already exists"));
     }
 #endif
 }
@@ -22,23 +17,19 @@ void UWFCPreProcessCache::GenerateAllCaches()
 {
     if (!TileSet)
     {
-        UE_LOG(LogTemp, Error, TEXT("WFCPreProcessCache: TileSet is null"));
+        UE_LOG(LogTemp, Error, TEXT("UWFCPreProcessCache::GenerateAllCaches: Can't find TileSet"));
         return;
     }
 
     if (!CacheDataTable)
     {
-        UE_LOG(LogTemp, Error, TEXT("WFCPreProcessCache: CacheDataTable is null"));
+        UE_LOG(LogTemp, Error, TEXT("UWFCPreProcessCache::GenerateAllCaches: Can't find CacheDataTable"));
         return;
     }
 
     CacheMap.Empty();
-    
-    UE_LOG(LogTemp, Log, TEXT("WFCPreProcessCache: Starting cache generation from %dx%dx%d to %dx%dx%d"), 
-           MinGridSize, MinGridSize, MinGridSize, MaxGridSize, MaxGridSize, MaxGridSize);
 
     int32 TotalCaches = 0;
-    double StartTime = FPlatformTime::Seconds();
 
     for (int32 X = MinGridSize; X <= MaxGridSize; X++)
     {
@@ -49,19 +40,9 @@ void UWFCPreProcessCache::GenerateAllCaches()
             FWFCPreProcessCacheData CacheData = GenerateCacheForGridSize(GridSize);
             CacheMap.Add(GridSize, CacheData);
             TotalCaches++;
-                
-            if (TotalCaches % 100 == 0)
-            {
-                UE_LOG(LogTemp, Log, TEXT("WFCPreProcessCache: Generated %d caches, current: %s"), 
-                       TotalCaches, *GridSize.ToString());
-            }
         }
     }
-
-    double EndTime = FPlatformTime::Seconds();
-    UE_LOG(LogTemp, Log, TEXT("WFCPreProcessCache: Generated %d caches in %.2f seconds"), 
-           TotalCaches, EndTime - StartTime);
-
+    
     SaveCacheToDataTable();
 }
 
@@ -80,8 +61,6 @@ FWFCPreProcessCacheData UWFCPreProcessCache::GenerateCacheForGridSize(const FInt
 
     if (!TempCore.Initialize(TileSet, Config))
     {
-        UE_LOG(LogTemp, Error, TEXT("WFCPreProcessCache: Failed to initialize core for size %s"), 
-               *GridSize.ToString());
         return CacheData;
     }
 
@@ -126,7 +105,7 @@ void UWFCPreProcessCache::SaveCacheToDataTable()
 {
     if (!CacheDataTable)
     {
-        UE_LOG(LogTemp, Error, TEXT("WFCPreProcessCache: CacheDataTable is null"));
+        UE_LOG(LogTemp, Error, TEXT("UWFCPreProcessCache::SaveCacheToDataTable: Can't find CacheDataTable"));
         return;
     }
 
@@ -147,7 +126,6 @@ void UWFCPreProcessCache::SaveCacheToDataTable()
     }
 
     MarkPackageDirty();
-    UE_LOG(LogTemp, Log, TEXT("WFCPreProcessCache: Saved %d cache entries to DataTable"), CacheMap.Num());
 #endif
 }
 
@@ -160,7 +138,7 @@ bool UWFCPreProcessCache::LoadCacheFromDataTable()
 
     if (!CacheDataTable)
     {
-        UE_LOG(LogTemp, Warning, TEXT("WFCPreProcessCache: CacheDataTable is null"));
+        UE_LOG(LogTemp, Warning, TEXT("UWFCPreProcessCache::LoadCacheFromDataTable: Can't find CacheDataTable"));
         return false;
     }
 

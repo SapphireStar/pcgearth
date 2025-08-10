@@ -56,7 +56,7 @@ public:
 	void GeneratePlanet(UDynamicMesh* TargetMesh);
 
 	UFUNCTION(BlueprintCallable)
-	void ApplyNoiseToPlanet();
+	UDynamicMesh* ApplyNoiseToPlanet();
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnCraters();
