@@ -396,6 +396,7 @@ void AGeometryPlanetActor::UpdateTexture16Bytes(bool bFreeData)
 	RegionData->NumRegions = 1;
 	RegionData->Regions = TextureRegion;
 	RegionData->SrcPitch = TextureDataSqrtSize;
+	//纹理一个像素的大小(byte)
 	RegionData->SrcBpp = 16;
 	RegionData->SrcData = (uint8*)TextureDataFloat;
 
