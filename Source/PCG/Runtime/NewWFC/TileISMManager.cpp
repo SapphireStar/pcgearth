@@ -27,7 +27,7 @@ void ATileISMManager::BeginPlay()
 void ATileISMManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (!TileToUpdate.IsEmpty())
+	/*if (!TileToUpdate.IsEmpty())
 	{
 		for (const auto& it : TileToUpdate)
 		{
@@ -51,7 +51,7 @@ void ATileISMManager::Tick(float DeltaTime)
 				ISMComp->UpdateInstanceTransform(it.Value, Transform, true, false, true);
 			}
 		}
-	}
+	}*/
 }
 
 void ATileISMManager::InitializeIsm()
@@ -84,10 +84,9 @@ void ATileISMManager::SpawnTileAt(int tile, FVector location, FRotator rotation)
 	FTransform transform = FTransform::Identity;
 	transform.SetLocation(location);
 	transform.SetRotation(rotation.Quaternion());
-	transform.SetScale3D(FVector::One() * 0.01f);
 	ISMComponents[tile]->AddInstance(transform, true);
-	TileToUpdate.AddTail({tile, ISMComponents[tile]->GetNumInstances() - 1});
-	TileAnimProgress.Add(tile ^ ISMComponents[tile]->GetNumInstances() - 1, 0.f);
+	/*TileToUpdate.AddTail({tile, ISMComponents[tile]->GetNumInstances() - 1});
+	TileAnimProgress.Add(tile ^ ISMComponents[tile]->GetNumInstances() - 1, 0.f);*/
 }
 
 void ATileISMManager::ClearAllTiles()
