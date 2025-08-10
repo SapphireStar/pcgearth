@@ -22,6 +22,7 @@ enum class EFactoryResource : uint8
 	EFR_Ore 			UMETA(DisplayName = "Ore"),
 	EFR_Metal 			UMETA(DisplayName = "Metal"),
 	EFR_Gem				UMETA(DisplayName = "Gem"),
+	EFR_Fuel 			UMETA(DisplayName = "Fuel"),
 	EFR_None 			UMETA(DisplayName = "None"),
 };
 
