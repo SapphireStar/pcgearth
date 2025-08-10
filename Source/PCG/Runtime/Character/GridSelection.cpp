@@ -138,6 +138,10 @@ FBox AGridSelectionManager::PeekGridSelection()
 
 FIntVector AGridSelectionManager::PeekGridSize()
 {
+	if (SelectedGridPoints.Num()<4)
+	{
+		return FIntVector();
+	}
 	FVector LocalGridExtent = WorldToLocal(SelectedGridPoints[2]);
 	int SizeX = FMath::Abs(FMath::RoundToInt(LocalGridExtent.X / GridSize));
 	int SizeY = FMath::Abs(FMath::RoundToInt(LocalGridExtent.Y / GridSize));

@@ -722,7 +722,7 @@ bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
 
 		}
 	}
-
+	
 	return true;
 }
 
@@ -763,15 +763,11 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 						OnStatusUpdate.Execute(Coord, i);
 					});
 				}
-				UE_LOG(LogTemp, VeryVerbose, TEXT("WFCCore: Auto-collapsed cell %s to tile %d"),
-				       *Coord.ToString(), i);
 				break;
 			}
 		}
 	}
-
 	QueuePropagation(Coord);
-
 	return true;
 }
 
