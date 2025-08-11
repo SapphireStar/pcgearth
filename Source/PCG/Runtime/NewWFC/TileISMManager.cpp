@@ -69,6 +69,7 @@ void ATileISMManager::InitializeIsm()
 		NewISM->RegisterComponent();
 		NewISM->SetStaticMesh(mesh);
 		NewISM->SetMaterial(0, material);
+		NewISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		ISMComponents.Add(NewISM);
 	}
 
