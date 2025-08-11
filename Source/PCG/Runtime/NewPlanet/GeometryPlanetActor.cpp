@@ -26,7 +26,7 @@ AGeometryPlanetActor::AGeometryPlanetActor()
 	PlanetSphereStaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PlanetSphere"));
 	PlanetSphereStaticMesh->AttachToComponent(DynamicMeshComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	PlanetSphereStaticMesh->SetRelativeLocation(FVector(0, 0, 0));
-	PlanetSphereStaticMesh->SetRelativeRotation(FRotator(0, 0, 0));	
+	PlanetSphereStaticMesh->SetRelativeRotation(FRotator(0, 0, 0));
 }
 
 // Called when the game starts or when spawned
@@ -43,6 +43,7 @@ void AGeometryPlanetActor::BeginPlay()
 void AGeometryPlanetActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
 	if (!bIsTextureInitialized)
 	{
 		UpdateTexture16Bytes();
@@ -52,51 +53,77 @@ void AGeometryPlanetActor::Tick(float DeltaTime)
 			DynamicMaterialInstance->SetScalarParameterValue("PlanetRadius", PlanetRadius * 1000);
 			DynamicMaterialInstance->SetScalarParameterValue("DataCount", TextureDataSize);
 		}
-			bIsTextureInitialized = true;
+		bIsTextureInitialized = true;
 	}
-
-	/*if (UpdateTextureCounter < UpdateTextureCD)
+	if (UpdateTextureCounter < UpdateTextureCD)
 	{
-		UpdateTextureCounter+= DeltaTime;
+		UpdateTextureCounter += DeltaTime;
 	}
 	else
 	{
+		TextureDataSize = 4;
+		UpdateMineMaterialTexture();
 		UpdateTextureCounter = 0;
-		UpdateMineAreas();
-	}*/
+		
+	}
+
 }
 
 void AGeometryPlanetActor::InitializePlanet(FGeometryPlanetData PlanetData)
 {
+	ShuffleVertexID();
+	
 	PlanetRadius = PlanetData.PlanetRadius;
 	PlanetResolution = PlanetData.PlanetResolution;
 	PlanetMaterial = PlanetData.PlanetMaterial;
-	DynamicMeshComponent->SetMaterial(0,PlanetMaterial);
+	DynamicMeshComponent->SetMaterial(0, PlanetMaterial);
 	PlanetSphereStaticMesh->SetStaticMesh(PlanetData.PlanetSphereStaticMesh);
 	RandomStream = FRandomStream(PlanetData.RandomSeed);
-	MineConfiguration =  PlanetData.MineConfiguration;
-	CraterSpawnConfiguration =  PlanetData.CraterConfiguration;
+	MineConfiguration = PlanetData.MineConfiguration;
+	CraterSpawnConfiguration = PlanetData.CraterConfiguration;
 	FoliageAmount = PlanetData.FoliageAmount;
 	bShouldSpawnFoliage = PlanetData.bShouldSpawnFoliage;
 	MineConfiguration.MaxMineSphereAmount = PlanetData.MineConfiguration.MaxMineSphereAmount;
-	for (AMineSphere* Mine: MineSpheres)
+	for (AMineSphere* Mine : MineSpheres)
 	{
 		Mine->Destroy();
 	}
 	MineSpheres.Empty();
+
+
 }
 
 int AGeometryPlanetActor::GetNextRandomAvaiableVertexID()
 {
-	return -1;
+	if (CurTopRandomVertexIndex < AvailableRandomVertex.Num())
+	{
+		CurTopRandomVertexIndex ++;
+		return AvailableRandomVertex[CurTopRandomVertexIndex];
+	}
+	else
+	{
+		CurTopRandomVertexIndex = 0;
+		ShuffleVertexID();
+		return AvailableRandomVertex[CurTopRandomVertexIndex];
+	}
 }
 
 void AGeometryPlanetActor::ShuffleVertexID()
 {
 	FGeometryScriptIndexList VerticesList;
 	bool bHasGaps = false;
-	UGeometryScriptLibrary_MeshQueryFunctions::GetAllVertexIDs(DynamicMeshComponent->GetDynamicMesh(), VerticesList, bHasGaps);
+	UGeometryScriptLibrary_MeshQueryFunctions::GetAllVertexIDs(DynamicMeshComponent->GetDynamicMesh(), VerticesList,
+	                                                           bHasGaps);
 	TArray<int> VertexIDs = *VerticesList.List;
+	for (int i = 0; i < VertexIDs.Num(); i++)
+	{
+		int index = RandomStream.RandRange(0, VertexIDs.Num() - i - 1);
+		int temp = VertexIDs[index];
+		VertexIDs[index] = VertexIDs[VertexIDs.Num() - i - 1];
+		VertexIDs[VertexIDs.Num() - i - 1] = temp;
+		AvailableRandomVertex.Add(VertexIDs[VertexIDs.Num() - i - 1]);
+	}
+	
 }
 
 bool AGeometryPlanetActor::AddPlanetVertexType(EVertexType eType, int VertexID)
@@ -123,7 +150,7 @@ bool AGeometryPlanetActor::CheckPlanetVertexType(EVertexType eType, int VertexID
 			return false;
 		}
 	}
-	
+
 	if ((VertexTypeData[VertexID] & static_cast<int>(eType)) == static_cast<int>(eType))
 	{
 		return true;
@@ -138,7 +165,7 @@ void AGeometryPlanetActor::MarkPlanetRefresh(bool bImmediate, bool bImmediateEve
 	{
 		return;
 	}
-	
+
 	bool bEnabledDeferredCollision = false;
 	if (Component->bDeferCollisionUpdates == false)
 	{
@@ -150,7 +177,7 @@ void AGeometryPlanetActor::MarkPlanetRefresh(bool bImmediate, bool bImmediateEve
 	{
 		Component->GetDynamicMesh()->Reset();
 	}
-	
+
 	GeneratePlanet((Component->GetDynamicMesh()));
 
 	if (bEnabledDeferredCollision)
@@ -168,66 +195,62 @@ UDynamicMesh* AGeometryPlanetActor::ApplyNoiseToPlanet()
 		NoiseShapeGenerator = NewObject<UShapeGenerator>();
 	}
 	NoiseShapeGenerator->Initialize(NoiseShapeSettings);
-	return NoiseApplier::ApplySimpleNoise(DynamicMeshComponent->GetDynamicMesh(), FGeometryScriptMeshSelection(), nullptr, NoiseShapeGenerator);
+	return NoiseApplier::ApplySimpleNoise(DynamicMeshComponent->GetDynamicMesh(), FGeometryScriptMeshSelection(),
+	                                      nullptr, NoiseShapeGenerator);
 }
 
 void AGeometryPlanetActor::SpawnCraters()
 {
 	FGeometryScriptIndexList VerticesList;
 	bool bHasGaps = false;
-	UGeometryScriptLibrary_MeshQueryFunctions::GetAllVertexIDs(DynamicMeshComponent->GetDynamicMesh(), VerticesList, bHasGaps);
+	UGeometryScriptLibrary_MeshQueryFunctions::GetAllVertexIDs(DynamicMeshComponent->GetDynamicMesh(), VerticesList,
+	                                                           bHasGaps);
 	TArray<int> VertexIDs = *VerticesList.List;
-	
 }
 
 void AGeometryPlanetActor::ApplyCraterToPlanet()
 {
 	FGeometryScriptIndexList VerticesList;
 	bool bHasGaps = false;
-	UGeometryScriptLibrary_MeshQueryFunctions::GetAllVertexIDs(DynamicMeshComponent->GetDynamicMesh(), VerticesList, bHasGaps);
+	UGeometryScriptLibrary_MeshQueryFunctions::GetAllVertexIDs(DynamicMeshComponent->GetDynamicMesh(), VerticesList,
+	                                                           bHasGaps);
 	TArray<int> VertexIDs = *VerticesList.List;
 	for (int i = 0; i < VertexIDs.Num(); i++)
 	{
 		for (int c = 0; c < CratersData.Num(); c++)
 		{
 			bool bIsValidVertex;
-			FVector VertexNewPos = NoiseApplier::ApplyCraterEffect(DynamicMeshComponent->GetDynamicMesh(), VertexIDs[i], GetActorLocation(), CratersData[c]);
-			UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(DynamicMeshComponent->GetDynamicMesh(), VertexIDs[i], VertexNewPos, bIsValidVertex);
+			FVector VertexNewPos = NoiseApplier::ApplyCraterEffect(DynamicMeshComponent->GetDynamicMesh(), VertexIDs[i],
+			                                                       GetActorLocation(), CratersData[c]);
+			UGeometryScriptLibrary_MeshBasicEditFunctions::SetVertexPosition(
+				DynamicMeshComponent->GetDynamicMesh(), VertexIDs[i], VertexNewPos, bIsValidVertex);
 		}
-		
 	}
 }
 
 void AGeometryPlanetActor::SpawnStoneMineSpheres()
 {
 	UDynamicMesh* DynamicMesh = DynamicMeshComponent->GetDynamicMesh();
-	int VertexCount  = DynamicMeshComponent->GetMesh()->VertexCount();
 	int SpawnedMineSpheres = 0;
-	for (int i = 0; i < VertexCount; i++)
+	for (int i = 0; i < MineConfiguration.MaxMineSphereAmount; i++)
 	{
-		if (SpawnedMineSpheres >= MineConfiguration.MaxMineSphereAmount)
-		{
-			break;
-		}
-		float shouldSpawnMineSphere = RandomStream.FRand();
-		if (!(shouldSpawnMineSphere < 0.001))
-		{
-			continue;
-		}
+		int vertexID = GetNextRandomAvaiableVertexID();
 		bool isValidVertex = false;
 		FVector VertexPosition = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
 			DynamicMesh,
-			i,
+			vertexID,
 			isValidVertex);
 		if (isValidVertex)
 		{
 			FVector Normal = VertexPosition.GetSafeNormal();
 			FVector Position = VertexPosition + GetActorLocation();
 			AMineSphereStone* MineSphere = GetWorld()->SpawnActor<AMineSphereStone>();
-			MineSphere->UpdateMineSphere(RandomStream.FRandRange(MineConfiguration.RadiusMin, MineConfiguration.RadiusMax));
+			MineSphere->UpdateMineSphere(
+				RandomStream.FRandRange(MineConfiguration.RadiusMin, MineConfiguration.RadiusMax));
 			MineSphere->SetMotherWorldPlanet(this);
-			float Offset = RandomStream.FRandRange(MineSphere->GetRadius() - MineConfiguration.OffsetMax, MineSphere->GetRadius() - MineConfiguration.OffsetMin);
-			MineSphere->SetActorLocation(Position - Normal *  Offset);
+			float Offset = RandomStream.FRandRange(MineSphere->GetRadius() - MineConfiguration.OffsetMax,
+			                                       MineSphere->GetRadius() - MineConfiguration.OffsetMin);
+			MineSphere->SetActorLocation(Position - Normal * Offset);
 			SpawnedMineSpheres++;
 			MineSpheres.Add(MineSphere);
 		}
@@ -237,33 +260,26 @@ void AGeometryPlanetActor::SpawnStoneMineSpheres()
 void AGeometryPlanetActor::SpawnOreMineSpheres()
 {
 	UDynamicMesh* DynamicMesh = DynamicMeshComponent->GetDynamicMesh();
-	int VertexCount  = DynamicMeshComponent->GetMesh()->VertexCount();
 	int SpawnedMineSpheres = 0;
-	for (int i = 0; i < VertexCount; i++)
+	for (int i = 0; i < MineConfiguration.MaxMineSphereAmount; i++)
 	{
-		if (SpawnedMineSpheres >= MineConfiguration.MaxMineSphereAmount)
-		{
-			break;
-		}
-		float shouldSpawnMineSphere = RandomStream.FRand();
-		if (!(shouldSpawnMineSphere < 0.001))
-		{
-			continue;
-		}
+		int vertexID = GetNextRandomAvaiableVertexID();
 		bool isValidVertex = false;
 		FVector VertexPosition = UGeometryScriptLibrary_MeshQueryFunctions::GetVertexPosition(
 			DynamicMesh,
-			i,
+			vertexID,
 			isValidVertex);
 		if (isValidVertex)
 		{
 			FVector Normal = VertexPosition.GetSafeNormal();
 			FVector Position = VertexPosition + GetActorLocation();
 			AMineSphereOre* MineSphere = GetWorld()->SpawnActor<AMineSphereOre>();
-			MineSphere->UpdateMineSphere(RandomStream.FRandRange(MineConfiguration.RadiusMin, MineConfiguration.RadiusMax));
+			MineSphere->UpdateMineSphere(
+				RandomStream.FRandRange(MineConfiguration.RadiusMin, MineConfiguration.RadiusMax));
 			MineSphere->SetMotherWorldPlanet(this);
-			float Offset = RandomStream.FRandRange(MineSphere->GetRadius() - MineConfiguration.OffsetMax, MineSphere->GetRadius() - MineConfiguration.OffsetMin);
-			MineSphere->SetActorLocation(Position - Normal *  Offset);
+			float Offset = RandomStream.FRandRange(MineSphere->GetRadius() - MineConfiguration.OffsetMax,
+												   MineSphere->GetRadius() - MineConfiguration.OffsetMin);
+			MineSphere->SetActorLocation(Position - Normal * Offset);
 			SpawnedMineSpheres++;
 			MineSpheres.Add(MineSphere);
 		}
@@ -274,10 +290,10 @@ void AGeometryPlanetActor::GenerateMineAreas()
 {
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
-    
+
 	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(this); 
-    TArray<AActor*> ResultActors;
+	ActorsToIgnore.Add(this);
+	TArray<AActor*> ResultActors;
 	bool bHit = UKismetSystemLibrary::SphereOverlapActors(
 		GetWorld(),
 		GetActorLocation(),
@@ -287,17 +303,17 @@ void AGeometryPlanetActor::GenerateMineAreas()
 		ActorsToIgnore,
 		ResultActors
 	);
-    if (bHit)
-    {
-	    for (int i = 0; i < ResultActors.Num(); i++)
-	    {
-		    if (auto mineralArea = Cast<AMineSphere>(ResultActors[i]))
-		    {
-		    	mineralArea->SetMotherWorldPlanet(this);
-			    MineSpheres.Add(mineralArea);
-		    }
-	    }
-    }
+	if (bHit)
+	{
+		for (int i = 0; i < ResultActors.Num(); i++)
+		{
+			if (auto mineralArea = Cast<AMineSphere>(ResultActors[i]))
+			{
+				mineralArea->SetMotherWorldPlanet(this);
+				MineSpheres.Add(mineralArea);
+			}
+		}
+	}
 }
 
 void AGeometryPlanetActor::GenerateMineMaterialTexture()
@@ -315,9 +331,9 @@ void AGeometryPlanetActor::GenerateMineMaterialTexture()
 	else
 	{
 		//如果mineral area小于最小datalength 4的话，需要补齐剩下的data内容，将冗余data置0
-		MinePositions.Init(FVector::ZeroVector,TextureDataSize);
+		MinePositions.Init(FVector::ZeroVector, TextureDataSize);
 		MineRadius.Init(0, TextureDataSize);
-		for (int i =0 ;i< MineSpheres.Num(); i++)
+		for (int i = 0; i < MineSpheres.Num(); i++)
 		{
 			MinePositions[i] = (MineSpheres[i]->GetActorLocation());
 			MineRadius[i] = (MineSpheres[i]->GetRadius());
@@ -333,8 +349,39 @@ void AGeometryPlanetActor::GenerateMineMaterialTexture()
 		SetPixelValue(i, MinePositions[i].X, MinePositions[i].Y, MinePositions[i].Z, MineRadius[i]);
 	}
 	UpdateTexture16Bytes();
+}
 
-	bIsTextureInitialized = false;
+void AGeometryPlanetActor::UpdateMineMaterialTexture()
+{
+	while (TextureDataSize < MineSpheres.Num())
+	{
+		TextureDataSize *= 2;
+	}
+	//UGeometryScriptLibrary_MeshDeformFunctions::ApplyPerlinNoiseToMesh()
+	if (MineSpheres.Num() == 0)
+	{
+		MinePositions.Init(FVector::ZeroVector, TextureDataSize);
+		MineRadius.Init(0, TextureDataSize);
+	}
+	else
+	{
+		//如果mineral area小于最小datalength 4的话，需要补齐剩下的data内容，将冗余data置0
+		MinePositions.Init(FVector::ZeroVector, TextureDataSize);
+		MineRadius.Init(0, TextureDataSize);
+		for (int i = 0; i < MineSpheres.Num(); i++)
+		{
+			MinePositions[i] = (MineSpheres[i]->GetActorLocation());
+			MineRadius[i] = (MineSpheres[i]->GetRadius());
+		}
+	}
+
+	TextureWidth = TextureDataSize;
+	InitializeTexture16Bytes();
+	for (int i = 0; i < MinePositions.Num(); i++)
+	{
+		SetPixelValue(i, MinePositions[i].X, MinePositions[i].Y, MinePositions[i].Z, MineRadius[i]);
+	}
+	UpdateTexture16Bytes();
 }
 
 void AGeometryPlanetActor::UpdateMineAreas()
@@ -347,7 +394,7 @@ void AGeometryPlanetActor::UpdateMineAreas()
 void AGeometryPlanetActor::InitializeTexture16Bytes()
 {
 	TextureTotalPixels = TextureWidth * TextureHeight;
-	
+
 	TextureDataSize = TextureTotalPixels * 16;
 	TextureDataSqrtSize = TextureWidth * 4;
 
@@ -396,11 +443,17 @@ void AGeometryPlanetActor::UpdateTexture16Bytes(bool bFreeData)
 	RegionData->NumRegions = 1;
 	RegionData->Regions = TextureRegion;
 	RegionData->SrcPitch = TextureDataSqrtSize;
+	//纹理一个像素的大小(byte)
 	RegionData->SrcBpp = 16;
 	RegionData->SrcData = (uint8*)TextureDataFloat;
 
+	auto callback = [this]()
+	{
+		SetShouldInitialize();
+	};
+
 	ENQUEUE_RENDER_COMMAND(UpdateTextureRegionsData)(
-		[RegionData, bFreeData, Texture](FRHICommandListImmediate& RHICmdList)
+		[RegionData, bFreeData, Texture, callback](FRHICommandListImmediate& RHICmdList)
 		{
 			for (uint32 RegionIndex = 0; RegionIndex < RegionData->NumRegions; ++RegionIndex)
 			{
@@ -424,6 +477,12 @@ void AGeometryPlanetActor::UpdateTexture16Bytes(bool bFreeData)
 				FMemory::Free(RegionData->SrcData);
 			}
 			delete RegionData;
+
+			AsyncTask(ENamedThreads::GameThread, [callback]()
+			{
+				callback();
+			});
+			
 		});
 }
 
@@ -447,13 +506,19 @@ void AGeometryPlanetActor::SetPixelValue(int32 Offset, float X, float Y, float Z
 	TextureDataFloat[start + 3] = A;
 }
 
+void AGeometryPlanetActor::SetShouldInitialize()
+{
+	bIsTextureInitialized = false;
+}
+
 void AGeometryPlanetActor::InitializeISMFoliage(UInstancedStaticMeshComponent* ISMComponent)
-	{
+{
 	ISMFoliageItemsHealth.Init(100, ISMComponent->GetInstanceCount());
 }
 
 
-void AGeometryPlanetActor::OnGetHitByLaser_Implementation(UInstancedStaticMeshComponent* ISMComponent, int32 ItemIndex, float Damage)
+void AGeometryPlanetActor::OnGetHitByLaser_Implementation(UInstancedStaticMeshComponent* ISMComponent, int32 ItemIndex,
+                                                          float Damage)
 {
 	OnISMInstanceHit.Broadcast(ISMComponent, ItemIndex, Damage);
 }

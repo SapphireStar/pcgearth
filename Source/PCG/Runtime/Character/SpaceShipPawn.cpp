@@ -22,99 +22,6 @@
 #include "GeometryScript/MeshBasicEditFunctions.h"
 #include "GeometryScript/MeshQueryFunctions.h"
 
-void ASpaceShipPawn::DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, const FVector& acceleration)
-{
-	if (!MeshComponent)
-	{
-		return;
-	}
-
-	// 获取Actor位置作为起点
-	FVector ActorLocation = GetActorLocation();
-
-	// 获取物理组件的速度
-	FVector Velocity = MeshComponent->GetPhysicsLinearVelocity();
-
-	// 配置箭头显示参数
-	float ArrowSize = 50.0f; // 箭头大小
-	float ArrowThickness = 5.0f; // 箭头粗细
-	float LifeTime = 0.0f; // 0表示只显示一帧，-1表示持续显示
-	uint8 DepthPriority = 0; // 深度优先级
-
-	// 速度向量的缩放系数（可根据需要调整）
-	float VelocityScale = 0.1f; // 速度通常较大，需要缩放
-	float AccelerationScale = 100.0f; // 加速度通常较小，需要放大
-
-	// 绘制速度箭头（绿色）
-	if (!Velocity.IsNearlyZero())
-	{
-		FVector VelocityEnd = ActorLocation + (Velocity * VelocityScale);
-
-		DrawDebugDirectionalArrow(
-			GetWorld(),
-			ActorLocation, // 起点
-			VelocityEnd, // 终点
-			ArrowSize, // 箭头大小
-			FColor::Green, // 颜色：绿色代表速度
-			false, // 是否持续显示
-			LifeTime, // 生命周期
-			DepthPriority, // 深度优先级
-			ArrowThickness // 粗细
-		);
-
-		// 添加文本标签
-		DrawDebugString(
-			GetWorld(),
-			VelocityEnd + FVector(0, 0, 20), // 稍微偏移显示文本
-			FString::Printf(TEXT("Velocity: %.1f"), Velocity.Size()),
-			nullptr,
-			FColor::Green,
-			LifeTime
-		);
-	}
-
-	// 绘制加速度箭头（红色）
-	if (!acceleration.IsNearlyZero())
-	{
-		FVector AccelerationEnd = ActorLocation + (acceleration * AccelerationScale);
-
-		DrawDebugDirectionalArrow(
-			GetWorld(),
-			ActorLocation, // 起点
-			AccelerationEnd, // 终点
-			ArrowSize, // 箭头大小
-			FColor::Red, // 颜色：红色代表加速度
-			false, // 是否持续显示
-			LifeTime, // 生命周期
-			DepthPriority, // 深度优先级
-			ArrowThickness // 粗细
-		);
-
-		// 添加文本标签
-		DrawDebugString(
-			GetWorld(),
-			AccelerationEnd + FVector(0, 0, 40), // 稍微偏移显示文本
-			FString::Printf(TEXT("Acceleration: %.1f"), acceleration.Size()),
-			nullptr,
-			FColor::Red,
-			LifeTime
-		);
-	}
-
-	// 可选：绘制Actor位置的参考点
-	DrawDebugSphere(
-		GetWorld(),
-		ActorLocation,
-		20.0f, // 半径
-		12, // 段数
-		FColor::Blue, // 颜色
-		false, // 是否持续显示
-		LifeTime, // 生命周期
-		DepthPriority, // 深度优先级
-		2.0f // 线条粗细
-	);
-}
-
 // Sets default values
 ASpaceShipPawn::ASpaceShipPawn()
 {
@@ -231,9 +138,9 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
     FVector CameraRight = SpringArm->GetRightVector() * X;
     FVector DesiredMoveDirection = (CameraForward + CameraRight).GetSafeNormal();
 
-    FVector Currentvelocity = MainBody->GetPhysicsLinearVelocity();
-    float CurrentSpeed = Currentvelocity.Size();
-    FVector CurrentDirection = Currentvelocity.GetSafeNormal();
+    FVector CurrentVelocity = MainBody->GetPhysicsLinearVelocity();
+    float CurrentSpeed = CurrentVelocity.Size();
+    FVector CurrentDirection = CurrentVelocity.GetSafeNormal();
 
     bool bHasInput = !DesiredMoveDirection.IsNearlyZero();
 
@@ -310,7 +217,7 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
         float ExcessSpeed = CurrentSpeed - MaxSpeed;
         float ReductionFactor = FMath::Clamp(1.0f - (ExcessSpeed / MaxSpeed * 0.1f), 0.9f, 1.0f);
         
-        FVector LimitedVelocity = Currentvelocity * ReductionFactor;
+        FVector LimitedVelocity = CurrentVelocity * ReductionFactor;
         MainBody->SetPhysicsLinearVelocity(LimitedVelocity);
     }
 	/*FVector2D InputVector = Value.Get<FVector2D>();
@@ -702,10 +609,10 @@ void ASpaceShipPawn::UpdateFOVBasedOnSpeed(float DeltaTime)
 	float CurrentSpeed = HorizontalVelocity.Size();
 
 	// 计算目标FOV
-	float Targetfov = CalculateTargetFOV(CurrentSpeed);
+	float TargetFOV = CalculateTargetFOV(CurrentSpeed);
 
 	// 平滑插值到目标FOV
-	CurrentFOV = FMath::FInterpTo(CurrentFOV, Targetfov, DeltaTime, FOVInterpSpeed);
+	CurrentFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, FOVInterpSpeed);
 	PC->PlayerCameraManager->SetFOV(CurrentFOV);
 }
 
@@ -729,8 +636,4 @@ float ASpaceShipPawn::CalculateTargetFOV(float CurrentSpeed)
 	
     
 	return FMath::Lerp(DefaultFOV, SpeedFOV, SpeedRatio);
-}
-
-void ASpaceShipPawn::DrawDebugInfo()
-{
 }

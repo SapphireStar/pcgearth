@@ -68,10 +68,7 @@ public:
 	int FindVertex(const FVector& Target, UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	int FindLowestVertex(UDynamicMeshComponent* DynamicMeshComp, TArray<int32> VertexID);
 	TObjectPtr<UItemAbilityComponent> CreateAbilityComponent(EAbilityType eAbilityType, FName AbilityName);
-
-	void DrawDebugInfo();
-	void DrawVectorDebugArrows(UStaticMeshComponent* MeshComponent, const FVector& Acceleration);
-
+	
 	float GetLaserRange() const { return LaserRange; }
 
 	UFUNCTION(BlueprintCallable)

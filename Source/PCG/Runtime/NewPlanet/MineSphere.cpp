@@ -31,6 +31,7 @@ void AMineSphere::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	this->Radius = (float)RemainMinralCount/(float)TotalMineralCount * InitialRadius;
+	Sphere->SetSphereRadius(Radius);
 }
 
 void AMineSphere::UpdateMineSphere(float radius)

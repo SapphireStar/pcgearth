@@ -77,6 +77,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void GenerateMineMaterialTexture();
+
+	UFUNCTION(BlueprintCallable)
+	void UpdateMineMaterialTexture();
 	
 	UFUNCTION(BlueprintCallable)
 	void UpdateMineAreas();
@@ -88,6 +91,9 @@ public:
 	UDynamicMeshComponent* GetDynamicMeshComponent();
 
 	void SetPixelValue(int32 Offset, float X, float	Y, float Z, float A);
+
+	void SetShouldInitialize();
+	
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName = "PlanetRadius(km)")
@@ -120,8 +126,10 @@ protected:
 	TArray<AMineSphere*> MineSpheres;
 	
 private:
-	float UpdateTextureCD = 1;
+	float UpdateTextureCD = 1.f;
 	float UpdateTextureCounter = 0;
+	float UpdateDelay = 0.2f;
+	float UpdateDelayCounter = 0;
 	bool bIsTextureInitialized = false;
 	UPROPERTY()
 	UMaterialInstanceDynamic* DynamicMaterialInstance;
@@ -134,6 +142,7 @@ private:
 	uint32 TextureTotalPixels;
 	UPROPERTY()
 	UTexture2D* DynamicTexture;
+	UTexture2D* DynamicTextureBuffer;
 	FUpdateTextureRegion2D* TextureRegion;
 #pragma endregion
 
