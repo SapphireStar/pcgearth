@@ -138,9 +138,9 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
     FVector CameraRight = SpringArm->GetRightVector() * X;
     FVector DesiredMoveDirection = (CameraForward + CameraRight).GetSafeNormal();
 
-    FVector CurrentVelocity = MainBody->GetPhysicsLinearVelocity();
-    float CurrentSpeed = CurrentVelocity.Size();
-    FVector CurrentDirection = CurrentVelocity.GetSafeNormal();
+    FVector currentVelocity = MainBody->GetPhysicsLinearVelocity();
+    float CurrentSpeed = currentVelocity.Size();
+    FVector CurrentDirection = currentVelocity.GetSafeNormal();
 
     bool bHasInput = !DesiredMoveDirection.IsNearlyZero();
 
@@ -217,7 +217,7 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
         float ExcessSpeed = CurrentSpeed - MaxSpeed;
         float ReductionFactor = FMath::Clamp(1.0f - (ExcessSpeed / MaxSpeed * 0.1f), 0.9f, 1.0f);
         
-        FVector LimitedVelocity = CurrentVelocity * ReductionFactor;
+        FVector LimitedVelocity = currentVelocity * ReductionFactor;
         MainBody->SetPhysicsLinearVelocity(LimitedVelocity);
     }
 	/*FVector2D InputVector = Value.Get<FVector2D>();
@@ -609,10 +609,10 @@ void ASpaceShipPawn::UpdateFOVBasedOnSpeed(float DeltaTime)
 	float CurrentSpeed = HorizontalVelocity.Size();
 
 	// 计算目标FOV
-	float TargetFOV = CalculateTargetFOV(CurrentSpeed);
+	float targetFOV = CalculateTargetFOV(CurrentSpeed);
 
 	// 平滑插值到目标FOV
-	CurrentFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, FOVInterpSpeed);
+	CurrentFOV = FMath::FInterpTo(CurrentFOV, targetFOV, DeltaTime, FOVInterpSpeed);
 	PC->PlayerCameraManager->SetFOV(CurrentFOV);
 }
 

@@ -353,7 +353,7 @@ void AGeometryPlanetActor::GenerateMineMaterialTexture()
 
 void AGeometryPlanetActor::UpdateMineMaterialTexture()
 {
-	while (TextureDataSize < MineSpheres.Num())
+	while (TextureDataSize < static_cast<uint32>(MineSpheres.Num()))
 	{
 		TextureDataSize *= 2;
 	}
