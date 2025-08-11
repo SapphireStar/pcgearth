@@ -21,7 +21,6 @@ void AMiningBuilding::BeginPlay()
 void AMiningBuilding::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	OnTickFactory(DeltaTime);
 }
 
 void AMiningBuilding::SetMineSphere(AMineSphere* MineSphere)
