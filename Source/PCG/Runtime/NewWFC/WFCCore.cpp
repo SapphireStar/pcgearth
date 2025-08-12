@@ -72,7 +72,7 @@ void FWFCCore::InitializeGrid()
 
 	const int32 TileCount = TileSet->GetTileCount();
 	const int32 TotalCells = Config.GridSize.X * Config.GridSize.Y * Config.GridSize.Z;
-	
+
 
 	for (int32 X = 0; X < Config.GridSize.X; X++)
 	{
@@ -95,7 +95,7 @@ void FWFCCore::BuildPropagationRules()
 	const int32 TileCount = TileSet->GetTileCount();
 	PropagationRules.Empty();
 	PropagationRules.SetNum(6);
-	
+
 	for (int32 Dir = 0; Dir < 6; Dir++)
 	{
 		PropagationRules[Dir].SetNum(TileCount);
@@ -122,13 +122,11 @@ void FWFCCore::BuildPropagationRules()
 				{
 					PropagationRules[Dir][TileA].Add(TileB);
 					TotalRules++;
-					
 				}
 			}
 		}
-		
 	}
-	
+
 	ValidatePropagationRules();
 }
 
@@ -166,7 +164,7 @@ void FWFCCore::CellPreProcess()
 	{
 		return;
 	}
-	
+
 	for (const auto& [Coord, Cell] : Grid)
 	{
 		if (IsBoundaryCoordinate(Coord))
@@ -185,6 +183,8 @@ FWFCGenerationResult FWFCCore::Generate()
 
 	TileInstanceCounts.Empty();
 	CollapseHistory.Empty();
+	BacktrackStack.Empty();
+	BacktrackCount = 0;
 	InitializeGrid();
 
 	while (!PropagationQueue.IsEmpty())
@@ -200,9 +200,13 @@ FWFCGenerationResult FWFCCore::Generate()
 	while (!Result.bSuccess)
 	{
 		if (count >= 100)
-		{break;}
+		{
+			break;
+		}
 		TileInstanceCounts.Empty();
 		CollapseHistory.Empty();
+		BacktrackStack.Empty();
+		BacktrackCount = 0;
 		InitializeGrid();
 
 		while (!PropagationQueue.IsEmpty())
@@ -243,7 +247,6 @@ FWFCGenerationResult FWFCCore::Generate()
 	}
 	else
 	{
-
 		for (const auto& [Coord, Cell] : Grid)
 		{
 			if (Cell.IsCollapsed())
@@ -259,6 +262,7 @@ FWFCGenerationResult FWFCCore::Generate()
 
 	Result.GenerationTimeSeconds = FPlatformTime::Seconds() - StartTime;
 	Result.IterationsUsed = CollapseHistory.Num();
+	UE_LOG(LogTemp, Log, TEXT("Algorithm running time: %f"), Result.GenerationTimeSeconds);
 
 	return Result;
 }
@@ -277,12 +281,25 @@ bool FWFCCore::RunGenerationLoop()
 		if (!CollapseCell(NextCoord))
 		{
 
-			return false;
+				return false;
+			
 		}
 
 		if (!PropagateConstraints())
 		{
-			return false;
+			if (Config.bEnableBacktracking && BacktrackCount < Config.BacktrackingDepth)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Propagation failed, try backtrack"));
+				if (!Backtrack())
+				{
+					return false;
+				}
+				BacktrackCount++;
+			}
+			else
+			{
+				return false;
+			}
 		}
 	}
 
@@ -412,7 +429,7 @@ FWFCCoordinate FWFCCore::SelectCellLayered()
 		float MinEntropy = FLT_MAX;
 		TArray<FWFCCoordinate> LayerCandidates;
 
-		for (int32 X = 0; X < Config.GridSize.X ; X++)
+		for (int32 X = 0; X < Config.GridSize.X; X++)
 		{
 			for (int32 Y = 0; Y < Config.GridSize.Y; Y++)
 			{
@@ -522,6 +539,8 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 	{
 		return false;
 	}
+	if (Config.bEnableBacktracking)
+		PushToBacktrack(Coord, SelectedTile);
 
 	Cell->bCollapsed = true;
 	Cell->CollapsedTileIndex = SelectedTile;
@@ -531,10 +550,12 @@ bool FWFCCore::CollapseCell(const FWFCCoordinate& Coord)
 
 	TileInstanceCounts.FindOrAdd(SelectedTile, 0)++;
 
+	
+
 	CollapseHistory.Add(Coord);
 
 	QueuePropagation(Coord);
-	
+
 
 	return true;
 }
@@ -637,7 +658,6 @@ bool FWFCCore::PropagateConstraints()
 
 	while (!PropagationQueue.IsEmpty() && PropagationSteps < MaxPropagationSteps)
 	{
-		
 		FWFCCoordinate CurrentCoord;
 		PropagationQueue.Dequeue(CurrentCoord);
 		PropagationSteps++;
@@ -653,6 +673,50 @@ bool FWFCCore::PropagateConstraints()
 	}
 
 	return true;
+}
+
+void FWFCCore::PushToBacktrack(FWFCCoordinate Coord, int SelectedTileIndex)
+{
+	FWFCBacktrackState NewState;
+	NewState.CollapseCoordinate = Coord;
+	NewState.CollapseHistory = CollapseHistory;
+	NewState.GridSnapshot = Grid;
+	NewState.SelectedTileIndex = SelectedTileIndex;
+	NewState.TriedTiles = TSet<int32>();
+	BacktrackStack.Push(NewState);
+}
+
+bool FWFCCore::Backtrack()
+{
+	PropagationQueue.Empty();
+	while (BacktrackStack.Num() > 0)
+	{
+		
+		FWFCBacktrackState& LastState = BacktrackStack.Last();
+		FWFCCoordinate LastCoord = LastState.CollapseCoordinate;
+		Grid = LastState.GridSnapshot;
+		CollapseHistory = LastState.CollapseHistory;
+		LastState.TriedTiles.Add(LastState.SelectedTileIndex);
+		FWFCCell* Cell = GetCell(LastCoord);
+		UE_LOG(LogTemp, Log, TEXT("Backtrack to %s"), *LastCoord.ToString());
+		for (int i = 0; i < Cell->PossibleTiles.Num(); i++)
+		{
+			if (Cell->PossibleTiles[i] && ! LastState.TriedTiles.Contains(i))
+			{
+				LastState.TriedTiles.Add(i);
+				Cell->bCollapsed = true;
+				Cell->CollapsedTileIndex = i;
+				Cell->PossibleTiles.SetRange(0, Cell->PossibleTiles.Num(), false);
+				Cell->PossibleTiles[i] = true;
+				Cell->Entropy = 0;
+				QueuePropagation(LastCoord);
+				UE_LOG(LogTemp, Log, TEXT("Change SeletedTile to %s"), *TileSet->GetTile(i).TileName);
+				return true;
+			}
+		}
+		BacktrackStack.Pop();
+	}
+	return false;
 }
 
 bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
@@ -704,10 +768,9 @@ bool FWFCCore::PropagateFrom(const FWFCCoordinate& Coord)
 			{
 				return false;
 			}
-
 		}
 	}
-	
+
 	return true;
 }
 
@@ -740,7 +803,7 @@ bool FWFCCore::RemoveTileOption(const FWFCCoordinate& Coord, int32 TileIndex, bo
 				Cell->CollapsedTileIndex = i;
 				TileInstanceCounts.FindOrAdd(i, 0)++;
 				CollapseHistory.Add(Coord);
-				
+
 				break;
 			}
 		}
@@ -1017,13 +1080,13 @@ void FWFCCore::ApplyCachedGrid(const FWFCPreProcessCacheData& CacheData)
 	for (const auto& [Coord, CachedCell] : CacheData.CachedGrid)
 	{
 		FWFCCell& Cell = Grid.Add(Coord, FWFCCell(TileSet->GetTileCount()));
-        
+
 		Cell.PossibleTiles.SetNum(CachedCell.PossibleTiles.Num(), false);
 		for (int32 i = 0; i < CachedCell.PossibleTiles.Num(); i++)
 		{
 			Cell.PossibleTiles[i] = CachedCell.PossibleTiles[i];
 		}
-        
+
 		Cell.bCollapsed = CachedCell.bCollapsed;
 		Cell.CollapsedTileIndex = CachedCell.CollapsedTileIndex;
 		Cell.Entropy = CachedCell.Entropy;
