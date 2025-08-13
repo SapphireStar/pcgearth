@@ -233,6 +233,9 @@ struct FFactoryInfo
 	float FactoryRadius;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsFactoryActivated;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bEnableFactorySphereCollision;
 };
 
@@ -302,6 +305,8 @@ struct PCG_API FTooltipInfo
 	TArray<FResourceStatus> Consume;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FResourceStatus> Output;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsActivated;
 
 };
 

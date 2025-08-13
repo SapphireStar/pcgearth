@@ -70,7 +70,7 @@ FTooltipInfo ACraftingBuilding::GetFactoryTooltipInfo_Implementation()
 	ConsumeStatus.ResourceType = EFactoryResource::EFR_Wood;
 	ConsumeStatus.Value = Volume;
 	TooltipInfo.Consume.Add(ConsumeStatus);
-	
+	TooltipInfo.bIsActivated = bIsFactoryActivated;
 	if (LastInputValues.Num()==0) return TooltipInfo;
 	for (int i = 0; i < RecipeInfo.Input.Num(); i++)
 	{
@@ -84,5 +84,6 @@ FTooltipInfo ACraftingBuilding::GetFactoryTooltipInfo_Implementation()
 	OutputStatus.ResourceType = RecipeInfo.Output.ResourceType;
 	OutputStatus.Value = LastOutputValue;
 	TooltipInfo.Output.Add(OutputStatus);
+	TooltipInfo.bIsActivated = bIsFactoryActivated;
 	return TooltipInfo;
 }

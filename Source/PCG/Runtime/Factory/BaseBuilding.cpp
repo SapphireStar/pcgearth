@@ -86,6 +86,11 @@ FTooltipInfo ABaseBuilding::GetFactoryTooltipInfo_Implementation()
 	return FTooltipInfo();
 }
 
+void ABaseBuilding::SwitchFactoryOn()
+{
+	bIsFactoryActivated = !bIsFactoryActivated;
+}
+
 void ABaseBuilding::OnBuildFactory(int Volume)
 {
 	this->Volume =  Volume;

@@ -34,6 +34,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual FTooltipInfo GetFactoryTooltipInfo_Implementation();
 
+	UFUNCTION(BlueprintCallable)
+	void SwitchFactoryOn();
+	
+
 protected:
 	void OnBuildFactory(int Volume);
 	void OnTickFactory(float Deltatime);
