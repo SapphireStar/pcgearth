@@ -44,7 +44,7 @@ void ABaseBuilding::Tick(float DeltaTime)
 }
 
 // 初始化工厂数据，使用volume来计算工厂的效率
-void ABaseBuilding::BuildFactoryAt(FVector Position, int volume, FFactoryInfo Info)
+void ABaseBuilding::BuildFactoryAt(FVector Position, int Volume, FFactoryInfo Info)
 {
 	SetActorLocation(Position);
 	PCGGameMode = Cast<APCGGameMode>(GetWorld()->GetAuthGameMode());
@@ -56,7 +56,7 @@ void ABaseBuilding::BuildFactoryAt(FVector Position, int volume, FFactoryInfo In
 	PlayerData = PCGGameMode->PlayerData;
 	FactoryInfo = Info;
 	
-	OnBuildFactory(volume);
+	OnBuildFactory(Volume);
 
 	//如果启用了工厂的碰撞检测，才对其碰撞体积初始化
 	if (FactoryInfo.bEnableFactorySphereCollision)
@@ -86,10 +86,15 @@ FTooltipInfo ABaseBuilding::GetFactoryTooltipInfo_Implementation()
 	return FTooltipInfo();
 }
 
-void ABaseBuilding::OnBuildFactory(int volume)
+void ABaseBuilding::SwitchFactoryOn()
 {
-	this->Volume =  volume;
-	FactoryEfficiency = volume / FactoryInfo.EfficiencyDivider;
+	bIsFactoryActivated = !bIsFactoryActivated;
+}
+
+void ABaseBuilding::OnBuildFactory(int Volume)
+{
+	this->Volume =  Volume;
+	FactoryEfficiency = Volume / FactoryInfo.EfficiencyDivider;
 }
 
 void ABaseBuilding::OnTickFactory(float Deltatime)

@@ -25,15 +25,21 @@ struct FWFCCell
     bool CanPlace(int32 TileIndex) const { return PossibleTiles[TileIndex]; }
 };
 
-struct FWFCChange
+struct FWFCBacktrackState
 {
-    FWFCCoordinate Position;
-    int32 TileIndex;
-    bool bWasRemoved;
+    FWFCCoordinate CollapseCoordinate;
     
-    FWFCChange(const FWFCCoordinate& Pos, int32 Tile, bool Removed)
-        : Position(Pos), TileIndex(Tile), bWasRemoved(Removed) {}
+    int32 SelectedTileIndex;
+    
+    TMap<FWFCCoordinate, FWFCCell> GridSnapshot;
+
+    TArray<FWFCCoordinate> CollapseHistory;
+    
+    TMap<int32, int32> TileInstanceCountsSnapshot;
+    
+    TSet<int32> TriedTiles;
 };
+
 
 class PCG_API FWFCCore
 {
@@ -62,7 +68,9 @@ private:
     TArray<TArray<TArray<int32>>> PropagationRules; 
     TQueue<FWFCCoordinate> PropagationQueue;
     
-    TArray<FWFCCoordinate> CollapseHistory; 
+    TArray<FWFCCoordinate> CollapseHistory;
+    TArray<FWFCBacktrackState> BacktrackStack;
+    int BacktrackCount = 0;
     
     TMap<FWFCCoordinate, TArray<int32>> PositionConstraints;
     TMap<int32, int32> TileInstanceCounts;
@@ -80,6 +88,8 @@ public:
     bool CollapseCell(const FWFCCoordinate& Coord);
     bool CollapseCellTo(const FWFCCoordinate& Coord, int32 TileIndex);
     bool PropagateConstraints();
+    void PushToBacktrack(FWFCCoordinate Coord, int SelectedTileIndex);
+    bool Backtrack();
     
     FWFCCoordinate SelectCellRandom();
     FWFCCoordinate SelectCellGroundFirst();

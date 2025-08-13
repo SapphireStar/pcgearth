@@ -63,6 +63,7 @@ FTooltipInfo AMiningBuilding::GetFactoryTooltipInfo_Implementation()
 	ResourceStatus.ResourceType = MineSphere->GetCollectableResourceType_Implementation();
 	ResourceStatus.Value = LastGetMinralCount;
 	TooltipInfo.Output.Add(ResourceStatus);
+	TooltipInfo.bIsActivated = bIsFactoryActivated;
 	return TooltipInfo;
 }
 
